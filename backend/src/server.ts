@@ -8,10 +8,12 @@ import { apiLimiter } from './middleware/rateLimiter';
 
 // Import routes
 import authRoutes from './routes/auth';
-// import paymentRoutes from './routes/payments';
-// import subscriptionRoutes from './routes/subscriptions';
-// import invoiceRoutes from './routes/invoices';
-// import webhookRoutes from './routes/webhooks';
+import paymentRoutes from './routes/payments';
+import subscriptionRoutes from './routes/subscriptions';
+import invoiceRoutes from './routes/invoices';
+import webhookRoutes from './routes/webhooks';
+import paymentMethodRoutes from './routes/paymentMethods';
+import gdprRoutes from './routes/gdpr';
 
 const app: Application = express();
 
@@ -43,10 +45,12 @@ app.get('/health', (req, res) => {
 
 // API routes
 app.use('/api/auth', authRoutes);
-// app.use('/api/payments', paymentRoutes);
-// app.use('/api/subscriptions', subscriptionRoutes);
-// app.use('/api/invoices', invoiceRoutes);
-// app.use('/api/webhooks', webhookRoutes);
+app.use('/api/payments', paymentRoutes);
+app.use('/api/subscriptions', subscriptionRoutes);
+app.use('/api/invoices', invoiceRoutes);
+app.use('/api/webhooks', webhookRoutes);
+app.use('/api/payment-methods', paymentMethodRoutes);
+app.use('/api/gdpr', gdprRoutes);
 
 // 404 handler
 app.use(notFoundHandler);
