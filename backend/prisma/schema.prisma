@@ -1,0 +1,147 @@
+// Prisma Schema for Payment Portal
+// Database: PostgreSQL
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// User model
+model User {
+  id                  String    @id @default(uuid())
+  email               String    @unique
+  passwordHash        String    @map("password_hash")
+  firstName           String?   @map("first_name")
+  lastName            String?   @map("last_name")
+  helcimCustomerId    String?   @unique @map("helcim_customer_id")
+  createdAt           DateTime  @default(now()) @map("created_at")
+  updatedAt           DateTime  @updatedAt @map("updated_at")
+  deletedAt           DateTime? @map("deleted_at")
+  gdprConsent         Boolean   @default(false) @map("gdpr_consent")
+  gdprConsentDate     DateTime? @map("gdpr_consent_date")
+
+  // Relations
+  payments            Payment[]
+  subscriptions       Subscription[]
+  invoices            Invoice[]
+  paymentMethods      PaymentMethod[]
+  auditLogs           AuditLog[]
+
+  @@map("users")
+}
+
+// Payment model
+model Payment {
+  id                    String   @id @default(uuid())
+  userId                String   @map("user_id")
+  helcimTransactionId   String?  @unique @map("helcim_transaction_id")
+  amount                Decimal  @db.Decimal(10, 2)
+  currency              String   @default("USD")
+  status                String
+  paymentMethodType     String   @map("payment_method_type")
+  cardToken             String?  @map("card_token")
+  description           String?
+  metadata              Json?
+  createdAt             DateTime @default(now()) @map("created_at")
+  updatedAt             DateTime @updatedAt @map("updated_at")
+
+  // Relations
+  user                  User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("payments")
+  @@index([userId])
+  @@index([status])
+  @@index([createdAt])
+}
+
+// Subscription model
+model Subscription {
+  id                    String    @id @default(uuid())
+  userId                String    @map("user_id")
+  helcimSubscriptionId  String?   @unique @map("helcim_subscription_id")
+  planName              String    @map("plan_name")
+  planAmount            Decimal   @map("plan_amount") @db.Decimal(10, 2)
+  billingFrequency      String    @map("billing_frequency")
+  status                String
+  currentPeriodStart    DateTime  @map("current_period_start")
+  currentPeriodEnd      DateTime  @map("current_period_end")
+  nextBillingDate       DateTime? @map("next_billing_date")
+  cancelAtPeriodEnd     Boolean   @default(false) @map("cancel_at_period_end")
+  createdAt             DateTime  @default(now()) @map("created_at")
+  updatedAt             DateTime  @updatedAt @map("updated_at")
+  canceledAt            DateTime? @map("canceled_at")
+
+  // Relations
+  user                  User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("subscriptions")
+  @@index([userId])
+  @@index([status])
+}
+
+// Invoice model
+model Invoice {
+  id                String    @id @default(uuid())
+  userId            String    @map("user_id")
+  helcimInvoiceId   String?   @unique @map("helcim_invoice_id")
+  invoiceNumber     String    @unique @map("invoice_number")
+  amountDue         Decimal   @map("amount_due") @db.Decimal(10, 2)
+  amountPaid        Decimal   @map("amount_paid") @db.Decimal(10, 2)
+  currency          String    @default("USD")
+  status            String
+  dueDate           DateTime  @map("due_date")
+  paidAt            DateTime? @map("paid_at")
+  invoicePdfUrl     String?   @map("invoice_pdf_url")
+  createdAt         DateTime  @default(now()) @map("created_at")
+
+  // Relations
+  user              User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("invoices")
+  @@index([userId])
+  @@index([status])
+}
+
+// Payment Method model
+model PaymentMethod {
+  id                String   @id @default(uuid())
+  userId            String   @map("user_id")
+  helcimCardToken   String   @unique @map("helcim_card_token")
+  type              String
+  last4             String
+  brand             String
+  expMonth          Int      @map("exp_month")
+  expYear           Int      @map("exp_year")
+  cardholderName    String?  @map("cardholder_name")
+  isDefault         Boolean  @default(false) @map("is_default")
+  createdAt         DateTime @default(now()) @map("created_at")
+
+  // Relations
+  user              User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("payment_methods")
+  @@index([userId])
+}
+
+// Audit Log model
+model AuditLog {
+  id         String   @id @default(uuid())
+  userId     String?  @map("user_id")
+  action     String
+  ipAddress  String?  @map("ip_address")
+  userAgent  String?  @map("user_agent")
+  metadata   Json?
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  // Relations
+  user       User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@map("audit_logs")
+  @@index([userId])
+  @@index([action])
+  @@index([createdAt])
+}
