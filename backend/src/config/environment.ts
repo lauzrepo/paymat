@@ -19,6 +19,7 @@ const envSchema = z.object({
   FRONTEND_URL: z.string().url(),
   ALLOWED_ORIGINS: z.string().default('http://localhost:3000'),
   BILLING_SECRET: z.string().optional(),
+  HELCIM_TEST_MODE: z.enum(['true', 'false']).default('false'),
   BCRYPT_ROUNDS: z.string().default('10'),
   RATE_LIMIT_WINDOW_MS: z.string().default('900000'),
   RATE_LIMIT_MAX_REQUESTS: z.string().default('100'),
@@ -63,6 +64,7 @@ export const config = {
     apiToken: env.HELCIM_API_TOKEN,
     webhookSecret: env.HELCIM_WEBHOOK_SECRET,
     baseUrl: env.HELCIM_API_BASE_URL,
+    testMode: env.HELCIM_TEST_MODE === 'true',
   },
   frontend: {
     url: env.FRONTEND_URL,

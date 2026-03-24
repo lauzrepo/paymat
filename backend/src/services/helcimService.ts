@@ -11,6 +11,9 @@ const helcimAxios = axios.create({
   },
 });
 
+const stub = (method: string, data?: object) =>
+  logger.debug(`[HelcimStub] ${method}`, data ?? {});
+
 class HelcimService {
   // ---------------------------------------------------------------------------
   // Payments
@@ -23,6 +26,11 @@ class HelcimService {
     customerId?: string;
     description?: string;
   }) {
+    if (config.helcim.testMode) {
+      stub('processPayment', data);
+      return { transactionId: `test-txn-${Date.now()}`, status: 'succeeded', amount: data.amount, currency: data.currency };
+    }
+
     logger.info(`[Helcim] processPayment $${data.amount} ${data.currency}`);
     const response = await helcimAxios.post('/payment/purchase', {
       ipAddress: '127.0.0.1',
@@ -45,6 +53,11 @@ class HelcimService {
   }
 
   async refundTransaction(transactionId: string, amount?: number) {
+    if (config.helcim.testMode) {
+      stub('refundTransaction', { transactionId, amount });
+      return { refundId: `test-refund-${Date.now()}`, transactionId, status: 'refunded', amount };
+    }
+
     logger.info(`[Helcim] refund txn ${transactionId}`);
     const response = await helcimAxios.post('/payment/refund', {
       ipAddress: '127.0.0.1',
@@ -67,11 +80,12 @@ class HelcimService {
   // HelcimPay.js — card tokenization
   // ---------------------------------------------------------------------------
 
-  /**
-   * Initialize a HelcimPay.js checkout session used to tokenize a card.
-   * Amount $0 is enough to capture a card token without charging.
-   */
   async initializeCheckout(amount = 0, currency = 'USD') {
+    if (config.helcim.testMode) {
+      stub('initializeCheckout', { amount, currency });
+      return { secretToken: 'test-secret', checkoutToken: 'test-checkout-token' };
+    }
+
     logger.info(`[Helcim] initializeCheckout amount=${amount}`);
     const response = await helcimAxios.post('/helcim-pay/initialize', {
       paymentType: 'purchase',
@@ -79,7 +93,6 @@ class HelcimService {
       currency,
       hasConvenienceFee: false,
     });
-    // Returns { secretToken, checkoutToken }
     return response.data as { secretToken: string; checkoutToken: string };
   }
 
