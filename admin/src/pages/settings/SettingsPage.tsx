@@ -22,9 +22,9 @@ export function SettingsPage() {
   useEffect(() => {
     if (branding) {
       setForm({
-        name: (branding as Record<string, string>).name ?? '',
-        type: (branding as Record<string, string>).type ?? '',
-        timezone: (branding as Record<string, string>).timezone ?? '',
+        name: branding.name ?? '',
+        type: branding.type ?? '',
+        timezone: branding.timezone ?? '',
         primaryColor: branding.primaryColor ?? '',
         logoUrl: branding.logoUrl ?? '',
       });

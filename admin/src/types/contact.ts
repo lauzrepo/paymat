@@ -14,6 +14,15 @@ export interface Contact {
   updatedAt: string;
   family?: { id: string; name: string } | null;
   enrollments?: ContactEnrollment[];
+  invoices?: ContactInvoice[];
+}
+
+export interface ContactInvoice {
+  id: string;
+  invoiceNumber: string;
+  amountDue: number;
+  status: string;
+  dueDate: string;
 }
 
 export interface ContactEnrollment {

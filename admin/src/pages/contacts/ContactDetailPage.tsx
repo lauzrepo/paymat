@@ -1,6 +1,6 @@
 import { useParams, Link } from 'react-router-dom';
 import { ChevronLeft } from 'lucide-react';
-import { useContact, useUpdateContact, useDeactivateContact } from '../../hooks/useContacts';
+import { useContact, useDeactivateContact } from '../../hooks/useContacts';
 import { Card, CardHeader, CardBody } from '../../components/ui/Card';
 import { Button } from '../../components/ui/Button';
 import { Badge } from '../../components/ui/Badge';

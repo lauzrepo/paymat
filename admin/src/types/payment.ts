@@ -1,3 +1,5 @@
+export type PaymentStatus = 'completed' | 'failed' | 'pending' | 'refunded';
+
 export interface Payment {
   id: string;
   organizationId: string;

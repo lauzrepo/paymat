@@ -2,6 +2,8 @@ import { apiClient } from '../lib/axios';
 
 export interface TenantBranding {
   name: string;
+  type: string | null;
+  timezone: string | null;
   logoUrl: string | null;
   primaryColor: string | null;
 }
