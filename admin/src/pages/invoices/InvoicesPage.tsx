@@ -1,7 +1,8 @@
 import { useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { Plus, DollarSign, FileText, AlertCircle, CheckCircle } from 'lucide-react';
-import { useInvoices, useInvoiceStats, useCreateInvoice, useMarkInvoicePaid, useVoidInvoice } from '../../hooks/useInvoices';
+import { useInvoices, useInvoiceStats, useCreateInvoice, useVoidInvoice } from '../../hooks/useInvoices';
+import { useProcessPayment } from '../../hooks/usePayments';
 import { useContacts } from '../../hooks/useContacts';
 import { Card, CardHeader, CardBody } from '../../components/ui/Card';
 import { Button } from '../../components/ui/Button';
@@ -21,12 +22,32 @@ export function InvoicesPage() {
   const [lineItems, setLineItems] = useState([{ description: '', quantity: 1, unitPrice: '' }]);
   const [form, setForm] = useState({ contactId: '', dueDate: '', notes: '' });
 
+  const [paymentModal, setPaymentModal] = useState<{ invoiceId: string; invoiceNumber: string; amountDue: number } | null>(null);
+  const [paymentForm, setPaymentForm] = useState({ amount: '', method: 'cash', notes: '' });
+
   const invoices = useInvoices({ status: status || undefined, contactId: searchParams.get('contactId') ?? undefined });
   const stats = useInvoiceStats();
   const contacts = useContacts();
   const create = useCreateInvoice();
-  const markPaid = useMarkInvoicePaid();
+  const recordPayment = useProcessPayment();
   const voidInv = useVoidInvoice();
+
+  const openPaymentModal = (inv: { id: string; invoiceNumber: string; amountDue: number }) => {
+    setPaymentModal({ invoiceId: inv.id, invoiceNumber: inv.invoiceNumber, amountDue: inv.amountDue });
+    setPaymentForm({ amount: String(inv.amountDue), method: 'cash', notes: '' });
+  };
+
+  const handleRecordPayment = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!paymentModal) return;
+    await recordPayment.mutateAsync({
+      invoiceId: paymentModal.invoiceId,
+      amount: parseFloat(paymentForm.amount),
+      paymentMethodType: paymentForm.method,
+      notes: paymentForm.notes || undefined,
+    });
+    setPaymentModal(null);
+  };
 
   const handleCreate = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -197,7 +218,7 @@ export function InvoicesPage() {
                       <div className="flex gap-1">
                         {inv.status !== 'paid' && inv.status !== 'void' && (
                           <>
-                            <Button variant="ghost" size="sm" loading={markPaid.isPending} onClick={() => markPaid.mutate(inv.id)}>Mark paid</Button>
+                            <Button variant="ghost" size="sm" onClick={() => openPaymentModal(inv)}>Record payment</Button>
                             <Button variant="ghost" size="sm" onClick={() => voidInv.mutate(inv.id)}>Void</Button>
                           </>
                         )}
@@ -210,6 +231,53 @@ export function InvoicesPage() {
           )}
         </CardBody>
       </Card>
+      {paymentModal && (
+        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
+          <div className="bg-white rounded-xl shadow-xl w-full max-w-md p-6">
+            <h2 className="text-base font-semibold text-gray-900 mb-4">Record Payment — {paymentModal.invoiceNumber}</h2>
+            <form onSubmit={handleRecordPayment} className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Amount ($)</label>
+                <input
+                  type="number" step="0.01" min="0.01" required
+                  value={paymentForm.amount}
+                  onChange={(e) => setPaymentForm({ ...paymentForm, amount: e.target.value })}
+                  className="w-full text-sm border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                />
+                <p className="text-xs text-gray-400 mt-1">Invoice total: ${paymentModal.amountDue}</p>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Payment method</label>
+                <select
+                  value={paymentForm.method}
+                  onChange={(e) => setPaymentForm({ ...paymentForm, method: e.target.value })}
+                  className="appearance-none bg-white w-full text-sm border border-gray-300 rounded-lg px-3 py-2 pr-8 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                >
+                  <option value="cash">Cash</option>
+                  <option value="check">Check</option>
+                  <option value="bank_transfer">Bank transfer</option>
+                  <option value="card">Card (manual)</option>
+                  <option value="other">Other</option>
+                </select>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Notes (optional)</label>
+                <input
+                  type="text"
+                  value={paymentForm.notes}
+                  onChange={(e) => setPaymentForm({ ...paymentForm, notes: e.target.value })}
+                  placeholder="e.g. Check #1042"
+                  className="w-full text-sm border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                />
+              </div>
+              <div className="flex gap-3 justify-end pt-2">
+                <Button type="button" variant="secondary" onClick={() => setPaymentModal(null)}>Cancel</Button>
+                <Button type="submit" loading={recordPayment.isPending}>Record payment</Button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

@@ -4,13 +4,15 @@ import helcimService from './helcimService';
 import { AppError } from '../middleware/errorHandler';
 import logger from '../utils/logger';
 
+const MANUAL_METHODS = ['cash', 'check', 'bank_transfer', 'other'];
+
 export interface ProcessPaymentData {
   organizationId: string;
   invoiceId: string;
   userId?: string;
   amount: number;
   currency?: string;
-  cardToken: string;
+  cardToken?: string;
   paymentMethodType?: string;
   notes?: string;
 }
@@ -27,24 +29,33 @@ class PaymentService {
     if (invoice.status === 'paid') throw new AppError(400, 'Invoice is already paid');
     if (invoice.status === 'void') throw new AppError(400, 'Cannot pay a voided invoice');
 
-    const helcimTransaction = await helcimService.processPayment({
-      amount,
-      currency,
-      cardToken,
-      customerId: invoice.contact?.helcimToken ?? undefined,
-    });
+    const isManual = !cardToken || MANUAL_METHODS.includes(paymentMethodType);
+
+    let helcimTransactionId: string | undefined;
+    let status = 'succeeded';
+
+    if (!isManual) {
+      const helcimTransaction = await helcimService.processPayment({
+        amount,
+        currency,
+        cardToken: cardToken!,
+        customerId: invoice.contact?.helcimToken ?? undefined,
+      });
+      helcimTransactionId = helcimTransaction.transactionId;
+      status = helcimTransaction.status || 'succeeded';
+    }
 
     const payment = await prisma.payment.create({
       data: {
         organizationId,
         invoiceId,
         userId,
-        helcimTransactionId: helcimTransaction.transactionId,
+        helcimTransactionId: helcimTransactionId ?? null,
         amount: new Decimal(amount),
         currency,
-        status: helcimTransaction.status || 'succeeded',
+        status,
         paymentMethodType,
-        cardToken,
+        cardToken: cardToken ?? null,
         notes,
       },
     });

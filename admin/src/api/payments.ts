@@ -12,7 +12,7 @@ export const getPaymentStats = (): Promise<PaymentStats> =>
 export const getPayment = (id: string): Promise<Payment> =>
   apiClient.get(`/payments/${id}`).then((r) => r.data.data.payment);
 
-export const processPayment = (body: { invoiceId: string; amount: number; currency?: string; cardToken: string; paymentMethodType?: string; notes?: string }): Promise<Payment> =>
+export const processPayment = (body: { invoiceId: string; amount: number; currency?: string; cardToken?: string; paymentMethodType?: string; notes?: string }): Promise<Payment> =>
   apiClient.post('/payments', body).then((r) => r.data.data.payment);
 
 export const refundPayment = (id: string, amount?: number, reason?: string): Promise<void> =>
