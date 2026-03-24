@@ -23,3 +23,9 @@ export const reactivateContact = (id: string): Promise<Contact> =>
 
 export const deleteContactPermanent = (id: string): Promise<void> =>
   apiClient.delete(`/contacts/${id}/permanent`).then(() => undefined);
+
+export const initializeCardCheckout = (id: string): Promise<{ secretToken: string; checkoutToken: string }> =>
+  apiClient.post(`/contacts/${id}/card/initialize`).then((r) => r.data.data);
+
+export const saveCardToken = (id: string, cardToken: string): Promise<Contact> =>
+  apiClient.post(`/contacts/${id}/card/token`, { cardToken }).then((r) => r.data.data.contact);

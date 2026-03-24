@@ -8,6 +8,8 @@ import {
   deactivateContact,
   reactivateContact,
   deleteContact,
+  initializeCardCheckout,
+  saveCardToken,
 } from '../controllers/contactController';
 
 const router = Router();
@@ -20,6 +22,8 @@ router.post('/', requireRole('admin', 'staff'), createContact);
 router.get('/:id', getContact);
 router.put('/:id', requireRole('admin', 'staff'), updateContact);
 router.post('/:id/reactivate', requireRole('admin', 'staff'), reactivateContact);
+router.post('/:id/card/initialize', requireRole('admin', 'staff'), initializeCardCheckout);
+router.post('/:id/card/token', requireRole('admin', 'staff'), saveCardToken);
 router.delete('/:id/permanent', requireRole('admin'), deleteContact);
 router.delete('/:id', requireRole('admin'), deactivateContact);
 

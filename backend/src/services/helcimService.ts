@@ -1,84 +1,91 @@
 import crypto from 'crypto';
+import axios from 'axios';
 import { config } from '../config/environment';
 import logger from '../utils/logger';
 
-// ---------------------------------------------------------------------------
-// STUB — Helcim API is not called. All methods return fake data so the server
-// can run locally without real credentials.
-// ---------------------------------------------------------------------------
-
-const stub = (method: string, data?: object) => {
-  logger.debug(`[HelcimStub] ${method}`, data ?? {});
-};
+const helcimAxios = axios.create({
+  baseURL: config.helcim.baseUrl,
+  headers: {
+    'api-token': config.helcim.apiToken,
+    'Content-Type': 'application/json',
+  },
+});
 
 class HelcimService {
-  async createCustomer(customerData: { email: string; firstName: string; lastName: string }) {
-    stub('createCustomer', customerData);
-    return { customerId: `stub-customer-${Date.now()}`, ...customerData };
-  }
+  // ---------------------------------------------------------------------------
+  // Payments
+  // ---------------------------------------------------------------------------
 
-  async getCustomer(customerId: string) {
-    stub('getCustomer', { customerId });
-    return { customerId, email: 'stub@example.com', firstName: 'Stub', lastName: 'User' };
-  }
+  async processPayment(data: {
+    amount: number;
+    currency: string;
+    cardToken: string;
+    customerId?: string;
+    description?: string;
+  }) {
+    logger.info(`[Helcim] processPayment $${data.amount} ${data.currency}`);
+    const response = await helcimAxios.post('/payment/purchase', {
+      ipAddress: '127.0.0.1',
+      currency: data.currency,
+      amount: data.amount,
+      cardData: { cardToken: data.cardToken },
+      ecommerce: 1,
+    }, {
+      headers: { 'idempotency-key': crypto.randomUUID() },
+    });
 
-  async processPayment(paymentData: { amount: number; currency: string; cardToken: string; customerId?: string; description?: string }) {
-    stub('processPayment', paymentData);
+    const tx = response.data;
+    logger.info(`[Helcim] transaction ${tx.transactionId} status=${tx.status}`);
     return {
-      transactionId: `stub-txn-${Date.now()}`,
-      status: 'approved',
-      amount: paymentData.amount,
-      currency: paymentData.currency,
+      transactionId: String(tx.transactionId),
+      status: tx.status === 'APPROVED' ? 'succeeded' : 'failed',
+      amount: tx.amount,
+      currency: tx.currency,
     };
   }
 
-  async createCardToken(_cardData: { cardNumber: string; cvv: string; expiry: string }) {
-    stub('createCardToken');
-    return { cardToken: `stub-token-${Date.now()}`, last4: '4242', brand: 'Visa' };
-  }
-
-  async getCardTokens(customerId: string) {
-    stub('getCardTokens', { customerId });
-    return { tokens: [] };
-  }
-
-  async deleteCardToken(tokenId: string) {
-    stub('deleteCardToken', { tokenId });
-  }
-
-  async createRecurringPlan(planData: { customerId: string; amount: number; frequency: string; cardToken: string }) {
-    stub('createRecurringPlan', planData);
-    return { recurringId: `stub-recurring-${Date.now()}`, status: 'active', ...planData };
-  }
-
-  async getRecurringPlan(recurringId: string) {
-    stub('getRecurringPlan', { recurringId });
-    return { recurringId, status: 'active' };
-  }
-
-  async updateRecurringPlan(recurringId: string, updateData: { amount?: number; frequency?: string }) {
-    stub('updateRecurringPlan', { recurringId, ...updateData });
-    return { recurringId, status: 'active', ...updateData };
-  }
-
-  async cancelRecurringPlan(recurringId: string) {
-    stub('cancelRecurringPlan', { recurringId });
-  }
-
   async refundTransaction(transactionId: string, amount?: number) {
-    stub('refundTransaction', { transactionId, amount });
-    return { refundId: `stub-refund-${Date.now()}`, transactionId, status: 'refunded', amount };
+    logger.info(`[Helcim] refund txn ${transactionId}`);
+    const response = await helcimAxios.post('/payment/refund', {
+      ipAddress: '127.0.0.1',
+      originalTransactionId: parseInt(transactionId, 10),
+      ...(amount !== undefined && { amount }),
+    }, {
+      headers: { 'idempotency-key': crypto.randomUUID() },
+    });
+
+    const tx = response.data;
+    return {
+      refundId: String(tx.transactionId),
+      transactionId,
+      status: 'refunded',
+      amount: tx.amount,
+    };
   }
 
-  async getTransaction(transactionId: string) {
-    stub('getTransaction', { transactionId });
-    return { transactionId, status: 'approved' };
+  // ---------------------------------------------------------------------------
+  // HelcimPay.js — card tokenization
+  // ---------------------------------------------------------------------------
+
+  /**
+   * Initialize a HelcimPay.js checkout session used to tokenize a card.
+   * Amount $0 is enough to capture a card token without charging.
+   */
+  async initializeCheckout(amount = 0, currency = 'USD') {
+    logger.info(`[Helcim] initializeCheckout amount=${amount}`);
+    const response = await helcimAxios.post('/helcim-pay/initialize', {
+      paymentType: 'purchase',
+      amount,
+      currency,
+      hasConvenienceFee: false,
+    });
+    // Returns { secretToken, checkoutToken }
+    return response.data as { secretToken: string; checkoutToken: string };
   }
 
-  async listTransactions(params?: { customerId?: string; dateFrom?: string; dateTo?: string }) {
-    stub('listTransactions', params);
-    return { transactions: [] };
-  }
+  // ---------------------------------------------------------------------------
+  // Misc (retained for future use, not called by billing flow)
+  // ---------------------------------------------------------------------------
 
   verifyWebhookSignature(payload: string, signature: string): boolean {
     const expectedSignature = crypto
@@ -88,18 +95,9 @@ class HelcimService {
     return crypto.timingSafeEqual(Buffer.from(signature), Buffer.from(expectedSignature));
   }
 
-  async createInvoice(invoiceData: { customerId: string; amount: number; dueDate: string; items: Array<{ description: string; amount: number }> }) {
-    stub('createInvoice', invoiceData);
-    return { invoiceId: `stub-invoice-${Date.now()}`, status: 'created', ...invoiceData };
-  }
-
-  async getInvoice(invoiceId: string) {
-    stub('getInvoice', { invoiceId });
-    return { invoiceId, status: 'created' };
-  }
-
-  async sendInvoice(invoiceId: string) {
-    stub('sendInvoice', { invoiceId });
+  async getTransaction(transactionId: string) {
+    const response = await helcimAxios.get(`/transactions/${transactionId}`);
+    return response.data;
   }
 }
 

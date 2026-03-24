@@ -1,5 +1,7 @@
 import { Request, Response } from 'express';
 import contactService from '../services/contactService';
+import helcimService from '../services/helcimService';
+import prisma from '../config/database';
 import { asyncHandler, AppError } from '../middleware/errorHandler';
 
 export const createContact = asyncHandler(async (req: Request, res: Response) => {
@@ -45,6 +47,26 @@ export const updateContact = asyncHandler(async (req: Request, res: Response) =>
 export const deactivateContact = asyncHandler(async (req: Request, res: Response) => {
   if (!req.user) throw new AppError(401, 'Not authenticated');
   const contact = await contactService.deactivateContact(req.params.id, req.organization!.id);
+  res.status(200).json({ status: 'success', data: { contact } });
+});
+
+export const initializeCardCheckout = asyncHandler(async (req: Request, res: Response) => {
+  if (!req.user) throw new AppError(401, 'Not authenticated');
+  // Verify contact belongs to org
+  await contactService.getContactById(req.params.id, req.organization!.id);
+  const checkout = await helcimService.initializeCheckout(0, 'USD');
+  res.status(200).json({ status: 'success', data: checkout });
+});
+
+export const saveCardToken = asyncHandler(async (req: Request, res: Response) => {
+  if (!req.user) throw new AppError(401, 'Not authenticated');
+  const { cardToken } = req.body;
+  if (!cardToken) throw new AppError(400, 'cardToken is required');
+  await contactService.getContactById(req.params.id, req.organization!.id);
+  const contact = await prisma.contact.update({
+    where: { id: req.params.id },
+    data: { helcimToken: cardToken },
+  });
   res.status(200).json({ status: 'success', data: { contact } });
 });
 
