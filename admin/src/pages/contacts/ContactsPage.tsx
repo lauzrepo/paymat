@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Plus, Search } from 'lucide-react';
 import { useContacts, useCreateContact } from '../../hooks/useContacts';
+import { useFamilies } from '../../hooks/useFamilies';
 import { Card, CardHeader, CardBody } from '../../components/ui/Card';
 import { Button } from '../../components/ui/Button';
 import { Input } from '../../components/ui/Input';
@@ -13,16 +14,17 @@ export function ContactsPage() {
   const [search, setSearch] = useState('');
   const [status, setStatus] = useState('');
   const [showForm, setShowForm] = useState(false);
-  const [form, setForm] = useState({ firstName: '', lastName: '', email: '', phone: '' });
+  const [form, setForm] = useState({ firstName: '', lastName: '', email: '', phone: '', familyId: '' });
   const create = useCreateContact();
+  const families = useFamilies();
 
   const contacts = useContacts({ search: search || undefined, status: status || undefined });
 
   const handleCreate = async (e: React.FormEvent) => {
     e.preventDefault();
-    await create.mutateAsync(form);
+    await create.mutateAsync({ ...form, familyId: form.familyId || undefined });
     setShowForm(false);
-    setForm({ firstName: '', lastName: '', email: '', phone: '' });
+    setForm({ firstName: '', lastName: '', email: '', phone: '', familyId: '' });
   };
 
   return (
@@ -45,6 +47,19 @@ export function ContactsPage() {
               <Input label="Last name" id="lastName" value={form.lastName} onChange={(e) => setForm({ ...form, lastName: e.target.value })} required />
               <Input label="Email" id="email" type="email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} />
               <Input label="Phone" id="phone" value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} />
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Family (optional)</label>
+                <select
+                  value={form.familyId}
+                  onChange={(e) => setForm({ ...form, familyId: e.target.value })}
+                  className="appearance-none bg-white w-full text-sm border border-gray-300 rounded-lg px-3 py-2 pr-8 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                >
+                  <option value="">No family</option>
+                  {families.data?.items.map((f) => (
+                    <option key={f.id} value={f.id}>{f.name}</option>
+                  ))}
+                </select>
+              </div>
               <div className="col-span-2 flex gap-3 justify-end">
                 <Button type="button" variant="secondary" onClick={() => setShowForm(false)}>Cancel</Button>
                 <Button type="submit" loading={create.isPending}>Save</Button>
