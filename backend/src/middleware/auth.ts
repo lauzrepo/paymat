@@ -28,8 +28,11 @@ export const authenticateToken = (req: Request, _res: Response, next: NextFuncti
     req.user = payload;
     next();
   } catch (error) {
+    if (error instanceof jwt.TokenExpiredError) {
+      return next(new AppError(401, 'Token expired'));
+    }
     if (error instanceof jwt.JsonWebTokenError) {
-      return next(new AppError(403, 'Invalid or expired token'));
+      return next(new AppError(401, 'Invalid token'));
     }
     next(error);
   }
