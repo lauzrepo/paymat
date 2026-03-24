@@ -23,10 +23,7 @@ app.use(
   cors({
     origin: (origin, callback) => {
       if (!origin || config.app.isDevelopment) return callback(null, true);
-      const baseDomain = config.multiTenant.baseDomain;
-      if (origin.endsWith(`.${baseDomain}`) || origin === `https://${baseDomain}`) {
-        return callback(null, true);
-      }
+      if (config.frontend.allowedOrigins.includes(origin)) return callback(null, true);
       callback(new Error('Not allowed by CORS'));
     },
     credentials: true,
