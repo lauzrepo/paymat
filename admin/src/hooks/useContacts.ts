@@ -40,3 +40,10 @@ export function useDeactivateContact() {
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['contacts'] }),
   });
 }
+
+export function useDeleteContact() {
+  return useMutation({
+    mutationFn: api.deleteContactPermanent,
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['contacts'] }),
+  });
+}

@@ -47,3 +47,9 @@ export const deactivateContact = asyncHandler(async (req: Request, res: Response
   const contact = await contactService.deactivateContact(req.params.id, req.organization!.id);
   res.status(200).json({ status: 'success', data: { contact } });
 });
+
+export const deleteContact = asyncHandler(async (req: Request, res: Response) => {
+  if (!req.user) throw new AppError(401, 'Not authenticated');
+  await contactService.deleteContact(req.params.id, req.organization!.id);
+  res.status(204).send();
+});

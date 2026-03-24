@@ -38,6 +38,20 @@ export const authenticateToken = (req: Request, _res: Response, next: NextFuncti
   }
 };
 
+export const optionalAuth = (req: Request, _res: Response, next: NextFunction) => {
+  try {
+    const authHeader = req.headers['authorization'];
+    const token = authHeader && authHeader.split(' ')[1];
+    if (token) {
+      const payload = jwt.verify(token, config.jwt.secret) as JWTPayload;
+      req.user = payload;
+    }
+  } catch {
+    // ignore — controller will check req.user
+  }
+  next();
+};
+
 export const requireRole = (...roles: string[]) => {
   return (req: Request, _res: Response, next: NextFunction) => {
     if (!req.user) {

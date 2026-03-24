@@ -38,13 +38,13 @@ class EnrollmentService {
       // Re-activate cancelled enrollment
       return prisma.enrollment.update({
         where: { id: existing.id },
-        data: { status: 'active', startDate, endDate: null },
+        data: { status: 'active', startDate, endDate: null, nextBillingDate: startDate },
         include: { contact: true, program: true },
       });
     }
 
     return prisma.enrollment.create({
-      data: { contactId, programId, startDate },
+      data: { contactId, programId, startDate, nextBillingDate: startDate },
       include: { contact: true, program: true },
     });
   }

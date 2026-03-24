@@ -115,14 +115,15 @@ model Program {
 }
 
 model Enrollment {
-  id        String    @id @default(uuid())
-  contactId String    @map("contact_id")
-  programId String    @map("program_id")
-  status    String    @default("active")
-  startDate DateTime  @map("start_date")
-  endDate   DateTime? @map("end_date")
-  createdAt DateTime  @default(now()) @map("created_at")
-  updatedAt DateTime  @updatedAt @map("updated_at")
+  id              String    @id @default(uuid())
+  contactId       String    @map("contact_id")
+  programId       String    @map("program_id")
+  status          String    @default("active")
+  startDate       DateTime  @map("start_date")
+  endDate         DateTime? @map("end_date")
+  nextBillingDate DateTime? @map("next_billing_date")
+  createdAt       DateTime  @default(now()) @map("created_at")
+  updatedAt       DateTime  @updatedAt @map("updated_at")
 
   contact   Contact          @relation(fields: [contactId], references: [id])
   program   Program          @relation(fields: [programId], references: [id])

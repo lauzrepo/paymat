@@ -1,6 +1,6 @@
-import { useParams, Link } from 'react-router-dom';
+import { useParams, Link, useNavigate } from 'react-router-dom';
 import { ChevronLeft } from 'lucide-react';
-import { useContact, useDeactivateContact } from '../../hooks/useContacts';
+import { useContact, useDeactivateContact, useDeleteContact } from '../../hooks/useContacts';
 import { Card, CardHeader, CardBody } from '../../components/ui/Card';
 import { Button } from '../../components/ui/Button';
 import { Badge } from '../../components/ui/Badge';
@@ -16,8 +16,21 @@ const BILLING_FREQ_LABEL: Record<string, string> = {
 
 export function ContactDetailPage() {
   const { id } = useParams<{ id: string }>();
+  const navigate = useNavigate();
   const { data: contact, isLoading } = useContact(id!);
   const deactivate = useDeactivateContact();
+  const remove = useDeleteContact();
+
+  const handleDelete = async () => {
+    if (!window.confirm('Permanently delete this contact? This cannot be undone.\n\nNote: contacts with invoices or payments cannot be deleted — deactivate them instead.')) return;
+    try {
+      await remove.mutateAsync(contact!.id);
+      navigate('/contacts');
+    } catch (err: unknown) {
+      const msg = (err as { response?: { data?: { message?: string } } })?.response?.data?.message ?? 'Delete failed.';
+      alert(msg);
+    }
+  };
 
   if (isLoading) return <div className="flex justify-center py-20"><Spinner /></div>;
   if (!contact) return <p className="text-center py-20 text-gray-500">Contact not found.</p>;
@@ -60,6 +73,15 @@ export function ContactDetailPage() {
               Deactivate contact
             </Button>
           )}
+          <Button
+            variant="ghost"
+            size="sm"
+            loading={remove.isPending}
+            onClick={handleDelete}
+            className="text-red-500 hover:text-red-700"
+          >
+            Delete permanently
+          </Button>
         </div>
 
         <div className="lg:col-span-2 space-y-6">

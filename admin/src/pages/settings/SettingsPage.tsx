@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useTenantBranding } from '../../hooks/useTenant';
 import { updateOrgSettings } from '../../api/tenant';
 import { queryClient } from '../../lib/queryClient';
+import { useRunBilling } from '../../hooks/useBilling';
 import { Card, CardHeader, CardBody } from '../../components/ui/Card';
 import { Button } from '../../components/ui/Button';
 import { Input } from '../../components/ui/Input';
@@ -18,6 +19,8 @@ export function SettingsPage() {
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
   const [error, setError] = useState('');
+  const [billingResult, setBillingResult] = useState<string | null>(null);
+  const runBilling = useRunBilling();
 
   useEffect(() => {
     if (branding) {
@@ -44,6 +47,16 @@ export function SettingsPage() {
       setError('Failed to save settings. Please try again.');
     } finally {
       setSaving(false);
+    }
+  };
+
+  const handleRunBilling = async () => {
+    setBillingResult(null);
+    try {
+      const result = await runBilling.mutateAsync();
+      setBillingResult(`Done — ${result.invoicesCreated} invoice(s) created, ${result.autoCharged} auto-charged, ${result.errors} error(s).`);
+    } catch {
+      setBillingResult('Billing run failed. Check the server logs.');
     }
   };
 
@@ -121,6 +134,25 @@ export function SettingsPage() {
               <Button type="submit" loading={saving}>Save changes</Button>
             </div>
           </form>
+        </CardBody>
+      </Card>
+      <Card>
+        <CardHeader>
+          <h2 className="text-base font-semibold text-gray-900">Recurring Billing</h2>
+        </CardHeader>
+        <CardBody className="space-y-4">
+          <p className="text-sm text-gray-600">
+            Generate invoices for all active enrollments that are due today or overdue, and attempt auto-charge for contacts with a saved card.
+            This runs automatically each night via cron. Use the button below to trigger it manually.
+          </p>
+          {billingResult && (
+            <Alert variant={billingResult.includes('failed') ? 'error' : 'success'}>{billingResult}</Alert>
+          )}
+          <div>
+            <Button onClick={handleRunBilling} loading={runBilling.isPending} variant="secondary">
+              Run billing now
+            </Button>
+          </div>
         </CardBody>
       </Card>
     </div>

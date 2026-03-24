@@ -88,10 +88,30 @@ class ContactService {
 
   async deactivateContact(contactId: string, organizationId: string) {
     await this.getContactById(contactId, organizationId);
+    // Cancel all active/paused enrollments to stop future billing
+    await prisma.enrollment.updateMany({
+      where: { contactId, status: { in: ['active', 'paused'] } },
+      data: { status: 'cancelled', endDate: new Date(), nextBillingDate: null },
+    });
     return prisma.contact.update({
       where: { id: contactId },
       data: { status: 'inactive' },
     });
+  }
+
+  async deleteContact(contactId: string, organizationId: string) {
+    const contact = await this.getContactById(contactId, organizationId);
+    const [invoiceCount, paymentCount] = await Promise.all([
+      prisma.invoice.count({ where: { contactId } }),
+      prisma.payment.count({ where: { organizationId, invoiceId: { in: (await prisma.invoice.findMany({ where: { contactId }, select: { id: true } })).map((i) => i.id) } } }),
+    ]);
+    if (invoiceCount > 0 || paymentCount > 0) {
+      throw new AppError(400, 'Cannot delete a contact with invoices or payments. Deactivate instead.');
+    }
+    // Cancel enrollments first
+    await prisma.enrollment.deleteMany({ where: { contactId } });
+    await prisma.contact.delete({ where: { id: contactId } });
+    return contact;
   }
 }
 

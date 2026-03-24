@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Plus, Search } from 'lucide-react';
-import { useContacts, useCreateContact } from '../../hooks/useContacts';
+import { useContacts, useCreateContact, useDeactivateContact, useDeleteContact } from '../../hooks/useContacts';
 import { useFamilies } from '../../hooks/useFamilies';
 import { Card, CardHeader, CardBody } from '../../components/ui/Card';
 import { Button } from '../../components/ui/Button';
@@ -16,6 +16,8 @@ export function ContactsPage() {
   const [showForm, setShowForm] = useState(false);
   const [form, setForm] = useState({ firstName: '', lastName: '', email: '', phone: '', familyId: '' });
   const create = useCreateContact();
+  const deactivate = useDeactivateContact();
+  const remove = useDeleteContact();
   const families = useFamilies();
 
   const contacts = useContacts({ search: search || undefined, status: status || undefined });
@@ -108,6 +110,7 @@ export function ContactsPage() {
                   <th className="px-6 py-3 text-left">Family</th>
                   <th className="px-6 py-3 text-left">Status</th>
                   <th className="px-6 py-3 text-left">Added</th>
+                  <th className="px-6 py-3 text-left"></th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100">
@@ -124,6 +127,19 @@ export function ContactsPage() {
                       <Badge variant={c.status === 'active' ? 'green' : 'gray'}>{c.status}</Badge>
                     </td>
                     <td className="px-6 py-3 text-gray-500">{formatDate(c.createdAt)}</td>
+                    <td className="px-6 py-3">
+                      <div className="flex gap-1">
+                        {c.status === 'active' && (
+                          <Button variant="ghost" size="sm" onClick={() => deactivate.mutate(c.id)}>Deactivate</Button>
+                        )}
+                        <Button variant="ghost" size="sm" className="text-red-500 hover:text-red-700" onClick={async () => {
+                          if (!window.confirm(`Delete ${c.firstName} ${c.lastName} permanently?`)) return;
+                          try { await remove.mutateAsync(c.id); } catch (err: unknown) {
+                            alert((err as { response?: { data?: { message?: string } } })?.response?.data?.message ?? 'Delete failed.');
+                          }
+                        }}>Delete</Button>
+                      </div>
+                    </td>
                   </tr>
                 ))}
               </tbody>

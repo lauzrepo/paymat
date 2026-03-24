@@ -18,6 +18,7 @@ const envSchema = z.object({
   HELCIM_API_BASE_URL: z.string().url().default('https://api.helcim.com/v2'),
   FRONTEND_URL: z.string().url(),
   ALLOWED_ORIGINS: z.string().default('http://localhost:3000'),
+  BILLING_SECRET: z.string().optional(),
   BCRYPT_ROUNDS: z.string().default('10'),
   RATE_LIMIT_WINDOW_MS: z.string().default('900000'),
   RATE_LIMIT_MAX_REQUESTS: z.string().default('100'),
@@ -80,5 +81,8 @@ export const config = {
   multiTenant: {
     defaultSlug: env.DEFAULT_TENANT_SLUG,
     baseDomain: env.BASE_DOMAIN,
+  },
+  billing: {
+    secret: env.BILLING_SECRET,
   },
 };

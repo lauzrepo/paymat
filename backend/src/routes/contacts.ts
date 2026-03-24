@@ -6,6 +6,7 @@ import {
   getContact,
   updateContact,
   deactivateContact,
+  deleteContact,
 } from '../controllers/contactController';
 
 const router = Router();
@@ -17,6 +18,7 @@ router.get('/', getContacts);
 router.post('/', requireRole('admin', 'staff'), createContact);
 router.get('/:id', getContact);
 router.put('/:id', requireRole('admin', 'staff'), updateContact);
+router.delete('/:id/permanent', requireRole('admin'), deleteContact);
 router.delete('/:id', requireRole('admin'), deactivateContact);
 
 export default router;
