@@ -1,134 +1,76 @@
 import { Request, Response } from 'express';
 import paymentService from '../services/paymentService';
 import { asyncHandler, AppError } from '../middleware/errorHandler';
-import logger from '../utils/logger';
 import prisma from '../config/database';
 
-/**
- * Create and process a payment
- * POST /api/payments/create
- */
-export const createPayment = asyncHandler(async (req: Request, res: Response) => {
-  if (!req.user) {
-    throw new AppError(401, 'Not authenticated');
-  }
-
-  const { amount, currency, cardToken, description, paymentMethodId } = req.body;
+export const processPayment = asyncHandler(async (req: Request, res: Response) => {
+  if (!req.user) throw new AppError(401, 'Not authenticated');
+  const { invoiceId, amount, currency, cardToken, paymentMethodType, notes } = req.body;
 
   const payment = await paymentService.processPayment({
+    organizationId: req.organization!.id,
+    invoiceId,
     userId: req.user.userId,
     amount,
     currency,
     cardToken,
-    description,
-    paymentMethodId,
+    paymentMethodType,
+    notes,
   });
 
-  // Log audit
   await prisma.auditLog.create({
     data: {
+      organizationId: req.organization!.id,
       userId: req.user.userId,
-      action: 'PAYMENT_CREATED',
+      action: 'PAYMENT_PROCESSED',
       ipAddress: req.ip,
       userAgent: req.headers['user-agent'],
-      metadata: { paymentId: payment.id, amount, currency },
+      metadata: { paymentId: payment.id, invoiceId, amount },
     },
   });
 
-  logger.info(`Payment created: ${payment.id} by user ${req.user.email}`);
-
-  res.status(201).json({
-    status: 'success',
-    data: { payment },
-  });
+  res.status(201).json({ status: 'success', data: { payment } });
 });
 
-/**
- * Get payment history
- * GET /api/payments/history
- */
-export const getPaymentHistory = asyncHandler(async (req: Request, res: Response) => {
-  if (!req.user) {
-    throw new AppError(401, 'Not authenticated');
-  }
-
+export const getPayments = asyncHandler(async (req: Request, res: Response) => {
+  if (!req.user) throw new AppError(401, 'Not authenticated');
   const page = parseInt(req.query.page as string) || 1;
-  const limit = parseInt(req.query.limit as string) || 10;
-  const status = req.query.status as string | undefined;
-
-  const result = await paymentService.getPaymentHistory(req.user.userId, page, limit, status);
-
-  res.status(200).json({
-    status: 'success',
-    data: result,
+  const limit = parseInt(req.query.limit as string) || 20;
+  const result = await paymentService.getPayments(req.organization!.id, page, limit, {
+    status: req.query.status as string | undefined,
+    invoiceId: req.query.invoiceId as string | undefined,
   });
+  res.status(200).json({ status: 'success', data: result });
 });
 
-/**
- * Get single payment
- * GET /api/payments/:id
- */
 export const getPayment = asyncHandler(async (req: Request, res: Response) => {
-  if (!req.user) {
-    throw new AppError(401, 'Not authenticated');
-  }
-
-  const { id } = req.params;
-
-  const payment = await paymentService.getPaymentById(id, req.user.userId);
-
-  res.status(200).json({
-    status: 'success',
-    data: { payment },
-  });
+  if (!req.user) throw new AppError(401, 'Not authenticated');
+  const payment = await paymentService.getPaymentById(req.params.id, req.organization!.id);
+  res.status(200).json({ status: 'success', data: { payment } });
 });
 
-/**
- * Refund a payment
- * POST /api/payments/:id/refund
- */
 export const refundPayment = asyncHandler(async (req: Request, res: Response) => {
-  if (!req.user) {
-    throw new AppError(401, 'Not authenticated');
-  }
-
-  const { id } = req.params;
+  if (!req.user) throw new AppError(401, 'Not authenticated');
   const { amount, reason } = req.body;
 
-  const refund = await paymentService.refundPayment(id, req.user.userId, amount, reason);
+  await paymentService.refundPayment(req.params.id, req.organization!.id, amount, reason);
 
-  // Log audit
   await prisma.auditLog.create({
     data: {
+      organizationId: req.organization!.id,
       userId: req.user.userId,
       action: 'PAYMENT_REFUNDED',
       ipAddress: req.ip,
       userAgent: req.headers['user-agent'],
-      metadata: { paymentId: id, amount, reason },
+      metadata: { paymentId: req.params.id, amount, reason },
     },
   });
 
-  logger.info(`Payment refunded: ${id} by user ${req.user.email}`);
-
-  res.status(200).json({
-    status: 'success',
-    data: { refund },
-  });
+  res.status(200).json({ status: 'success', message: 'Payment refunded successfully' });
 });
 
-/**
- * Get payment statistics
- * GET /api/payments/stats
- */
 export const getPaymentStats = asyncHandler(async (req: Request, res: Response) => {
-  if (!req.user) {
-    throw new AppError(401, 'Not authenticated');
-  }
-
-  const stats = await paymentService.getPaymentStats(req.user.userId);
-
-  res.status(200).json({
-    status: 'success',
-    data: { stats },
-  });
+  if (!req.user) throw new AppError(401, 'Not authenticated');
+  const stats = await paymentService.getStats(req.organization!.id);
+  res.status(200).json({ status: 'success', data: { stats } });
 });

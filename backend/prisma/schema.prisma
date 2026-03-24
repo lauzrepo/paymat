@@ -1,6 +1,3 @@
-// Prisma Schema for Payment Portal
-// Database: PostgreSQL
-
 generator client {
   provider = "prisma-client-js"
 }
@@ -10,138 +7,215 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-// User model
+model Organization {
+  id           String   @id @default(uuid())
+  slug         String   @unique
+  name         String
+  type         String   @default("general")
+  timezone     String   @default("America/New_York")
+  logoUrl      String?  @map("logo_url")
+  primaryColor String?  @map("primary_color")
+  isActive     Boolean  @default(true) @map("is_active")
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
+
+  users      User[]
+  contacts   Contact[]
+  families   Family[]
+  programs   Program[]
+  invoices   Invoice[]
+  payments   Payment[]
+  auditLogs  AuditLog[]
+
+  @@map("organizations")
+}
+
 model User {
   id                  String    @id @default(uuid())
-  email               String    @unique
+  organizationId      String    @map("organization_id")
+  email               String
   passwordHash        String    @map("password_hash")
   firstName           String?   @map("first_name")
   lastName            String?   @map("last_name")
-  helcimCustomerId    String?   @unique @map("helcim_customer_id")
+  role                String    @default("admin")
+  contactId           String?   @unique @map("contact_id")
   createdAt           DateTime  @default(now()) @map("created_at")
   updatedAt           DateTime  @updatedAt @map("updated_at")
   deletedAt           DateTime? @map("deleted_at")
-  gdprConsent         Boolean   @default(false) @map("gdpr_consent")
-  gdprConsentDate     DateTime? @map("gdpr_consent_date")
+  passwordResetToken  String?   @map("password_reset_token")
+  passwordResetExpiry DateTime? @map("password_reset_expiry")
 
-  // Relations
-  payments            Payment[]
-  subscriptions       Subscription[]
-  invoices            Invoice[]
-  paymentMethods      PaymentMethod[]
-  auditLogs           AuditLog[]
+  organization Organization @relation(fields: [organizationId], references: [id])
+  contact      Contact?     @relation(fields: [contactId], references: [id])
+  payments     Payment[]
+  auditLogs    AuditLog[]
 
+  @@unique([organizationId, email])
   @@map("users")
 }
 
-// Payment model
-model Payment {
-  id                    String   @id @default(uuid())
-  userId                String   @map("user_id")
-  helcimTransactionId   String?  @unique @map("helcim_transaction_id")
-  amount                Decimal  @db.Decimal(10, 2)
-  currency              String   @default("USD")
-  status                String
-  paymentMethodType     String   @map("payment_method_type")
-  cardToken             String?  @map("card_token")
-  description           String?
-  metadata              Json?
-  createdAt             DateTime @default(now()) @map("created_at")
-  updatedAt             DateTime @updatedAt @map("updated_at")
+model Contact {
+  id             String    @id @default(uuid())
+  organizationId String    @map("organization_id")
+  familyId       String?   @map("family_id")
+  firstName      String    @map("first_name")
+  lastName       String    @map("last_name")
+  email          String?
+  phone          String?
+  dateOfBirth    DateTime? @map("date_of_birth")
+  notes          String?
+  helcimToken    String?   @unique @map("helcim_token")
+  status         String    @default("active")
+  createdAt      DateTime  @default(now()) @map("created_at")
+  updatedAt      DateTime  @updatedAt @map("updated_at")
 
-  // Relations
-  user                  User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  organization Organization @relation(fields: [organizationId], references: [id])
+  family       Family?      @relation(fields: [familyId], references: [id])
+  user         User?
+  enrollments  Enrollment[]
+  invoices     Invoice[]
 
-  @@map("payments")
-  @@index([userId])
-  @@index([status])
-  @@index([createdAt])
+  @@index([organizationId])
+  @@map("contacts")
 }
 
-// Subscription model
-model Subscription {
-  id                    String    @id @default(uuid())
-  userId                String    @map("user_id")
-  helcimSubscriptionId  String?   @unique @map("helcim_subscription_id")
-  planName              String    @map("plan_name")
-  planAmount            Decimal   @map("plan_amount") @db.Decimal(10, 2)
-  billingFrequency      String    @map("billing_frequency")
-  status                String
-  currentPeriodStart    DateTime  @map("current_period_start")
-  currentPeriodEnd      DateTime  @map("current_period_end")
-  nextBillingDate       DateTime? @map("next_billing_date")
-  cancelAtPeriodEnd     Boolean   @default(false) @map("cancel_at_period_end")
-  createdAt             DateTime  @default(now()) @map("created_at")
-  updatedAt             DateTime  @updatedAt @map("updated_at")
-  canceledAt            DateTime? @map("canceled_at")
+model Family {
+  id             String   @id @default(uuid())
+  organizationId String   @map("organization_id")
+  name           String
+  billingEmail   String?  @map("billing_email")
+  createdAt      DateTime @default(now()) @map("created_at")
+  updatedAt      DateTime @updatedAt @map("updated_at")
 
-  // Relations
-  user                  User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  organization Organization @relation(fields: [organizationId], references: [id])
+  contacts     Contact[]
+  invoices     Invoice[]
 
-  @@map("subscriptions")
-  @@index([userId])
-  @@index([status])
+  @@index([organizationId])
+  @@map("families")
 }
 
-// Invoice model
+model Program {
+  id               String   @id @default(uuid())
+  organizationId   String   @map("organization_id")
+  name             String
+  description      String?
+  price            Decimal  @db.Decimal(10, 2)
+  billingFrequency String   @map("billing_frequency")
+  capacity         Int?
+  isActive         Boolean  @default(true) @map("is_active")
+  createdAt        DateTime @default(now()) @map("created_at")
+  updatedAt        DateTime @updatedAt @map("updated_at")
+
+  organization Organization @relation(fields: [organizationId], references: [id])
+  enrollments  Enrollment[]
+
+  @@index([organizationId])
+  @@map("programs")
+}
+
+model Enrollment {
+  id        String    @id @default(uuid())
+  contactId String    @map("contact_id")
+  programId String    @map("program_id")
+  status    String    @default("active")
+  startDate DateTime  @map("start_date")
+  endDate   DateTime? @map("end_date")
+  createdAt DateTime  @default(now()) @map("created_at")
+  updatedAt DateTime  @updatedAt @map("updated_at")
+
+  contact   Contact          @relation(fields: [contactId], references: [id])
+  program   Program          @relation(fields: [programId], references: [id])
+  lineItems InvoiceLineItem[]
+
+  @@unique([contactId, programId])
+  @@map("enrollments")
+}
+
 model Invoice {
-  id                String    @id @default(uuid())
-  userId            String    @map("user_id")
-  helcimInvoiceId   String?   @unique @map("helcim_invoice_id")
-  invoiceNumber     String    @unique @map("invoice_number")
-  amountDue         Decimal   @map("amount_due") @db.Decimal(10, 2)
-  amountPaid        Decimal   @map("amount_paid") @db.Decimal(10, 2)
-  currency          String    @default("USD")
-  status            String
-  dueDate           DateTime  @map("due_date")
-  paidAt            DateTime? @map("paid_at")
-  invoicePdfUrl     String?   @map("invoice_pdf_url")
-  createdAt         DateTime  @default(now()) @map("created_at")
+  id             String    @id @default(uuid())
+  organizationId String    @map("organization_id")
+  contactId      String?   @map("contact_id")
+  familyId       String?   @map("family_id")
+  invoiceNumber  String    @unique @map("invoice_number")
+  amountDue      Decimal   @map("amount_due") @db.Decimal(10, 2)
+  amountPaid     Decimal   @default(0) @map("amount_paid") @db.Decimal(10, 2)
+  currency       String    @default("USD")
+  status         String    @default("draft")
+  dueDate        DateTime  @map("due_date")
+  paidAt         DateTime? @map("paid_at")
+  notes          String?
+  createdAt      DateTime  @default(now()) @map("created_at")
+  updatedAt      DateTime  @updatedAt @map("updated_at")
 
-  // Relations
-  user              User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  organization Organization     @relation(fields: [organizationId], references: [id])
+  contact      Contact?         @relation(fields: [contactId], references: [id])
+  family       Family?          @relation(fields: [familyId], references: [id])
+  lineItems    InvoiceLineItem[]
+  payments     Payment[]
 
-  @@map("invoices")
-  @@index([userId])
+  @@index([organizationId])
   @@index([status])
+  @@index([dueDate])
+  @@map("invoices")
 }
 
-// Payment Method model
-model PaymentMethod {
-  id                String   @id @default(uuid())
-  userId            String   @map("user_id")
-  helcimCardToken   String   @unique @map("helcim_card_token")
-  type              String
-  last4             String
-  brand             String
-  expMonth          Int      @map("exp_month")
-  expYear           Int      @map("exp_year")
-  cardholderName    String?  @map("cardholder_name")
-  isDefault         Boolean  @default(false) @map("is_default")
-  createdAt         DateTime @default(now()) @map("created_at")
+model InvoiceLineItem {
+  id           String  @id @default(uuid())
+  invoiceId    String  @map("invoice_id")
+  enrollmentId String? @map("enrollment_id")
+  description  String
+  quantity     Int     @default(1)
+  unitPrice    Decimal @map("unit_price") @db.Decimal(10, 2)
+  total        Decimal @db.Decimal(10, 2)
 
-  // Relations
-  user              User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  invoice    Invoice     @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+  enrollment Enrollment? @relation(fields: [enrollmentId], references: [id])
 
-  @@map("payment_methods")
-  @@index([userId])
+  @@map("invoice_line_items")
 }
 
-// Audit Log model
+model Payment {
+  id                  String   @id @default(uuid())
+  organizationId      String   @map("organization_id")
+  invoiceId           String   @map("invoice_id")
+  userId              String?  @map("user_id")
+  helcimTransactionId String?  @unique @map("helcim_transaction_id")
+  amount              Decimal  @db.Decimal(10, 2)
+  currency            String   @default("USD")
+  status              String
+  paymentMethodType   String   @map("payment_method_type")
+  cardToken           String?  @map("card_token")
+  notes               String?
+  createdAt           DateTime @default(now()) @map("created_at")
+  updatedAt           DateTime @updatedAt @map("updated_at")
+
+  organization Organization @relation(fields: [organizationId], references: [id])
+  invoice      Invoice      @relation(fields: [invoiceId], references: [id])
+  user         User?        @relation(fields: [userId], references: [id])
+
+  @@index([organizationId])
+  @@index([invoiceId])
+  @@index([status])
+  @@map("payments")
+}
+
 model AuditLog {
-  id         String   @id @default(uuid())
-  userId     String?  @map("user_id")
-  action     String
-  ipAddress  String?  @map("ip_address")
-  userAgent  String?  @map("user_agent")
-  metadata   Json?
-  createdAt  DateTime @default(now()) @map("created_at")
+  id             String   @id @default(uuid())
+  organizationId String   @map("organization_id")
+  userId         String?  @map("user_id")
+  action         String
+  ipAddress      String?  @map("ip_address")
+  userAgent      String?  @map("user_agent")
+  metadata       Json?
+  createdAt      DateTime @default(now()) @map("created_at")
 
-  // Relations
-  user       User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+  organization Organization @relation(fields: [organizationId], references: [id])
+  user         User?        @relation(fields: [userId], references: [id], onDelete: SetNull)
 
-  @@map("audit_logs")
+  @@index([organizationId])
   @@index([userId])
   @@index([action])
   @@index([createdAt])
+  @@map("audit_logs")
 }

@@ -1,7 +1,10 @@
 import { Request, Response, NextFunction } from 'express';
+import crypto from 'crypto';
+import bcrypt from 'bcrypt';
 import userService from '../services/userService';
 import { generateTokens, verifyRefreshToken } from '../middleware/auth';
 import { asyncHandler, AppError } from '../middleware/errorHandler';
+import { config } from '../config/environment';
 import logger from '../utils/logger';
 import prisma from '../config/database';
 
@@ -10,21 +13,22 @@ import prisma from '../config/database';
  * POST /api/auth/register
  */
 export const register = asyncHandler(async (req: Request, res: Response) => {
-  const { email, password, firstName, lastName, gdprConsent } = req.body;
+  const { email, password, firstName, lastName } = req.body;
+  const organizationId = req.organization!.id;
 
   const user = await userService.createUser({
+    organizationId,
     email,
     password,
     firstName,
     lastName,
-    gdprConsent,
   });
 
-  const { accessToken, refreshToken } = generateTokens(user.id, user.email);
+  const { accessToken, refreshToken } = generateTokens(user.id, user.email, organizationId, user.role);
 
-  // Log audit
   await prisma.auditLog.create({
     data: {
+      organizationId,
       userId: user.id,
       action: 'USER_REGISTERED',
       ipAddress: req.ip,
@@ -36,11 +40,7 @@ export const register = asyncHandler(async (req: Request, res: Response) => {
 
   res.status(201).json({
     status: 'success',
-    data: {
-      user,
-      accessToken,
-      refreshToken,
-    },
+    data: { user, accessToken, refreshToken },
   });
 });
 
@@ -50,14 +50,15 @@ export const register = asyncHandler(async (req: Request, res: Response) => {
  */
 export const login = asyncHandler(async (req: Request, res: Response) => {
   const { email, password } = req.body;
+  const organizationId = req.organization!.id;
 
-  const user = await userService.authenticateUser(email, password);
+  const user = await userService.authenticateUser(organizationId, email, password);
 
-  const { accessToken, refreshToken } = generateTokens(user.id, user.email);
+  const { accessToken, refreshToken } = generateTokens(user.id, user.email, organizationId, user.role);
 
-  // Log audit
   await prisma.auditLog.create({
     data: {
+      organizationId,
       userId: user.id,
       action: 'USER_LOGIN',
       ipAddress: req.ip,
@@ -75,6 +76,7 @@ export const login = asyncHandler(async (req: Request, res: Response) => {
         email: user.email,
         firstName: user.firstName,
         lastName: user.lastName,
+        role: user.role,
         createdAt: user.createdAt,
       },
       accessToken,
@@ -88,12 +90,10 @@ export const login = asyncHandler(async (req: Request, res: Response) => {
  * POST /api/auth/logout
  */
 export const logout = asyncHandler(async (req: Request, res: Response) => {
-  // In a more complex system, you would invalidate the refresh token here
-  // For now, we'll just log the action
-
   if (req.user) {
     await prisma.auditLog.create({
       data: {
+        organizationId: req.organization!.id,
         userId: req.user.userId,
         action: 'USER_LOGOUT',
         ipAddress: req.ip,
@@ -121,7 +121,6 @@ export const refreshToken = asyncHandler(
     try {
       const payload = verifyRefreshToken(token);
 
-      // Verify user still exists
       const user = await userService.getUserById(payload.userId);
 
       if (!user) {
@@ -130,15 +129,14 @@ export const refreshToken = asyncHandler(
 
       const { accessToken, refreshToken: newRefreshToken } = generateTokens(
         user.id,
-        user.email
+        user.email,
+        user.organizationId,
+        user.role
       );
 
       res.status(200).json({
         status: 'success',
-        data: {
-          accessToken,
-          refreshToken: newRefreshToken,
-        },
+        data: { accessToken, refreshToken: newRefreshToken },
       });
     } catch (error) {
       return next(new AppError(401, 'Invalid or expired refresh token'));
@@ -163,9 +161,7 @@ export const getCurrentUser = asyncHandler(async (req: Request, res: Response) =
 
   res.status(200).json({
     status: 'success',
-    data: {
-      user,
-    },
+    data: { user },
   });
 });
 
@@ -175,18 +171,35 @@ export const getCurrentUser = asyncHandler(async (req: Request, res: Response) =
  */
 export const forgotPassword = asyncHandler(async (req: Request, res: Response) => {
   const { email } = req.body;
+  const organizationId = req.organization!.id;
 
-  // In production, this would:
-  // 1. Generate a reset token
-  // 2. Store it in the database
-  // 3. Send an email with the reset link
-  // For now, we'll just log it
+  const user = await prisma.user.findFirst({
+    where: { organizationId, email, deletedAt: null },
+  });
 
-  logger.info(`Password reset requested for: ${email}`);
+  if (!user) {
+    res.status(200).json({
+      status: 'success',
+      message: 'If an account with that email exists, a password reset link has been sent',
+    });
+    return;
+  }
+
+  const token = crypto.randomBytes(32).toString('hex');
+  const expiry = new Date(Date.now() + 60 * 60 * 1000);
+
+  await prisma.user.update({
+    where: { id: user.id },
+    data: { passwordResetToken: token, passwordResetExpiry: expiry },
+  });
+
+  const resetUrl = `http://localhost:5173/reset-password?token=${token}`;
+  logger.info(`Password reset link for ${email}: ${resetUrl}`);
 
   res.status(200).json({
     status: 'success',
     message: 'If an account with that email exists, a password reset link has been sent',
+    ...(config.app.isDevelopment && { resetUrl }),
   });
 });
 
@@ -197,16 +210,33 @@ export const forgotPassword = asyncHandler(async (req: Request, res: Response) =
 export const resetPassword = asyncHandler(async (req: Request, res: Response) => {
   const { token, newPassword } = req.body;
 
-  // In production, this would:
-  // 1. Verify the reset token
-  // 2. Update the password
-  // 3. Invalidate the token
-  // For now, we'll just log it
+  const user = await prisma.user.findFirst({
+    where: {
+      passwordResetToken: token,
+      passwordResetExpiry: { gt: new Date() },
+      deletedAt: null,
+    },
+  });
 
-  logger.info(`Password reset completed with token: ${token}`);
+  if (!user) {
+    throw new AppError(400, 'Invalid or expired reset token');
+  }
+
+  const passwordHash = await bcrypt.hash(newPassword, 12);
+
+  await prisma.user.update({
+    where: { id: user.id },
+    data: {
+      passwordHash,
+      passwordResetToken: null,
+      passwordResetExpiry: null,
+    },
+  });
+
+  logger.info(`Password reset completed for user: ${user.email}`);
 
   res.status(200).json({
     status: 'success',
-    message: 'Password reset successfully',
+    message: 'Password reset successfully. You can now log in with your new password.',
   });
 });

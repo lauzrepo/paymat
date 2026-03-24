@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import * as authController from '../controllers/authController';
-import { validate, registerSchema, loginSchema, refreshTokenSchema } from '../middleware/validation';
+import { validate, registerSchema, loginSchema, refreshTokenSchema, forgotPasswordSchema, resetPasswordSchema } from '../middleware/validation';
 import { authenticateToken } from '../middleware/auth';
 import { authLimiter } from '../middleware/rateLimiter';
 
@@ -46,13 +46,13 @@ router.get('/me', authenticateToken, authController.getCurrentUser);
  * @desc    Request password reset
  * @access  Public
  */
-router.post('/forgot-password', authController.forgotPassword);
+router.post('/forgot-password', authLimiter, validate(forgotPasswordSchema), authController.forgotPassword);
 
 /**
  * @route   POST /api/auth/reset-password
  * @desc    Reset password
  * @access  Public
  */
-router.post('/reset-password', authController.resetPassword);
+router.post('/reset-password', authLimiter, validate(resetPasswordSchema), authController.resetPassword);
 
 export default router;

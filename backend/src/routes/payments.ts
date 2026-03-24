@@ -1,47 +1,17 @@
 import { Router } from 'express';
-import * as paymentController from '../controllers/paymentController';
-import { validate, paymentSchema } from '../middleware/validation';
-import { authenticateToken } from '../middleware/auth';
+import { authenticateToken, requireRole } from '../middleware/auth';
+import { processPayment, getPayments, getPayment, refundPayment, getPaymentStats } from '../controllers/paymentController';
 import { paymentLimiter } from '../middleware/rateLimiter';
 
 const router = Router();
 
-// All payment routes require authentication
 router.use(authenticateToken);
+router.use(requireRole('admin', 'staff', 'client'));
 
-/**
- * @route   POST /api/payments/create
- * @desc    Create and process a payment
- * @access  Private
- */
-router.post('/create', paymentLimiter, validate(paymentSchema), paymentController.createPayment);
-
-/**
- * @route   GET /api/payments/history
- * @desc    Get payment history
- * @access  Private
- */
-router.get('/history', paymentController.getPaymentHistory);
-
-/**
- * @route   GET /api/payments/stats
- * @desc    Get payment statistics
- * @access  Private
- */
-router.get('/stats', paymentController.getPaymentStats);
-
-/**
- * @route   GET /api/payments/:id
- * @desc    Get single payment
- * @access  Private
- */
-router.get('/:id', paymentController.getPayment);
-
-/**
- * @route   POST /api/payments/:id/refund
- * @desc    Refund a payment
- * @access  Private
- */
-router.post('/:id/refund', paymentController.refundPayment);
+router.get('/stats', requireRole('admin', 'staff'), getPaymentStats);
+router.get('/', requireRole('admin', 'staff'), getPayments);
+router.post('/', paymentLimiter, processPayment);
+router.get('/:id', getPayment);
+router.post('/:id/refund', requireRole('admin'), refundPayment);
 
 export default router;

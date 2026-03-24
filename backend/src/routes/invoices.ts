@@ -1,45 +1,24 @@
 import { Router } from 'express';
-import * as invoiceController from '../controllers/invoiceController';
-import { authenticateToken } from '../middleware/auth';
+import { authenticateToken, requireRole } from '../middleware/auth';
+import {
+  createInvoice,
+  getInvoices,
+  getInvoice,
+  markInvoicePaid,
+  voidInvoice,
+  getInvoiceStats,
+} from '../controllers/invoiceController';
 
 const router = Router();
 
-// All invoice routes require authentication
 router.use(authenticateToken);
+router.use(requireRole('admin', 'staff'));
 
-/**
- * @route   GET /api/invoices
- * @desc    Get invoices for user
- * @access  Private
- */
-router.get('/', invoiceController.getInvoices);
-
-/**
- * @route   GET /api/invoices/stats
- * @desc    Get invoice statistics
- * @access  Private
- */
-router.get('/stats', invoiceController.getInvoiceStats);
-
-/**
- * @route   GET /api/invoices/:id
- * @desc    Get single invoice
- * @access  Private
- */
-router.get('/:id', invoiceController.getInvoice);
-
-/**
- * @route   GET /api/invoices/:id/pdf
- * @desc    Get invoice PDF URL
- * @access  Private
- */
-router.get('/:id/pdf', invoiceController.getInvoicePdf);
-
-/**
- * @route   POST /api/invoices/:id/send
- * @desc    Send invoice via email
- * @access  Private
- */
-router.post('/:id/send', invoiceController.sendInvoice);
+router.get('/stats', getInvoiceStats);
+router.get('/', getInvoices);
+router.post('/', createInvoice);
+router.get('/:id', getInvoice);
+router.post('/:id/mark-paid', requireRole('admin'), markInvoicePaid);
+router.post('/:id/void', requireRole('admin'), voidInvoice);
 
 export default router;

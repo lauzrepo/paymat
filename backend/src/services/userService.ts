@@ -5,52 +5,56 @@ import { config } from '../config/environment';
 import { AppError } from '../middleware/errorHandler';
 
 export interface CreateUserData {
+  organizationId: string;
   email: string;
   password: string;
-  firstName: string;
-  lastName: string;
-  gdprConsent: boolean;
+  firstName?: string;
+  lastName?: string;
+  role?: string;
+  contactId?: string;
 }
 
 export interface UserResponse {
   id: string;
   email: string;
+  organizationId: string;
   firstName: string | null;
   lastName: string | null;
+  role: string;
   createdAt: Date;
 }
 
 class UserService {
   async createUser(userData: CreateUserData): Promise<UserResponse> {
-    const { email, password, firstName, lastName, gdprConsent } = userData;
+    const { organizationId, email, password, firstName, lastName, role = 'admin', contactId } = userData;
 
-    // Check if user already exists
-    const existingUser = await prisma.user.findUnique({
-      where: { email },
+    const existingUser = await prisma.user.findFirst({
+      where: { organizationId, email },
     });
 
     if (existingUser) {
       throw new AppError(409, 'User with this email already exists');
     }
 
-    // Hash password
     const passwordHash = await bcrypt.hash(password, config.security.bcryptRounds);
 
-    // Create user
     const user = await prisma.user.create({
       data: {
+        organizationId,
         email,
         passwordHash,
         firstName,
         lastName,
-        gdprConsent,
-        gdprConsentDate: gdprConsent ? new Date() : null,
+        role,
+        contactId,
       },
       select: {
         id: true,
         email: true,
+        organizationId: true,
         firstName: true,
         lastName: true,
+        role: true,
         createdAt: true,
       },
     });
@@ -58,9 +62,9 @@ class UserService {
     return user;
   }
 
-  async authenticateUser(email: string, password: string): Promise<User> {
-    const user = await prisma.user.findUnique({
-      where: { email },
+  async authenticateUser(organizationId: string, email: string, password: string): Promise<User> {
+    const user = await prisma.user.findFirst({
+      where: { organizationId, email },
     });
 
     if (!user || user.deletedAt) {
@@ -68,7 +72,6 @@ class UserService {
     }
 
     const isPasswordValid = await bcrypt.compare(password, user.passwordHash);
-
     if (!isPasswordValid) {
       throw new AppError(401, 'Invalid credentials');
     }
@@ -77,49 +80,24 @@ class UserService {
   }
 
   async getUserById(userId: string): Promise<UserResponse | null> {
-    const user = await prisma.user.findUnique({
-      where: {
-        id: userId,
-        deletedAt: null,
-      },
+    return prisma.user.findUnique({
+      where: { id: userId, deletedAt: null },
       select: {
         id: true,
         email: true,
+        organizationId: true,
         firstName: true,
         lastName: true,
+        role: true,
         createdAt: true,
       },
     });
-
-    return user;
-  }
-
-  async updateUser(
-    userId: string,
-    updateData: { firstName?: string; lastName?: string }
-  ): Promise<UserResponse> {
-    const user = await prisma.user.update({
-      where: { id: userId },
-      data: updateData,
-      select: {
-        id: true,
-        email: true,
-        firstName: true,
-        lastName: true,
-        createdAt: true,
-      },
-    });
-
-    return user;
   }
 
   async deleteUser(userId: string): Promise<void> {
-    // Soft delete
     await prisma.user.update({
       where: { id: userId },
-      data: {
-        deletedAt: new Date(),
-      },
+      data: { deletedAt: new Date() },
     });
   }
 }

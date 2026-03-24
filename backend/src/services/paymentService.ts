@@ -4,117 +4,72 @@ import helcimService from './helcimService';
 import { AppError } from '../middleware/errorHandler';
 import logger from '../utils/logger';
 
-export interface CreatePaymentData {
-  userId: string;
+export interface ProcessPaymentData {
+  organizationId: string;
+  invoiceId: string;
+  userId?: string;
   amount: number;
-  currency: string;
+  currency?: string;
   cardToken: string;
-  description?: string;
-  paymentMethodId?: string;
+  paymentMethodType?: string;
+  notes?: string;
 }
 
 class PaymentService {
-  /**
-   * Process a one-time payment
-   */
-  async processPayment(paymentData: CreatePaymentData) {
-    const { userId, amount, currency, cardToken, description } = paymentData;
+  async processPayment(data: ProcessPaymentData) {
+    const { organizationId, invoiceId, userId, amount, currency = 'USD', cardToken, paymentMethodType = 'card', notes } = data;
 
-    // Get user
-    const user = await prisma.user.findUnique({
-      where: { id: userId },
+    const invoice = await prisma.invoice.findFirst({
+      where: { id: invoiceId, organizationId },
+      include: { contact: true },
+    });
+    if (!invoice) throw new AppError(404, 'Invoice not found');
+    if (invoice.status === 'paid') throw new AppError(400, 'Invoice is already paid');
+    if (invoice.status === 'void') throw new AppError(400, 'Cannot pay a voided invoice');
+
+    const helcimTransaction = await helcimService.processPayment({
+      amount,
+      currency,
+      cardToken,
+      customerId: invoice.contact?.helcimToken ?? undefined,
     });
 
-    if (!user) {
-      throw new AppError(404, 'User not found');
-    }
-
-    // Create Helcim customer if not exists
-    let helcimCustomerId = user.helcimCustomerId;
-
-    if (!helcimCustomerId) {
-      try {
-        const helcimCustomer = await helcimService.createCustomer({
-          email: user.email,
-          firstName: user.firstName || '',
-          lastName: user.lastName || '',
-        });
-
-        helcimCustomerId = helcimCustomer.customerId;
-
-        // Update user with Helcim customer ID
-        await prisma.user.update({
-          where: { id: userId },
-          data: { helcimCustomerId },
-        });
-      } catch (error) {
-        logger.error('Failed to create Helcim customer:', error);
-        throw new AppError(500, 'Failed to create customer in payment processor');
-      }
-    }
-
-    // Process payment with Helcim
-    let helcimTransaction;
-    try {
-      helcimTransaction = await helcimService.processPayment({
-        amount,
-        currency,
-        cardToken,
-        customerId: helcimCustomerId,
-        description,
-      });
-    } catch (error) {
-      logger.error('Failed to process payment:', error);
-      throw new AppError(500, 'Payment processing failed');
-    }
-
-    // Create payment record in database
     const payment = await prisma.payment.create({
       data: {
+        organizationId,
+        invoiceId,
         userId,
         helcimTransactionId: helcimTransaction.transactionId,
         amount: new Decimal(amount),
         currency,
-        status: helcimTransaction.status || 'completed',
-        paymentMethodType: 'card',
+        status: helcimTransaction.status || 'succeeded',
+        paymentMethodType,
         cardToken,
-        description,
-        metadata: helcimTransaction,
+        notes,
       },
     });
 
-    logger.info(`Payment processed: ${payment.id} for user ${userId}`);
-
-    return payment;
-  }
-
-  /**
-   * Get payment by ID
-   */
-  async getPaymentById(paymentId: string, userId: string) {
-    const payment = await prisma.payment.findFirst({
-      where: {
-        id: paymentId,
-        userId,
+    // Update invoice paid amount
+    const newAmountPaid = Number(invoice.amountPaid) + amount;
+    const isPaid = newAmountPaid >= Number(invoice.amountDue);
+    await prisma.invoice.update({
+      where: { id: invoiceId },
+      data: {
+        amountPaid: new Decimal(newAmountPaid),
+        ...(isPaid && { status: 'paid', paidAt: new Date() }),
       },
     });
 
-    if (!payment) {
-      throw new AppError(404, 'Payment not found');
-    }
-
+    logger.info(`Payment processed: ${payment.id} for invoice ${invoiceId}`);
     return payment;
   }
 
-  /**
-   * Get payment history for user
-   */
-  async getPaymentHistory(userId: string, page = 1, limit = 10, status?: string) {
+  async getPayments(organizationId: string, page = 1, limit = 20, filters: { status?: string; invoiceId?: string } = {}) {
     const skip = (page - 1) * limit;
-
     const where = {
-      userId,
-      ...(status && { status }),
+      organizationId,
+      ...(filters.status && { status: filters.status }),
+      ...(filters.invoiceId && { invoiceId: filters.invoiceId }),
     };
 
     const [payments, total] = await Promise.all([
@@ -123,79 +78,45 @@ class PaymentService {
         skip,
         take: limit,
         orderBy: { createdAt: 'desc' },
+        include: { invoice: true, user: { select: { id: true, email: true, firstName: true, lastName: true } } },
       }),
       prisma.payment.count({ where }),
     ]);
 
-    return {
-      payments,
-      total,
-      page,
-      totalPages: Math.ceil(total / limit),
-    };
+    return { payments, total, page, totalPages: Math.ceil(total / limit) };
   }
 
-  /**
-   * Refund a payment
-   */
-  async refundPayment(paymentId: string, userId: string, amount?: number, reason?: string) {
-    const payment = await this.getPaymentById(paymentId, userId);
-
-    if (payment.status === 'refunded') {
-      throw new AppError(400, 'Payment already refunded');
-    }
-
-    if (!payment.helcimTransactionId) {
-      throw new AppError(400, 'Cannot refund payment without transaction ID');
-    }
-
-    // Process refund with Helcim
-    try {
-      const refundResult = await helcimService.refundTransaction(
-        payment.helcimTransactionId,
-        amount
-      );
-
-      // Update payment status
-      await prisma.payment.update({
-        where: { id: paymentId },
-        data: {
-          status: 'refunded',
-          metadata: {
-            ...(payment.metadata as object),
-            refund: refundResult,
-            refundReason: reason,
-          },
-        },
-      });
-
-      logger.info(`Payment refunded: ${paymentId}`);
-
-      return refundResult;
-    } catch (error) {
-      logger.error('Failed to refund payment:', error);
-      throw new AppError(500, 'Failed to process refund');
-    }
+  async getPaymentById(paymentId: string, organizationId: string) {
+    const payment = await prisma.payment.findFirst({
+      where: { id: paymentId, organizationId },
+      include: { invoice: true },
+    });
+    if (!payment) throw new AppError(404, 'Payment not found');
+    return payment;
   }
 
-  /**
-   * Get payment statistics for user
-   */
-  async getPaymentStats(userId: string) {
-    const [totalPayments, completedPayments, totalAmount] = await Promise.all([
-      prisma.payment.count({ where: { userId } }),
-      prisma.payment.count({ where: { userId, status: 'completed' } }),
-      prisma.payment.aggregate({
-        where: { userId, status: 'completed' },
-        _sum: { amount: true },
-      }),
+  async refundPayment(paymentId: string, organizationId: string, amount?: number, _reason?: string) {
+    const payment = await this.getPaymentById(paymentId, organizationId);
+    if (payment.status === 'refunded') throw new AppError(400, 'Payment already refunded');
+    if (!payment.helcimTransactionId) throw new AppError(400, 'Cannot refund payment without transaction ID');
+
+    await helcimService.refundTransaction(payment.helcimTransactionId, amount);
+
+    await prisma.payment.update({
+      where: { id: paymentId },
+      data: { status: 'refunded' },
+    });
+
+    logger.info(`Payment refunded: ${paymentId}`);
+  }
+
+  async getStats(organizationId: string) {
+    const [total, succeeded, totalAmount] = await Promise.all([
+      prisma.payment.count({ where: { organizationId } }),
+      prisma.payment.count({ where: { organizationId, status: 'succeeded' } }),
+      prisma.payment.aggregate({ where: { organizationId, status: 'succeeded' }, _sum: { amount: true } }),
     ]);
-
-    return {
-      totalPayments,
-      completedPayments,
-      totalAmount: totalAmount._sum.amount || 0,
-    };
+    return { total, succeeded, totalAmount: Number(totalAmount._sum.amount ?? 0) };
   }
 }
 

@@ -6,18 +6,25 @@ import { AppError } from './errorHandler';
 interface JWTPayload {
   userId: string;
   email: string;
+  organizationId: string;
+  role: string;
 }
 
-export const authenticateToken = (req: Request, res: Response, next: NextFunction) => {
+export const authenticateToken = (req: Request, _res: Response, next: NextFunction) => {
   try {
     const authHeader = req.headers['authorization'];
-    const token = authHeader && authHeader.split(' ')[1]; // Bearer TOKEN
+    const token = authHeader && authHeader.split(' ')[1];
 
     if (!token) {
       throw new AppError(401, 'Access token required');
     }
 
     const payload = jwt.verify(token, config.jwt.secret) as JWTPayload;
+
+    if (req.organization && payload.organizationId !== req.organization.id) {
+      throw new AppError(403, 'Token not valid for this organization');
+    }
+
     req.user = payload;
     next();
   } catch (error) {
@@ -28,13 +35,27 @@ export const authenticateToken = (req: Request, res: Response, next: NextFunctio
   }
 };
 
-export const generateTokens = (userId: string, email: string) => {
-  const accessToken = jwt.sign({ userId, email }, config.jwt.secret, {
-    expiresIn: config.jwt.accessTokenExpiry,
+export const requireRole = (...roles: string[]) => {
+  return (req: Request, _res: Response, next: NextFunction) => {
+    if (!req.user) {
+      return next(new AppError(401, 'Authentication required'));
+    }
+    if (!roles.includes(req.user.role)) {
+      return next(new AppError(403, 'Insufficient permissions'));
+    }
+    next();
+  };
+};
+
+export const generateTokens = (userId: string, email: string, organizationId: string, role: string) => {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const accessToken = jwt.sign({ userId, email, organizationId, role }, config.jwt.secret, {
+    expiresIn: config.jwt.accessTokenExpiry as any,
   });
 
-  const refreshToken = jwt.sign({ userId, email }, config.jwt.refreshSecret, {
-    expiresIn: config.jwt.refreshTokenExpiry,
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const refreshToken = jwt.sign({ userId, email, organizationId, role }, config.jwt.refreshSecret, {
+    expiresIn: config.jwt.refreshTokenExpiry as any,
   });
 
   return { accessToken, refreshToken };

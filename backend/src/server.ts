@@ -5,36 +5,41 @@ import { config } from './config/environment';
 import logger from './utils/logger';
 import { errorHandler, notFoundHandler } from './middleware/errorHandler';
 import { apiLimiter } from './middleware/rateLimiter';
+import { resolveTenant } from './middleware/tenant';
 
-// Import routes
 import authRoutes from './routes/auth';
-import paymentRoutes from './routes/payments';
-import subscriptionRoutes from './routes/subscriptions';
+import organizationRoutes from './routes/tenant';
+import contactRoutes from './routes/contacts';
+import familyRoutes from './routes/families';
+import programRoutes from './routes/programs';
+import enrollmentRoutes from './routes/enrollments';
 import invoiceRoutes from './routes/invoices';
-import webhookRoutes from './routes/webhooks';
-import paymentMethodRoutes from './routes/paymentMethods';
-import gdprRoutes from './routes/gdpr';
+import paymentRoutes from './routes/payments';
 
 const app: Application = express();
 
-// Security middleware
 app.use(helmet());
 app.use(
   cors({
-    origin: config.frontend.allowedOrigins,
+    origin: (origin, callback) => {
+      if (!origin || config.app.isDevelopment) return callback(null, true);
+      const baseDomain = config.multiTenant.baseDomain;
+      if (origin.endsWith(`.${baseDomain}`) || origin === `https://${baseDomain}`) {
+        return callback(null, true);
+      }
+      callback(new Error('Not allowed by CORS'));
+    },
     credentials: true,
   })
 );
 
-// Body parsing middleware
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
-// Apply rate limiting to all API routes
+app.use(resolveTenant);
 app.use('/api', apiLimiter);
 
-// Health check endpoint
-app.get('/health', (req, res) => {
+app.get('/health', (_req, res) => {
   res.status(200).json({
     status: 'ok',
     timestamp: new Date().toISOString(),
@@ -43,19 +48,16 @@ app.get('/health', (req, res) => {
   });
 });
 
-// API routes
+app.use('/api/organization', organizationRoutes);
 app.use('/api/auth', authRoutes);
-app.use('/api/payments', paymentRoutes);
-app.use('/api/subscriptions', subscriptionRoutes);
+app.use('/api/contacts', contactRoutes);
+app.use('/api/families', familyRoutes);
+app.use('/api/programs', programRoutes);
+app.use('/api/enrollments', enrollmentRoutes);
 app.use('/api/invoices', invoiceRoutes);
-app.use('/api/webhooks', webhookRoutes);
-app.use('/api/payment-methods', paymentMethodRoutes);
-app.use('/api/gdpr', gdprRoutes);
+app.use('/api/payments', paymentRoutes);
 
-// 404 handler
 app.use(notFoundHandler);
-
-// Error handling middleware (must be last)
 app.use(errorHandler);
 
 const PORT = config.app.port;
@@ -66,21 +68,12 @@ const server = app.listen(PORT, () => {
   logger.info(`❤️  Health check at http://localhost:${PORT}/health`);
 });
 
-// Graceful shutdown
 process.on('SIGTERM', () => {
-  logger.info('SIGTERM signal received: closing HTTP server');
-  server.close(() => {
-    logger.info('HTTP server closed');
-    process.exit(0);
-  });
+  server.close(() => { logger.info('HTTP server closed'); process.exit(0); });
 });
 
 process.on('SIGINT', () => {
-  logger.info('SIGINT signal received: closing HTTP server');
-  server.close(() => {
-    logger.info('HTTP server closed');
-    process.exit(0);
-  });
+  server.close(() => { logger.info('HTTP server closed'); process.exit(0); });
 });
 
 export default app;
