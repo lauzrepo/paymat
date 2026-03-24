@@ -6,6 +6,7 @@ import {
   getContact,
   updateContact,
   deactivateContact,
+  reactivateContact,
   deleteContact,
 } from '../controllers/contactController';
 
@@ -18,6 +19,7 @@ router.get('/', getContacts);
 router.post('/', requireRole('admin', 'staff'), createContact);
 router.get('/:id', getContact);
 router.put('/:id', requireRole('admin', 'staff'), updateContact);
+router.post('/:id/reactivate', requireRole('admin', 'staff'), reactivateContact);
 router.delete('/:id/permanent', requireRole('admin'), deleteContact);
 router.delete('/:id', requireRole('admin'), deactivateContact);
 

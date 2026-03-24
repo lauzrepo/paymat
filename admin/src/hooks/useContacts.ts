@@ -41,6 +41,13 @@ export function useDeactivateContact() {
   });
 }
 
+export function useReactivateContact() {
+  return useMutation({
+    mutationFn: api.reactivateContact,
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['contacts'] }),
+  });
+}
+
 export function useDeleteContact() {
   return useMutation({
     mutationFn: api.deleteContactPermanent,

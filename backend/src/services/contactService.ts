@@ -99,6 +99,14 @@ class ContactService {
     });
   }
 
+  async reactivateContact(contactId: string, organizationId: string) {
+    await this.getContactById(contactId, organizationId);
+    return prisma.contact.update({
+      where: { id: contactId },
+      data: { status: 'active' },
+    });
+  }
+
   async deleteContact(contactId: string, organizationId: string) {
     const contact = await this.getContactById(contactId, organizationId);
     const [invoiceCount, paymentCount] = await Promise.all([

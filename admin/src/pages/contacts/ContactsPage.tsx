@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Plus, Search } from 'lucide-react';
-import { useContacts, useCreateContact, useDeactivateContact, useDeleteContact } from '../../hooks/useContacts';
+import { useContacts, useCreateContact, useDeactivateContact, useReactivateContact, useDeleteContact } from '../../hooks/useContacts';
 import { useFamilies } from '../../hooks/useFamilies';
 import { Card, CardHeader, CardBody } from '../../components/ui/Card';
 import { Button } from '../../components/ui/Button';
@@ -17,6 +17,7 @@ export function ContactsPage() {
   const [form, setForm] = useState({ firstName: '', lastName: '', email: '', phone: '', familyId: '' });
   const create = useCreateContact();
   const deactivate = useDeactivateContact();
+  const reactivate = useReactivateContact();
   const remove = useDeleteContact();
   const families = useFamilies();
 
@@ -129,8 +130,10 @@ export function ContactsPage() {
                     <td className="px-6 py-3 text-gray-500">{formatDate(c.createdAt)}</td>
                     <td className="px-6 py-3">
                       <div className="flex gap-1">
-                        {c.status === 'active' && (
+                        {c.status === 'active' ? (
                           <Button variant="ghost" size="sm" onClick={() => deactivate.mutate(c.id)}>Deactivate</Button>
+                        ) : (
+                          <Button variant="ghost" size="sm" onClick={() => reactivate.mutate(c.id)}>Reactivate</Button>
                         )}
                         <Button variant="ghost" size="sm" className="text-red-500 hover:text-red-700" onClick={async () => {
                           if (!window.confirm(`Delete ${c.firstName} ${c.lastName} permanently?`)) return;

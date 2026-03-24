@@ -1,6 +1,6 @@
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { ChevronLeft } from 'lucide-react';
-import { useContact, useDeactivateContact, useDeleteContact } from '../../hooks/useContacts';
+import { useContact, useDeactivateContact, useReactivateContact, useDeleteContact } from '../../hooks/useContacts';
 import { Card, CardHeader, CardBody } from '../../components/ui/Card';
 import { Button } from '../../components/ui/Button';
 import { Badge } from '../../components/ui/Badge';
@@ -19,6 +19,7 @@ export function ContactDetailPage() {
   const navigate = useNavigate();
   const { data: contact, isLoading } = useContact(id!);
   const deactivate = useDeactivateContact();
+  const reactivate = useReactivateContact();
   const remove = useDeleteContact();
 
   const handleDelete = async () => {
@@ -63,7 +64,7 @@ export function ContactDetailPage() {
             </CardBody>
           </Card>
 
-          {contact.status === 'active' && (
+          {contact.status === 'active' ? (
             <Button
               variant="danger"
               size="sm"
@@ -71,6 +72,15 @@ export function ContactDetailPage() {
               onClick={() => deactivate.mutate(contact.id)}
             >
               Deactivate contact
+            </Button>
+          ) : (
+            <Button
+              variant="secondary"
+              size="sm"
+              loading={reactivate.isPending}
+              onClick={() => reactivate.mutate(contact.id)}
+            >
+              Reactivate contact
             </Button>
           )}
           <Button

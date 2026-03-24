@@ -18,5 +18,8 @@ export const updateContact = (id: string, body: Partial<Contact>): Promise<Conta
 export const deactivateContact = (id: string): Promise<Contact> =>
   apiClient.delete(`/contacts/${id}`).then((r) => r.data.data.contact);
 
+export const reactivateContact = (id: string): Promise<Contact> =>
+  apiClient.post(`/contacts/${id}/reactivate`).then((r) => r.data.data.contact);
+
 export const deleteContactPermanent = (id: string): Promise<void> =>
   apiClient.delete(`/contacts/${id}/permanent`).then(() => undefined);
