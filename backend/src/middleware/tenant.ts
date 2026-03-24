@@ -14,6 +14,12 @@ export const resolveTenant = async (req: Request, res: Response, next: NextFunct
       slug = hostname.split('.')[0];
     }
 
+    // Fall back to default slug for known hosting domains
+    // (e.g. party-house-production.up.railway.app, admin-xxx.vercel.app)
+    if (hostname.endsWith('.railway.app') || hostname.endsWith('.vercel.app')) {
+      slug = config.multiTenant.defaultSlug;
+    }
+
     const organization = await prisma.organization.findFirst({
       where: { slug, isActive: true },
     });
