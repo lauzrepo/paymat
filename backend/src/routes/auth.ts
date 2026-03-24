@@ -25,7 +25,7 @@ router.post('/login', authLimiter, validate(loginSchema), authController.login);
  * @desc    Logout user
  * @access  Private
  */
-router.post('/logout', authenticateToken, authController.logout);
+router.post('/logout', authController.logout);
 
 /**
  * @route   POST /api/auth/refresh-token
