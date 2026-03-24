@@ -4,6 +4,7 @@ import { Plus, DollarSign, FileText, AlertCircle, CheckCircle } from 'lucide-rea
 import { useInvoices, useInvoiceStats, useCreateInvoice, useVoidInvoice } from '../../hooks/useInvoices';
 import { useProcessPayment } from '../../hooks/usePayments';
 import { useContacts } from '../../hooks/useContacts';
+import { useEnrollments } from '../../hooks/useEnrollments';
 import { Card, CardHeader, CardBody } from '../../components/ui/Card';
 import { Button } from '../../components/ui/Button';
 import { Badge } from '../../components/ui/Badge';
@@ -19,7 +20,7 @@ export function InvoicesPage() {
   const [searchParams] = useSearchParams();
   const [status, setStatus] = useState(searchParams.get('status') ?? '');
   const [showForm, setShowForm] = useState(false);
-  const [lineItems, setLineItems] = useState([{ description: '', quantity: 1, unitPrice: '' }]);
+  const [lineItems, setLineItems] = useState([{ enrollmentId: '', description: '', quantity: 1, unitPrice: '' }]);
   const [form, setForm] = useState({ contactId: '', dueDate: '', notes: '' });
 
   const [paymentModal, setPaymentModal] = useState<{ invoiceId: string; invoiceNumber: string; amountDue: number } | null>(null);
@@ -28,6 +29,7 @@ export function InvoicesPage() {
   const invoices = useInvoices({ status: status || undefined, contactId: searchParams.get('contactId') ?? undefined });
   const stats = useInvoiceStats();
   const contacts = useContacts();
+  const enrollments = useEnrollments({ contactId: form.contactId || undefined, status: 'active' });
   const create = useCreateInvoice();
   const recordPayment = useProcessPayment();
   const voidInv = useVoidInvoice();
@@ -56,6 +58,7 @@ export function InvoicesPage() {
       dueDate: form.dueDate,
       notes: form.notes || undefined,
       lineItems: lineItems.map((li) => ({
+        enrollmentId: li.enrollmentId && li.enrollmentId !== '__custom__' ? li.enrollmentId : undefined,
         description: li.description,
         quantity: li.quantity,
         unitPrice: parseFloat(li.unitPrice),
@@ -63,7 +66,7 @@ export function InvoicesPage() {
     });
     setShowForm(false);
     setForm({ contactId: '', dueDate: '', notes: '' });
-    setLineItems([{ description: '', quantity: 1, unitPrice: '' }]);
+    setLineItems([{ enrollmentId: '', description: '', quantity: 1, unitPrice: '' }]);
   };
 
   return (
@@ -96,7 +99,10 @@ export function InvoicesPage() {
                   <label className="block text-sm font-medium text-gray-700 mb-1">Bill to</label>
                   <select
                     value={form.contactId}
-                    onChange={(e) => setForm({ ...form, contactId: e.target.value })}
+                    onChange={(e) => {
+                      setForm({ ...form, contactId: e.target.value });
+                      setLineItems([{ enrollmentId: '', description: '', quantity: 1, unitPrice: '' }]);
+                    }}
                     className="appearance-none bg-white w-full text-sm border border-gray-300 rounded-lg px-3 py-2 pr-8 focus:outline-none focus:ring-2 focus:ring-indigo-500"
                   >
                     <option value="">Select contact…</option>
@@ -129,36 +135,80 @@ export function InvoicesPage() {
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">Line items</label>
                 <div className="space-y-2">
-                  {lineItems.map((li, i) => (
-                    <div key={i} className="grid grid-cols-12 gap-2">
-                      <div className="col-span-6">
-                        <input type="text" placeholder="Description" value={li.description} required
-                          onChange={(e) => { const c = [...lineItems]; c[i].description = e.target.value; setLineItems(c); }}
-                          className="appearance-none bg-white w-full text-sm border border-gray-300 rounded-lg px-3 py-2 pr-8 focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                        />
+                  {lineItems.map((li, i) => {
+                    const isCustom = li.enrollmentId === '__custom__';
+                    return (
+                      <div key={i} className="grid grid-cols-12 gap-2 items-center">
+                        <div className="col-span-6">
+                          <select
+                            value={li.enrollmentId}
+                            required
+                            onChange={(e) => {
+                              const c = [...lineItems];
+                              const val = e.target.value;
+                              c[i].enrollmentId = val;
+                              if (val === '__custom__') {
+                                c[i].description = '';
+                                c[i].unitPrice = '';
+                              } else if (val) {
+                                const enr = enrollments.data?.items.find((en) => en.id === val);
+                                c[i].description = enr?.program?.name ?? '';
+                                c[i].unitPrice = String(enr?.program?.price ?? '');
+                              }
+                              setLineItems(c);
+                            }}
+                            className="appearance-none bg-white w-full text-sm border border-gray-300 rounded-lg px-3 py-2 pr-8 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                          >
+                            <option value="">Select enrollment…</option>
+                            {enrollments.data?.items.map((en) => (
+                              <option key={en.id} value={en.id}>{en.program?.name ?? en.id}</option>
+                            ))}
+                            <option value="__custom__">Custom item…</option>
+                          </select>
+                        </div>
+                        <div className="col-span-5 grid grid-cols-5 gap-2">
+                          {isCustom ? (
+                            <>
+                              <div className="col-span-3">
+                                <input type="text" placeholder="Description" value={li.description} required
+                                  onChange={(e) => { const c = [...lineItems]; c[i].description = e.target.value; setLineItems(c); }}
+                                  className="appearance-none bg-white w-full text-sm border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                                />
+                              </div>
+                              <div className="col-span-1">
+                                <input type="number" placeholder="Qty" min="1" value={li.quantity}
+                                  onChange={(e) => { const c = [...lineItems]; c[i].quantity = parseInt(e.target.value); setLineItems(c); }}
+                                  className="appearance-none bg-white w-full text-sm border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                                />
+                              </div>
+                              <div className="col-span-1">
+                                <input type="number" placeholder="Price" step="0.01" min="0" value={li.unitPrice} required
+                                  onChange={(e) => { const c = [...lineItems]; c[i].unitPrice = e.target.value; setLineItems(c); }}
+                                  className="appearance-none bg-white w-full text-sm border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                                />
+                              </div>
+                            </>
+                          ) : (
+                            <div className="col-span-5 flex items-center gap-2">
+                              <span className="text-sm text-gray-500 truncate flex-1">{li.description || '—'}</span>
+                              <span className="text-sm font-medium text-gray-700 whitespace-nowrap">
+                                {li.unitPrice ? formatCurrency(parseFloat(li.unitPrice)) : '—'}
+                              </span>
+                            </div>
+                          )}
+                        </div>
+                        <div className="col-span-1 flex justify-center">
+                          {lineItems.length > 1 && (
+                            <button type="button" onClick={() => setLineItems(lineItems.filter((_, j) => j !== i))}
+                              className="text-red-400 hover:text-red-600 font-bold text-lg leading-none">×</button>
+                          )}
+                        </div>
                       </div>
-                      <div className="col-span-2">
-                        <input type="number" placeholder="Qty" min="1" value={li.quantity}
-                          onChange={(e) => { const c = [...lineItems]; c[i].quantity = parseInt(e.target.value); setLineItems(c); }}
-                          className="appearance-none bg-white w-full text-sm border border-gray-300 rounded-lg px-3 py-2 pr-8 focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                        />
-                      </div>
-                      <div className="col-span-3">
-                        <input type="number" placeholder="Unit price" step="0.01" min="0" value={li.unitPrice} required
-                          onChange={(e) => { const c = [...lineItems]; c[i].unitPrice = e.target.value; setLineItems(c); }}
-                          className="appearance-none bg-white w-full text-sm border border-gray-300 rounded-lg px-3 py-2 pr-8 focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                        />
-                      </div>
-                      <div className="col-span-1 flex items-center">
-                        {lineItems.length > 1 && (
-                          <button type="button" onClick={() => setLineItems(lineItems.filter((_, j) => j !== i))}
-                            className="text-red-400 hover:text-red-600 font-bold text-lg leading-none">×</button>
-                        )}
-                      </div>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
-                <button type="button" onClick={() => setLineItems([...lineItems, { description: '', quantity: 1, unitPrice: '' }])}
+                <button type="button"
+                  onClick={() => setLineItems([...lineItems, { enrollmentId: '', description: '', quantity: 1, unitPrice: '' }])}
                   className="mt-2 text-sm text-indigo-600 hover:text-indigo-500">+ Add line item</button>
               </div>
               <div className="flex gap-3 justify-end">
