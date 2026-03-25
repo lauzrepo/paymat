@@ -141,39 +141,41 @@ export function ContactDetailPage() {
             </CardBody>
           </Card>
 
-          <Button variant="secondary" size="sm" onClick={openCardModal}>
-            <CreditCard className="h-4 w-4 mr-1" />
-            {contact.helcimToken ? 'Replace card' : 'Save card on file'}
-          </Button>
+          <div className="flex flex-col gap-2 pt-1">
+            <Button variant="secondary" size="sm" onClick={openCardModal}>
+              <CreditCard className="h-4 w-4 mr-1" />
+              {contact.helcimToken ? 'Replace card' : 'Save card on file'}
+            </Button>
 
-          {contact.status === 'active' ? (
+            {contact.status === 'active' ? (
+              <Button
+                variant="danger"
+                size="sm"
+                loading={deactivate.isPending}
+                onClick={() => deactivate.mutate(contact.id)}
+              >
+                Deactivate contact
+              </Button>
+            ) : (
+              <Button
+                variant="secondary"
+                size="sm"
+                loading={reactivate.isPending}
+                onClick={() => reactivate.mutate(contact.id)}
+              >
+                Reactivate contact
+              </Button>
+            )}
             <Button
-              variant="danger"
+              variant="ghost"
               size="sm"
-              loading={deactivate.isPending}
-              onClick={() => deactivate.mutate(contact.id)}
+              loading={remove.isPending}
+              onClick={handleDelete}
+              className="text-red-500 hover:text-red-700"
             >
-              Deactivate contact
+              Delete permanently
             </Button>
-          ) : (
-            <Button
-              variant="secondary"
-              size="sm"
-              loading={reactivate.isPending}
-              onClick={() => reactivate.mutate(contact.id)}
-            >
-              Reactivate contact
-            </Button>
-          )}
-          <Button
-            variant="ghost"
-            size="sm"
-            loading={remove.isPending}
-            onClick={handleDelete}
-            className="text-red-500 hover:text-red-700"
-          >
-            Delete permanently
-          </Button>
+          </div>
         </div>
 
         <div className="lg:col-span-2 space-y-6">
