@@ -32,12 +32,12 @@ export function FamilyDetailPage() {
         script.src = 'https://secure.helcim.app/helcim-pay/services/start.js';
         script.onload = () => {
           // @ts-expect-error HelcimPay global
-          window.appendHelcimIframe?.(checkoutToken, helcimContainerRef.current);
+          window.appendHelcimIframe?.(checkoutToken);
         };
         document.body.appendChild(script);
       } else {
         // @ts-expect-error HelcimPay global
-        window.appendHelcimIframe?.(checkoutToken, helcimContainerRef.current);
+        window.appendHelcimIframe?.(checkoutToken);
       }
     } catch {
       setCardStatus('error');
