@@ -78,8 +78,6 @@ export function FamilyDetailPage() {
 
   return (
     <div className="space-y-6 max-w-2xl">
-      <div id="helcim-pay-manifest" />
-
       <div className="flex items-center gap-3">
         <Link to="/families" className="text-gray-400 hover:text-gray-600">
           <ChevronLeft className="h-5 w-5" />

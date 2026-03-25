@@ -100,8 +100,6 @@ export function ContactDetailPage() {
 
   return (
     <div className="space-y-6">
-      <div id="helcim-pay-manifest" />
-
       <div className="flex items-center gap-3">
         <Link to="/contacts" className="text-gray-400 hover:text-gray-600">
           <ChevronLeft className="h-5 w-5" />
