@@ -88,7 +88,7 @@ class HelcimService {
 
     logger.info(`[Helcim] initializeCheckout amount=${amount}`);
     const response = await helcimAxios.post('/helcim-pay/initialize', {
-      paymentType: 'purchase',
+      paymentType: amount === 0 ? 'verify' : 'purchase',
       amount,
       currency,
       hasConvenienceFee: false,
