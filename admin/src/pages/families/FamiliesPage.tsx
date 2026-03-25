@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { Plus } from 'lucide-react';
 import { useFamilies, useCreateFamily } from '../../hooks/useFamilies';
 import { Card, CardHeader, CardBody } from '../../components/ui/Card';
@@ -11,14 +11,18 @@ import { formatDate } from '../../lib/utils';
 export function FamiliesPage() {
   const [showForm, setShowForm] = useState(false);
   const [form, setForm] = useState({ name: '', billingEmail: '' });
+  const [addCard, setAddCard] = useState(false);
+  const navigate = useNavigate();
   const families = useFamilies();
   const create = useCreateFamily();
 
   const handleCreate = async (e: React.FormEvent) => {
     e.preventDefault();
-    await create.mutateAsync({ name: form.name, billingEmail: form.billingEmail || undefined });
+    const family = await create.mutateAsync({ name: form.name, billingEmail: form.billingEmail || undefined });
     setShowForm(false);
     setForm({ name: '', billingEmail: '' });
+    setAddCard(false);
+    navigate(`/families/${family.id}${addCard ? '?addCard=true' : ''}`);
   };
 
   return (
@@ -39,6 +43,10 @@ export function FamiliesPage() {
             <form onSubmit={handleCreate} className="grid grid-cols-2 gap-4">
               <Input label="Family name" id="name" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} required />
               <Input label="Billing email" id="billingEmail" type="email" value={form.billingEmail} onChange={(e) => setForm({ ...form, billingEmail: e.target.value })} />
+              <div className="col-span-2 flex items-center gap-2">
+                <input id="addFamilyCard" type="checkbox" checked={addCard} onChange={(e) => setAddCard(e.target.checked)} className="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500" />
+                <label htmlFor="addFamilyCard" className="text-sm text-gray-700">Add card on file after saving</label>
+              </div>
               <div className="col-span-2 flex gap-3 justify-end">
                 <Button type="button" variant="secondary" onClick={() => setShowForm(false)}>Cancel</Button>
                 <Button type="submit" loading={create.isPending}>Save</Button>

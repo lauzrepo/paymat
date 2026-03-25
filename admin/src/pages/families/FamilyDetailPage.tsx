@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { useParams, Link } from 'react-router-dom';
+import { useParams, Link, useSearchParams } from 'react-router-dom';
 import { ChevronLeft, CreditCard, X } from 'lucide-react';
 import { useFamily } from '../../hooks/useFamilies';
 import { initializeFamilyCardCheckout, saveFamilyCardToken } from '../../api/families';
@@ -12,6 +12,7 @@ import { formatDate } from '../../lib/utils';
 
 export function FamilyDetailPage() {
   const { id } = useParams<{ id: string }>();
+  const [searchParams] = useSearchParams();
   const { data: family, isLoading } = useFamily(id!);
   const [cardModal, setCardModal] = useState(false);
   const [cardStatus, setCardStatus] = useState<'idle' | 'loading' | 'ready' | 'success' | 'error'>('idle');
@@ -43,6 +44,13 @@ export function FamilyDetailPage() {
       setCardMessage('Could not initialize card form. Check your Helcim API token.');
     }
   };
+
+  useEffect(() => {
+    if (searchParams.get('addCard') === 'true' && family) {
+      openCardModal();
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [family]);
 
   useEffect(() => {
     const onMessage = async (event: MessageEvent) => {

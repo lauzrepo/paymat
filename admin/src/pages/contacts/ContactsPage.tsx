@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { Plus, Search } from 'lucide-react';
 import { useContacts, useCreateContact, useDeactivateContact, useReactivateContact, useDeleteContact } from '../../hooks/useContacts';
 import { useFamilies } from '../../hooks/useFamilies';
@@ -15,6 +15,8 @@ export function ContactsPage() {
   const [status, setStatus] = useState('');
   const [showForm, setShowForm] = useState(false);
   const [form, setForm] = useState({ firstName: '', lastName: '', email: '', phone: '', familyId: '' });
+  const [addCard, setAddCard] = useState(false);
+  const navigate = useNavigate();
   const create = useCreateContact();
   const deactivate = useDeactivateContact();
   const reactivate = useReactivateContact();
@@ -25,9 +27,11 @@ export function ContactsPage() {
 
   const handleCreate = async (e: React.FormEvent) => {
     e.preventDefault();
-    await create.mutateAsync({ ...form, familyId: form.familyId || undefined });
+    const contact = await create.mutateAsync({ ...form, familyId: form.familyId || undefined });
     setShowForm(false);
     setForm({ firstName: '', lastName: '', email: '', phone: '', familyId: '' });
+    setAddCard(false);
+    navigate(`/contacts/${contact.id}${addCard ? '?addCard=true' : ''}`);
   };
 
   return (
@@ -62,6 +66,10 @@ export function ContactsPage() {
                     <option key={f.id} value={f.id}>{f.name}</option>
                   ))}
                 </select>
+              </div>
+              <div className="col-span-2 flex items-center gap-2">
+                <input id="addCard" type="checkbox" checked={addCard} onChange={(e) => setAddCard(e.target.checked)} className="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500" />
+                <label htmlFor="addCard" className="text-sm text-gray-700">Add card on file after saving</label>
               </div>
               <div className="col-span-2 flex gap-3 justify-end">
                 <Button type="button" variant="secondary" onClick={() => setShowForm(false)}>Cancel</Button>

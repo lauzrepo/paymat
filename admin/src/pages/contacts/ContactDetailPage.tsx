@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { useParams, Link, useNavigate } from 'react-router-dom';
+import { useParams, Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { ChevronLeft, CreditCard, X } from 'lucide-react';
 import { useContact, useDeactivateContact, useReactivateContact, useDeleteContact } from '../../hooks/useContacts';
 import { initializeCardCheckout, saveCardToken } from '../../api/contacts';
@@ -20,6 +20,7 @@ const BILLING_FREQ_LABEL: Record<string, string> = {
 export function ContactDetailPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const { data: contact, isLoading } = useContact(id!);
   const deactivate = useDeactivateContact();
   const reactivate = useReactivateContact();
@@ -28,6 +29,13 @@ export function ContactDetailPage() {
   const [cardStatus, setCardStatus] = useState<'idle' | 'loading' | 'ready' | 'success' | 'error'>('idle');
   const [cardMessage, setCardMessage] = useState('');
   const helcimContainerRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (searchParams.get('addCard') === 'true' && contact) {
+      openCardModal();
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [contact]);
 
   const openCardModal = async () => {
     setCardModal(true);
