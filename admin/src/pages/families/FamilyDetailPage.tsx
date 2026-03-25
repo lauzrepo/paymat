@@ -1,6 +1,6 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect } from 'react';
 import { useParams, Link, useSearchParams } from 'react-router-dom';
-import { ChevronLeft, CreditCard, X } from 'lucide-react';
+import { ChevronLeft, CreditCard } from 'lucide-react';
 import { useFamily } from '../../hooks/useFamilies';
 import { initializeFamilyCardCheckout, saveFamilyCardToken } from '../../api/families';
 import { queryClient } from '../../lib/queryClient';
@@ -14,28 +14,26 @@ export function FamilyDetailPage() {
   const { id } = useParams<{ id: string }>();
   const [searchParams] = useSearchParams();
   const { data: family, isLoading } = useFamily(id!);
-  const [cardModal, setCardModal] = useState(false);
-  const [cardStatus, setCardStatus] = useState<'idle' | 'loading' | 'ready' | 'success' | 'error'>('idle');
+  const [cardStatus, setCardStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle');
   const [cardMessage, setCardMessage] = useState('');
-  const helcimContainerRef = useRef<HTMLDivElement>(null);
 
-  const openCardModal = async () => {
-    setCardModal(true);
+  const openCardForm = async () => {
     setCardStatus('loading');
     setCardMessage('');
     try {
       const { checkoutToken } = await initializeFamilyCardCheckout(id!);
-      setCardStatus('ready');
       if (!document.getElementById('helcim-pay-js')) {
         const script = document.createElement('script');
         script.id = 'helcim-pay-js';
         script.src = 'https://secure.helcim.app/helcim-pay/services/start.js';
         script.onload = () => {
+          setCardStatus('idle');
           // @ts-expect-error HelcimPay global
           window.appendHelcimIframe?.(checkoutToken);
         };
         document.body.appendChild(script);
       } else {
+        setCardStatus('idle');
         // @ts-expect-error HelcimPay global
         window.appendHelcimIframe?.(checkoutToken);
       }
@@ -47,14 +45,13 @@ export function FamilyDetailPage() {
 
   useEffect(() => {
     if (searchParams.get('addCard') === 'true' && family) {
-      openCardModal();
+      openCardForm();
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [family]);
 
   useEffect(() => {
     const onMessage = async (event: MessageEvent) => {
-      if (!cardModal) return;
       try {
         const data = typeof event.data === 'string' ? JSON.parse(event.data) : event.data;
         if (data.eventType === 'HELCIM_PAY_JS_SUCCESS') {
@@ -64,7 +61,6 @@ export function FamilyDetailPage() {
           queryClient.invalidateQueries({ queryKey: ['families', id] });
           setCardStatus('success');
           setCardMessage('Card saved for this family.');
-          setTimeout(() => setCardModal(false), 1500);
         } else if (data.eventType === 'HELCIM_PAY_JS_FAILED') {
           setCardStatus('error');
           setCardMessage(data.eventMessage ?? 'Card capture failed.');
@@ -75,13 +71,15 @@ export function FamilyDetailPage() {
     };
     window.addEventListener('message', onMessage);
     return () => window.removeEventListener('message', onMessage);
-  }, [cardModal, id]);
+  }, [id]);
 
   if (isLoading) return <div className="flex justify-center py-20"><Spinner /></div>;
   if (!family) return <p className="text-center text-gray-500 py-20">Family not found.</p>;
 
   return (
     <div className="space-y-6 max-w-2xl">
+      <div id="helcim-pay-manifest" />
+
       <div className="flex items-center gap-3">
         <Link to="/families" className="text-gray-400 hover:text-gray-600">
           <ChevronLeft className="h-5 w-5" />
@@ -93,7 +91,7 @@ export function FamilyDetailPage() {
         <CardHeader>
           <div className="flex items-center justify-between">
             <h2 className="text-base font-semibold text-gray-900">Family info</h2>
-            <Button variant="secondary" size="sm" onClick={openCardModal}>
+            <Button variant="secondary" size="sm" onClick={openCardForm} loading={cardStatus === 'loading'}>
               <CreditCard className="h-4 w-4 mr-1" />
               {family.helcimToken ? 'Replace card' : 'Save card on file'}
             </Button>
@@ -118,6 +116,12 @@ export function FamilyDetailPage() {
             <span className="text-gray-500">Added</span>
             <span className="text-gray-800">{formatDate(family.createdAt)}</span>
           </div>
+          {cardStatus === 'success' && (
+            <p className="text-sm text-green-600 font-medium">{cardMessage}</p>
+          )}
+          {cardStatus === 'error' && (
+            <p className="text-sm text-red-600">{cardMessage}</p>
+          )}
         </CardBody>
       </Card>
 
@@ -154,32 +158,6 @@ export function FamilyDetailPage() {
           )}
         </CardBody>
       </Card>
-
-      {cardModal && (
-        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
-          <div className="bg-white rounded-xl shadow-xl w-full max-w-md p-6">
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="text-base font-semibold text-gray-900">Save card on file — {family.name}</h2>
-              <button onClick={() => setCardModal(false)} className="text-gray-400 hover:text-gray-600">
-                <X className="h-5 w-5" />
-              </button>
-            </div>
-            {cardStatus === 'loading' && (
-              <p className="text-sm text-gray-500 text-center py-8">Loading card form…</p>
-            )}
-            {cardStatus === 'success' && (
-              <p className="text-sm text-green-600 text-center py-8">{cardMessage}</p>
-            )}
-            {cardStatus === 'error' && (
-              <p className="text-sm text-red-600 text-center py-8">{cardMessage}</p>
-            )}
-            <div ref={helcimContainerRef} id="helcim-pay-manifest" style={{ minHeight: '400px' }} />
-            <p className="text-xs text-gray-400 mt-3 text-center">
-              This card will be used for all members of this family who don't have their own card on file.
-            </p>
-          </div>
-        </div>
-      )}
     </div>
   );
 }

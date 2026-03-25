@@ -1,6 +1,6 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect } from 'react';
 import { useParams, Link, useNavigate, useSearchParams } from 'react-router-dom';
-import { ChevronLeft, CreditCard, X } from 'lucide-react';
+import { ChevronLeft, CreditCard } from 'lucide-react';
 import { useContact, useDeactivateContact, useReactivateContact, useDeleteContact } from '../../hooks/useContacts';
 import { initializeCardCheckout, saveCardToken } from '../../api/contacts';
 import { queryClient } from '../../lib/queryClient';
@@ -25,36 +25,26 @@ export function ContactDetailPage() {
   const deactivate = useDeactivateContact();
   const reactivate = useReactivateContact();
   const remove = useDeleteContact();
-  const [cardModal, setCardModal] = useState(false);
-  const [cardStatus, setCardStatus] = useState<'idle' | 'loading' | 'ready' | 'success' | 'error'>('idle');
+  const [cardStatus, setCardStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle');
   const [cardMessage, setCardMessage] = useState('');
-  const helcimContainerRef = useRef<HTMLDivElement>(null);
 
-  useEffect(() => {
-    if (searchParams.get('addCard') === 'true' && contact) {
-      openCardModal();
-    }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [contact]);
-
-  const openCardModal = async () => {
-    setCardModal(true);
+  const openCardForm = async () => {
     setCardStatus('loading');
     setCardMessage('');
     try {
       const { checkoutToken } = await initializeCardCheckout(id!);
-      setCardStatus('ready');
-      // Load HelcimPay.js if not already present
       if (!document.getElementById('helcim-pay-js')) {
         const script = document.createElement('script');
         script.id = 'helcim-pay-js';
         script.src = 'https://secure.helcim.app/helcim-pay/services/start.js';
         script.onload = () => {
+          setCardStatus('idle');
           // @ts-expect-error HelcimPay global injected by script
           window.appendHelcimIframe?.(checkoutToken);
         };
         document.body.appendChild(script);
       } else {
+        setCardStatus('idle');
         // @ts-expect-error HelcimPay global injected by script
         window.appendHelcimIframe?.(checkoutToken);
       }
@@ -65,8 +55,14 @@ export function ContactDetailPage() {
   };
 
   useEffect(() => {
+    if (searchParams.get('addCard') === 'true' && contact) {
+      openCardForm();
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [contact]);
+
+  useEffect(() => {
     const onMessage = async (event: MessageEvent) => {
-      if (!cardModal) return;
       try {
         const data = typeof event.data === 'string' ? JSON.parse(event.data) : event.data;
         if (data.eventType === 'HELCIM_PAY_JS_SUCCESS') {
@@ -76,7 +72,6 @@ export function ContactDetailPage() {
           queryClient.invalidateQueries({ queryKey: ['contacts', id] });
           setCardStatus('success');
           setCardMessage('Card saved successfully.');
-          setTimeout(() => setCardModal(false), 1500);
         } else if (data.eventType === 'HELCIM_PAY_JS_FAILED') {
           setCardStatus('error');
           setCardMessage(data.eventMessage ?? 'Card capture failed.');
@@ -87,7 +82,7 @@ export function ContactDetailPage() {
     };
     window.addEventListener('message', onMessage);
     return () => window.removeEventListener('message', onMessage);
-  }, [cardModal, id]);
+  }, [id]);
 
   const handleDelete = async () => {
     if (!window.confirm('Permanently delete this contact? This cannot be undone.\n\nNote: contacts with invoices or payments cannot be deleted — deactivate them instead.')) return;
@@ -105,6 +100,8 @@ export function ContactDetailPage() {
 
   return (
     <div className="space-y-6">
+      <div id="helcim-pay-manifest" />
+
       <div className="flex items-center gap-3">
         <Link to="/contacts" className="text-gray-400 hover:text-gray-600">
           <ChevronLeft className="h-5 w-5" />
@@ -138,11 +135,17 @@ export function ContactDetailPage() {
                   <span className="text-gray-400 text-xs">None</span>
                 )}
               </div>
+              {cardStatus === 'success' && (
+                <p className="text-sm text-green-600 font-medium">{cardMessage}</p>
+              )}
+              {cardStatus === 'error' && (
+                <p className="text-sm text-red-600">{cardMessage}</p>
+              )}
             </CardBody>
           </Card>
 
           <div className="flex flex-col gap-2 pt-1">
-            <Button variant="secondary" size="sm" onClick={openCardModal}>
+            <Button variant="secondary" size="sm" onClick={openCardForm} loading={cardStatus === 'loading'}>
               <CreditCard className="h-4 w-4 mr-1" />
               {contact.helcimToken ? 'Replace card' : 'Save card on file'}
             </Button>
@@ -259,31 +262,6 @@ export function ContactDetailPage() {
           </Card>
         </div>
       </div>
-      {cardModal && (
-        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
-          <div className="bg-white rounded-xl shadow-xl w-full max-w-md p-6">
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="text-base font-semibold text-gray-900">Save card on file</h2>
-              <button onClick={() => setCardModal(false)} className="text-gray-400 hover:text-gray-600">
-                <X className="h-5 w-5" />
-              </button>
-            </div>
-            {cardStatus === 'loading' && (
-              <p className="text-sm text-gray-500 text-center py-8">Loading card form…</p>
-            )}
-            {cardStatus === 'success' && (
-              <p className="text-sm text-green-600 text-center py-8">{cardMessage}</p>
-            )}
-            {cardStatus === 'error' && (
-              <p className="text-sm text-red-600 text-center py-8">{cardMessage}</p>
-            )}
-            <div ref={helcimContainerRef} id="helcim-pay-manifest" style={{ minHeight: '400px' }} />
-            <p className="text-xs text-gray-400 mt-3 text-center">
-              Card data is handled directly by Helcim. We never see your full card number.
-            </p>
-          </div>
-        </div>
-      )}
     </div>
   );
 }
