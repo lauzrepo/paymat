@@ -19,6 +19,7 @@ import { FamilyDetailPage } from './pages/families/FamilyDetailPage';
 import { ProgramsPage } from './pages/programs/ProgramsPage';
 import { EnrollmentsPage } from './pages/enrollments/EnrollmentsPage';
 import { InvoicesPage } from './pages/invoices/InvoicesPage';
+import { InvoiceDetailPage } from './pages/invoices/InvoiceDetailPage';
 import { PaymentsPage } from './pages/payments/PaymentsPage';
 import { SettingsPage } from './pages/settings/SettingsPage';
 
@@ -49,6 +50,7 @@ function App() {
             <Route path="/programs" element={<ProgramsPage />} />
             <Route path="/enrollments" element={<EnrollmentsPage />} />
             <Route path="/invoices" element={<InvoicesPage />} />
+            <Route path="/invoices/:id" element={<InvoiceDetailPage />} />
             <Route path="/payments" element={<PaymentsPage />} />
             <Route path="/settings" element={<SettingsPage />} />
           </Route>
