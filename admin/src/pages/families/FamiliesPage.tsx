@@ -71,7 +71,7 @@ export function FamiliesPage() {
                 {families.data.items.map((f) => (
                   <tr key={f.id} className="hover:bg-gray-50">
                     <td className="px-6 py-3 font-medium">
-                      <Link to={`/contacts?familyId=${f.id}`} className="text-indigo-600 hover:underline">
+                      <Link to={`/families/${f.id}`} className="text-indigo-600 hover:underline">
                         {f.name}
                       </Link>
                     </td>

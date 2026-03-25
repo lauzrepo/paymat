@@ -84,6 +84,7 @@ model Family {
   organizationId String   @map("organization_id")
   name           String
   billingEmail   String?  @map("billing_email")
+  helcimToken    String?  @unique @map("helcim_token")
   createdAt      DateTime @default(now()) @map("created_at")
   updatedAt      DateTime @updatedAt @map("updated_at")
 

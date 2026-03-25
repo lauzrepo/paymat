@@ -17,3 +17,9 @@ export const updateFamily = (id: string, body: { name?: string; billingEmail?: s
 
 export const deleteFamily = (id: string): Promise<void> =>
   apiClient.delete(`/families/${id}`).then(() => undefined);
+
+export const initializeFamilyCardCheckout = (id: string): Promise<{ secretToken: string; checkoutToken: string }> =>
+  apiClient.post(`/families/${id}/card/initialize`).then((r) => r.data.data);
+
+export const saveFamilyCardToken = (id: string, cardToken: string): Promise<Family> =>
+  apiClient.post(`/families/${id}/card/token`, { cardToken }).then((r) => r.data.data.family);

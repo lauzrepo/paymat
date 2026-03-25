@@ -15,6 +15,7 @@ import { DashboardPage } from './pages/dashboard/DashboardPage';
 import { ContactsPage } from './pages/contacts/ContactsPage';
 import { ContactDetailPage } from './pages/contacts/ContactDetailPage';
 import { FamiliesPage } from './pages/families/FamiliesPage';
+import { FamilyDetailPage } from './pages/families/FamilyDetailPage';
 import { ProgramsPage } from './pages/programs/ProgramsPage';
 import { EnrollmentsPage } from './pages/enrollments/EnrollmentsPage';
 import { InvoicesPage } from './pages/invoices/InvoicesPage';
@@ -44,6 +45,7 @@ function App() {
             <Route path="/contacts" element={<ContactsPage />} />
             <Route path="/contacts/:id" element={<ContactDetailPage />} />
             <Route path="/families" element={<FamiliesPage />} />
+            <Route path="/families/:id" element={<FamilyDetailPage />} />
             <Route path="/programs" element={<ProgramsPage />} />
             <Route path="/enrollments" element={<EnrollmentsPage />} />
             <Route path="/invoices" element={<InvoicesPage />} />

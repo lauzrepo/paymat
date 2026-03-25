@@ -33,7 +33,7 @@ class BillingService {
         contact: organizationId ? { organizationId } : undefined,
       },
       include: {
-        contact: true,
+        contact: { include: { family: true } },
         program: true,
       },
     });
@@ -81,14 +81,15 @@ class BillingService {
         invoicesCreated++;
         logger.info(`Billing: created ${invoiceNumber} for enrollment ${enrollment.id}`);
 
-        // Attempt auto-charge if helcimToken is available
-        if (enrollment.contact.helcimToken) {
+        // Attempt auto-charge — prefer contact token, fall back to family token
+        const cardToken = enrollment.contact.helcimToken ?? enrollment.contact.family?.helcimToken ?? null;
+        if (cardToken) {
           try {
             const helcimTx = await helcimService.processPayment({
               amount,
               currency: 'USD',
-              cardToken: enrollment.contact.helcimToken,
-              customerId: enrollment.contact.helcimToken,
+              cardToken,
+              customerId: cardToken,
             });
 
             await prisma.payment.create({
@@ -100,7 +101,7 @@ class BillingService {
                 currency: 'USD',
                 status: helcimTx.status || 'succeeded',
                 paymentMethodType: 'card',
-                cardToken: enrollment.contact.helcimToken,
+                cardToken,
                 notes: 'Auto-charged via recurring billing',
               },
             });
