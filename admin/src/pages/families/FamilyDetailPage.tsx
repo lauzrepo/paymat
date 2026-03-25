@@ -173,7 +173,7 @@ export function FamilyDetailPage() {
             {cardStatus === 'error' && (
               <p className="text-sm text-red-600 text-center py-8">{cardMessage}</p>
             )}
-            <div ref={helcimContainerRef} id="helcim-pay-manifest" />
+            <div ref={helcimContainerRef} id="helcim-pay-manifest" style={{ minHeight: '400px' }} />
             <p className="text-xs text-gray-400 mt-3 text-center">
               This card will be used for all members of this family who don't have their own card on file.
             </p>

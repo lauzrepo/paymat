@@ -277,7 +277,7 @@ export function ContactDetailPage() {
             {cardStatus === 'error' && (
               <p className="text-sm text-red-600 text-center py-8">{cardMessage}</p>
             )}
-            <div ref={helcimContainerRef} id="helcim-pay-manifest" />
+            <div ref={helcimContainerRef} id="helcim-pay-manifest" style={{ minHeight: '400px' }} />
             <p className="text-xs text-gray-400 mt-3 text-center">
               Card data is handled directly by Helcim. We never see your full card number.
             </p>
