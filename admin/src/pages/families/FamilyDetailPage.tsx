@@ -29,13 +29,13 @@ export function FamilyDetailPage() {
         script.onload = () => {
           setCardStatus('idle');
           // @ts-expect-error HelcimPay global
-          window.appendHelcimIframe?.(checkoutToken);
+          window.appendHelcimPayIframe?.(checkoutToken);
         };
         document.body.appendChild(script);
       } else {
         setCardStatus('idle');
         // @ts-expect-error HelcimPay global
-        window.appendHelcimIframe?.(checkoutToken);
+        window.appendHelcimPayIframe?.(checkoutToken);
       }
     } catch {
       setCardStatus('error');

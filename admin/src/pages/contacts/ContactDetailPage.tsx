@@ -40,13 +40,13 @@ export function ContactDetailPage() {
         script.onload = () => {
           setCardStatus('idle');
           // @ts-expect-error HelcimPay global injected by script
-          window.appendHelcimIframe?.(checkoutToken);
+          window.appendHelcimPayIframe?.(checkoutToken);
         };
         document.body.appendChild(script);
       } else {
         setCardStatus('idle');
         // @ts-expect-error HelcimPay global injected by script
-        window.appendHelcimIframe?.(checkoutToken);
+        window.appendHelcimPayIframe?.(checkoutToken);
       }
     } catch {
       setCardStatus('error');
