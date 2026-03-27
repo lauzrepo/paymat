@@ -1,0 +1,30 @@
+{
+  "name": "superadmin",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc -b && vite build",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "@tanstack/react-query": "^5.91.3",
+    "axios": "^1.13.6",
+    "lucide-react": "^0.577.0",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "react-router-dom": "^6.30.3"
+  },
+  "devDependencies": {
+    "@tailwindcss/forms": "^0.5.11",
+    "@types/react": "^18.3.12",
+    "@types/react-dom": "^18.3.1",
+    "@vitejs/plugin-react": "^4.3.3",
+    "autoprefixer": "^10.4.27",
+    "postcss": "^8.5.8",
+    "tailwindcss": "^3.4.19",
+    "typescript": "~5.6.2",
+    "vite": "^5.4.10"
+  }
+}
