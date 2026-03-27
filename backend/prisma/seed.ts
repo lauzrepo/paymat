@@ -39,6 +39,18 @@ async function main() {
     console.log(`Seeded admin user: ${adminEmail} / password123`);
   }
 
+  // Seed super admin
+  const superAdminEmail = process.env.SUPER_ADMIN_EMAIL ?? 'superadmin@paymat.app';
+  const existingSuperAdmin = await prisma.superAdmin.findUnique({ where: { email: superAdminEmail } });
+  if (!existingSuperAdmin) {
+    const superAdminPassword = process.env.SUPER_ADMIN_PASSWORD ?? 'changeme123!';
+    const passwordHash = await bcrypt.hash(superAdminPassword, 10);
+    await prisma.superAdmin.create({
+      data: { email: superAdminEmail, passwordHash, name: 'Super Admin' },
+    });
+    console.log(`Seeded super admin: ${superAdminEmail} / ${superAdminPassword}`);
+  }
+
   // Seed a sample program
   const program = await prisma.program.upsert({
     where: { id: 'seed-program-1' },

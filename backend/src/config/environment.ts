@@ -19,6 +19,8 @@ const envSchema = z.object({
   FRONTEND_URL: z.string().url(),
   ALLOWED_ORIGINS: z.string().default('http://localhost:3000'),
   BILLING_SECRET: z.string().optional(),
+  SUPER_ADMIN_JWT_SECRET: z.string().min(32, 'SUPER_ADMIN_JWT_SECRET must be at least 32 characters'),
+  SUPER_ADMIN_JWT_REFRESH_SECRET: z.string().min(32, 'SUPER_ADMIN_JWT_REFRESH_SECRET must be at least 32 characters'),
   HELCIM_TEST_MODE: z.enum(['true', 'false']).default('false'),
   BCRYPT_ROUNDS: z.string().default('10'),
   RATE_LIMIT_WINDOW_MS: z.string().default('900000'),
@@ -86,5 +88,9 @@ export const config = {
   },
   billing: {
     secret: env.BILLING_SECRET,
+  },
+  superAdmin: {
+    jwtSecret: env.SUPER_ADMIN_JWT_SECRET,
+    jwtRefreshSecret: env.SUPER_ADMIN_JWT_REFRESH_SECRET,
   },
 };

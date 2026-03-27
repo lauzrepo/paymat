@@ -10,6 +10,10 @@ declare global {
         role: string;
       };
       organization?: Organization;
+      superAdmin?: {
+        superAdminId: string;
+        email: string;
+      };
     }
   }
 }

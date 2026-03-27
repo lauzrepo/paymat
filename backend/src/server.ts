@@ -7,6 +7,7 @@ import { errorHandler, notFoundHandler } from './middleware/errorHandler';
 import { apiLimiter } from './middleware/rateLimiter';
 import { resolveTenant } from './middleware/tenant';
 
+import superAdminRoutes from './routes/superAdmin';
 import authRoutes from './routes/auth';
 import organizationRoutes from './routes/tenant';
 import contactRoutes from './routes/contacts';
@@ -34,6 +35,9 @@ app.use(
 
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
+
+// Super-admin routes bypass tenant resolution — mount before resolveTenant
+app.use('/super-admin', superAdminRoutes);
 
 app.use(resolveTenant);
 app.use('/api', apiLimiter);
