@@ -2,11 +2,11 @@
 
 ## Current state
 
-The project was originally built as a generic payment portal wrapping Helcim. It has been redirected toward a **member management + recurring billing SaaS** for small service businesses. The backend has a working multi-tenant foundation and auth system. The frontend (currently `frontend/`) is a generic payment UI that needs to be rebuilt around the new domain.
+Multi-tenant member management + recurring billing SaaS for small service businesses. Backend is live on Railway, admin portal is live on Vercel (`admin-navy-tau.vercel.app`), and super admin portal is live at `paymat.vercel.app`.
 
 ---
 
-## Phase 1 — Foundation rebuild
+## Phase 1 — Foundation rebuild ✅
 
 ### Project structure
 - [x] Rename `frontend/` → `admin/`
@@ -23,7 +23,7 @@ The project was originally built as a generic payment portal wrapping Helcim. It
 - [x] Redesign `Payment` tied to Invoice
 - [x] Remove `Subscription` model (replaced by Enrollment + Program)
 - [x] Remove `PaymentMethod` model (handle via Helcim tokens on Contact)
-- [ ] Run `prisma db push` and update seed (seed updated; needs DB to run)
+- [x] Run `prisma db push` and update seed
 
 ### Backend — routes & controllers
 - [x] `/api/contacts` — CRUD for contacts (admin/staff)
@@ -42,21 +42,40 @@ The project was originally built as a generic payment portal wrapping Helcim. It
 
 ---
 
-## Phase 2 — Admin portal (`admin/`)
+## Phase 2 — Admin portal (`admin/`) ✅
 
 ### Layout & navigation
-- [ ] Rebuild sidebar nav: Dashboard, Contacts, Families, Programs, Enrollments, Invoices, Payments, Settings
+- [x] Sidebar nav: Dashboard, Contacts, Families, Programs, Enrollments, Invoices, Payments, Settings
 
 ### Pages
-- [ ] **Dashboard** — active members, revenue this month, overdue invoices, recent activity
-- [ ] **Contacts** — list, search, filter by status; add/edit/deactivate contact
-- [ ] **Contact detail** — profile, enrollments, invoice history, payment history
-- [ ] **Families** — list; create family, assign contacts, billing email
-- [ ] **Programs** — list; create/edit program (name, price, frequency, capacity)
-- [ ] **Enrollments** — enroll a contact in a program; view all active enrollments
-- [ ] **Invoices** — list with status filter; view invoice detail; mark as paid manually
-- [ ] **Payments** — payment history; process a payment against an invoice
-- [ ] **Settings** — organization branding (name, logo, primary color), timezone
+- [x] **Dashboard** — active members, revenue this month, overdue invoices, recent activity
+- [x] **Contacts** — list, search, filter by status; add/edit/deactivate contact
+- [x] **Contact detail** — profile, enrollments, invoice history, payment history; save card on file via Helcim
+- [x] **Families** — list; create family, assign contacts, billing email; save card on file via Helcim
+- [x] **Family detail** — profile, members, card on file
+- [x] **Programs** — list; create/edit program (name, price, frequency, capacity)
+- [x] **Enrollments** — enroll a contact in a program; view all active enrollments
+- [x] **Invoices** — list with status filter; create invoice with enrollment line items; record payment; void
+- [x] **Invoice detail** — line items, payment history, refund, void
+- [x] **Payments** — payment history; process a payment against an invoice
+- [x] **Settings** — organization branding (name, logo, primary color), timezone
+
+### Helcim integration
+- [x] Card on file — save card via `appendHelcimPayIframe` on contact and family detail pages
+- [x] Process payment against invoice (manual + card on file)
+- [x] Recurring billing foundation via Helcim tokens stored on Contact/Family
+
+---
+
+## Phase 2.5 — Super admin portal (`superadmin/`) ✅
+
+- [x] Separate JWT auth (`SuperAdmin` model, own secret keys)
+- [x] Login page (live at `paymat.vercel.app`)
+- [x] Organizations list with search + pagination
+- [x] Organization detail — stats, settings editor, users list
+- [x] Create organization — name, slug, type, timezone, first admin account
+- [x] Activate / deactivate organization
+- [x] Backend routes at `/super-admin/*` bypassing tenant resolution
 
 ---
 
@@ -83,12 +102,12 @@ The project was originally built as a generic payment portal wrapping Helcim. It
 
 ## Phase 5 — Polish & launch prep
 
-- [ ] Replace Helcim stub with real Helcim API calls
 - [ ] Webhook handling for Helcim payment events
 - [ ] Organization onboarding flow (sign up, create org, invite staff)
-- [ ] Stripe-based billing for the platform itself (orgs pay Paige a monthly fee)
-- [ ] Deployment setup (Railway or Render for backend, Vercel for frontends)
+- [ ] Stripe-based billing for the platform itself (orgs pay you a monthly fee)
+- [x] Deployment setup (Railway for backend, Vercel for frontends)
 - [ ] Basic test coverage for services and critical API routes
+- [ ] Custom domain (`cliqpaymat.app` or similar) for admin + superadmin portals
 
 ---
 
