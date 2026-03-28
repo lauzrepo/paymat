@@ -22,6 +22,8 @@ import { InvoicesPage } from './pages/invoices/InvoicesPage';
 import { InvoiceDetailPage } from './pages/invoices/InvoiceDetailPage';
 import { PaymentsPage } from './pages/payments/PaymentsPage';
 import { SettingsPage } from './pages/settings/SettingsPage';
+import { FeedbackPage } from './pages/feedback/FeedbackPage';
+import { FeedbackDetailPage } from './pages/feedback/FeedbackDetailPage';
 
 function App() {
   return (
@@ -52,6 +54,8 @@ function App() {
             <Route path="/invoices" element={<InvoicesPage />} />
             <Route path="/invoices/:id" element={<InvoiceDetailPage />} />
             <Route path="/payments" element={<PaymentsPage />} />
+            <Route path="/feedback" element={<FeedbackPage />} />
+            <Route path="/feedback/:id" element={<FeedbackDetailPage />} />
             <Route path="/settings" element={<SettingsPage />} />
           </Route>
 

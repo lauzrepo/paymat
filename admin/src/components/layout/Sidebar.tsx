@@ -8,6 +8,7 @@ import {
   FileText,
   CreditCard,
   Settings,
+  MessageSquare,
 } from 'lucide-react';
 import { cn } from '../../lib/utils';
 import { useTenantBranding } from '../../hooks/useTenant';
@@ -20,6 +21,7 @@ const nav = [
   { to: '/enrollments', label: 'Enrollments', icon: ClipboardList },
   { to: '/invoices', label: 'Invoices', icon: FileText },
   { to: '/payments', label: 'Payments', icon: CreditCard },
+  { to: '/feedback', label: 'Feedback', icon: MessageSquare },
   { to: '/settings', label: 'Settings', icon: Settings },
 ];
 

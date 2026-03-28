@@ -19,13 +19,14 @@ model Organization {
   createdAt    DateTime @default(now()) @map("created_at")
   updatedAt    DateTime @updatedAt @map("updated_at")
 
-  users      User[]
-  contacts   Contact[]
-  families   Family[]
-  programs   Program[]
-  invoices   Invoice[]
-  payments   Payment[]
-  auditLogs  AuditLog[]
+  users               User[]
+  contacts            Contact[]
+  families            Family[]
+  programs            Program[]
+  invoices            Invoice[]
+  payments            Payment[]
+  auditLogs           AuditLog[]
+  feedbackSubmissions FeedbackSubmission[]
 
   @@map("organizations")
 }
@@ -74,6 +75,7 @@ model Contact {
   user         User?
   enrollments  Enrollment[]
   invoices     Invoice[]
+  feedback     FeedbackSubmission[]
 
   @@index([organizationId])
   @@map("contacts")
@@ -220,6 +222,27 @@ model AuditLog {
   @@index([action])
   @@index([createdAt])
   @@map("audit_logs")
+}
+
+model FeedbackSubmission {
+  id             String   @id @default(uuid())
+  organizationId String   @map("organization_id")
+  contactId      String?  @map("contact_id")
+  name           String
+  email          String?
+  type           String   @default("feedback")
+  subject        String
+  message        String
+  status         String   @default("open")
+  createdAt      DateTime @default(now()) @map("created_at")
+  updatedAt      DateTime @updatedAt @map("updated_at")
+
+  organization Organization @relation(fields: [organizationId], references: [id])
+  contact      Contact?     @relation(fields: [contactId], references: [id])
+
+  @@index([organizationId])
+  @@index([status])
+  @@map("feedback_submissions")
 }
 
 model SuperAdmin {

@@ -31,6 +31,7 @@
   "author": "",
   "license": "MIT",
   "dependencies": {
+    "@anthropic-ai/sdk": "^0.80.0",
     "@prisma/client": "^5.7.0",
     "axios": "^1.6.2",
     "bcrypt": "^5.1.1",

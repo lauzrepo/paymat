@@ -17,6 +17,7 @@ import enrollmentRoutes from './routes/enrollments';
 import invoiceRoutes from './routes/invoices';
 import paymentRoutes from './routes/payments';
 import billingRoutes from './routes/billing';
+import feedbackRoutes from './routes/feedback';
 
 const app: Application = express();
 
@@ -60,6 +61,7 @@ app.use('/api/enrollments', enrollmentRoutes);
 app.use('/api/invoices', invoiceRoutes);
 app.use('/api/payments', paymentRoutes);
 app.use('/api/billing', billingRoutes);
+app.use('/api/feedback', feedbackRoutes);
 
 app.use(notFoundHandler);
 app.use(errorHandler);
