@@ -10,6 +10,7 @@ import { OrganizationsPage } from './pages/organizations/OrganizationsPage';
 import { OrganizationDetailPage } from './pages/organizations/OrganizationDetailPage';
 import { CreateOrganizationPage } from './pages/organizations/CreateOrganizationPage';
 import { SettingsPage } from './pages/settings/SettingsPage';
+import { InvitesPage } from './pages/invites/InvitesPage';
 
 function App() {
   return (
@@ -28,6 +29,7 @@ function App() {
             <Route index element={<OrganizationsPage />} />
             <Route path="/organizations/new" element={<CreateOrganizationPage />} />
             <Route path="/organizations/:id" element={<OrganizationDetailPage />} />
+            <Route path="/invites" element={<InvitesPage />} />
             <Route path="/settings" element={<SettingsPage />} />
           </Route>
 

@@ -10,6 +10,7 @@ import {
   updateOrganization,
   setOrganizationActive,
 } from '../controllers/superAdminController';
+import { createInvite, listInvites, verifyInvite, redeemInvite } from '../controllers/inviteController';
 
 const router = Router();
 
@@ -26,5 +27,12 @@ router.post('/organizations', authenticateSuperAdmin, createOrganization);
 router.get('/organizations/:id', authenticateSuperAdmin, getOrganization);
 router.put('/organizations/:id', authenticateSuperAdmin, updateOrganization);
 router.patch('/organizations/:id/status', authenticateSuperAdmin, setOrganizationActive);
+
+// Invites — verify/redeem are public (used by onboarding page before login)
+router.get('/invites/verify/:token', verifyInvite);
+router.post('/invites/redeem/:token', redeemInvite);
+// Invites management — protected
+router.get('/invites', authenticateSuperAdmin, listInvites);
+router.post('/invites', authenticateSuperAdmin, createInvite);
 
 export default router;

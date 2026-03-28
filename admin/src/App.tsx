@@ -24,12 +24,15 @@ import { PaymentsPage } from './pages/payments/PaymentsPage';
 import { SettingsPage } from './pages/settings/SettingsPage';
 import { FeedbackPage } from './pages/feedback/FeedbackPage';
 import { FeedbackDetailPage } from './pages/feedback/FeedbackDetailPage';
+import { OnboardingPage } from './pages/onboarding/OnboardingPage';
 
 function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <BrowserRouter>
         <Routes>
+          <Route path="/onboarding" element={<OnboardingPage />} />
+
           <Route element={<AuthLayout />}>
             <Route path="/login" element={<LoginPage />} />
             <Route path="/register" element={<RegisterPage />} />

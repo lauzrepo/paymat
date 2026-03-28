@@ -1,6 +1,8 @@
 import { Request, Response } from 'express';
 import feedbackService from '../services/feedbackService';
+import { sendFeedbackNotification } from '../services/emailService';
 import { asyncHandler, AppError } from '../middleware/errorHandler';
+import logger from '../utils/logger';
 
 const VALID_TYPES = ['feedback', 'bug', 'question'] as const;
 const VALID_STATUSES = ['open', 'in_progress', 'resolved', 'closed'];
@@ -22,6 +24,17 @@ export const createFeedback = asyncHandler(async (req: Request, res: Response) =
     subject: subject.trim(),
     message: message.trim(),
   });
+
+  // Fire-and-forget email notification to super admin
+  sendFeedbackNotification({
+    id: submission.id,
+    name: submission.name,
+    email: submission.email,
+    type: submission.type,
+    subject: submission.subject,
+    message: submission.message,
+    organizationName: req.organization!.name,
+  }).catch((err) => logger.error('Failed to send feedback notification email', { err }));
 
   res.status(201).json({ status: 'success', data: { submission } });
 });

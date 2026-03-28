@@ -26,6 +26,9 @@ const envSchema = z.object({
   RATE_LIMIT_WINDOW_MS: z.string().default('900000'),
   RATE_LIMIT_MAX_REQUESTS: z.string().default('100'),
   LOG_LEVEL: z.string().default('info'),
+  RESEND_API_KEY: z.string().min(1, 'RESEND_API_KEY is required'),
+  SUPER_ADMIN_EMAIL: z.string().email('SUPER_ADMIN_EMAIL must be a valid email'),
+  APP_URL: z.string().url().default('https://app.paymat.com'),
 });
 
 const parseEnv = () => {
@@ -92,5 +95,10 @@ export const config = {
   superAdmin: {
     jwtSecret: env.SUPER_ADMIN_JWT_SECRET,
     jwtRefreshSecret: env.SUPER_ADMIN_JWT_REFRESH_SECRET,
+  },
+  email: {
+    resendApiKey: env.RESEND_API_KEY,
+    superAdminEmail: env.SUPER_ADMIN_EMAIL,
+    appUrl: env.APP_URL,
   },
 };

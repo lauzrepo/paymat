@@ -1,9 +1,10 @@
 import { NavLink } from 'react-router-dom';
-import { Building2, Settings } from 'lucide-react';
+import { Building2, Mail, Settings } from 'lucide-react';
 import { cn } from '../../lib/utils';
 
 const nav = [
   { to: '/', label: 'Organizations', icon: Building2, end: true },
+  { to: '/invites', label: 'Invites', icon: Mail },
   { to: '/settings', label: 'Settings', icon: Settings },
 ];
 
