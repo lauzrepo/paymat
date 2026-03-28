@@ -10,7 +10,7 @@ Multi-tenant member management + recurring billing SaaS for small service busine
 
 ### Project structure
 - [x] Rename `frontend/` → `admin/`
-- [ ] Scaffold `client/` as a new Vite + React app
+- [x] Scaffold `client/` as a new Vite + React app (lives in `frontend/`)
 
 ### Backend — schema rewrite
 - [x] Rename `Tenant` → `Organization`, add `type` and `timezone` fields
@@ -79,6 +79,29 @@ Multi-tenant member management + recurring billing SaaS for small service busine
 
 ---
 
+## Phase 2.6 — Feedback & email ✅
+
+### Feedback / issue submission
+- [x] `FeedbackSubmission` model (type, subject, message, status, org + contact relation)
+- [x] Backend routes: `POST /api/feedback` (any authed user), `GET/PATCH` (admin/staff)
+- [x] Admin portal — Feedback list page with status/type filters + detail page with status updater
+- [x] Client portal — Submit feedback/issue form + view past submissions
+
+### Resend email integration
+- [x] `emailService.ts` with Resend — feedback notification template + invite email template
+- [x] Super admin receives email on every new feedback submission (fire-and-forget)
+- [x] Env vars: `RESEND_API_KEY`, `SUPER_ADMIN_EMAIL`, `APP_URL`
+
+### Customer invite & onboarding flow
+- [x] `InviteToken` model (token, email, orgName, recipientName, expiresAt, usedAt)
+- [x] Backend: `POST /super-admin/invites` (create + send email), `GET /super-admin/invites` (list)
+- [x] Public endpoints: `GET /super-admin/invites/verify/:token`, `POST /super-admin/invites/redeem/:token`
+- [x] Redeem creates organization + admin user in one transaction, marks token used
+- [x] Super admin portal — Invites page: send form + sent invites table with Pending/Accepted/Expired badges
+- [x] Admin portal — `/onboarding?token=` page: verify invite, set slug + password, create account, redirect to login
+
+---
+
 ## Phase 3 — Client portal (`client/`)
 
 ### Pages
@@ -103,7 +126,7 @@ Multi-tenant member management + recurring billing SaaS for small service busine
 ## Phase 5 — Polish & launch prep
 
 - [ ] Webhook handling for Helcim payment events
-- [ ] Organization onboarding flow (sign up, create org, invite staff)
+- [x] Organization onboarding flow — invite email + guided setup via `/onboarding?token=`
 - [ ] Stripe-based billing for the platform itself (orgs pay you a monthly fee)
 - [x] Deployment setup (Railway for backend, Vercel for frontends)
 - [ ] Basic test coverage for services and critical API routes
