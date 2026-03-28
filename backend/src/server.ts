@@ -18,6 +18,7 @@ import invoiceRoutes from './routes/invoices';
 import paymentRoutes from './routes/payments';
 import billingRoutes from './routes/billing';
 import feedbackRoutes from './routes/feedback';
+import clientRoutes from './routes/client';
 
 const app: Application = express();
 
@@ -62,6 +63,7 @@ app.use('/api/invoices', invoiceRoutes);
 app.use('/api/payments', paymentRoutes);
 app.use('/api/billing', billingRoutes);
 app.use('/api/feedback', feedbackRoutes);
+app.use('/api/client', clientRoutes);
 
 app.use(notFoundHandler);
 app.use(errorHandler);

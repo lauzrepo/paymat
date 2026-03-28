@@ -102,15 +102,26 @@ Multi-tenant member management + recurring billing SaaS for small service busine
 
 ---
 
-## Phase 3 — Client portal (`client/`)
+## Phase 3 — Client portal (`frontend/`) ✅
+
+### Backend
+- [x] `GET /api/client/me` — user profile + linked contact + family + active enrollments
+- [x] `GET /api/client/enrollments` — all enrollments for the logged-in client
+- [x] `GET /api/client/invoices` — invoices scoped to client's contactId / familyId
+- [x] `GET /api/client/invoices/:id` — single invoice with ownership check
+- [x] `POST /api/client/invoices/:id/initialize-payment` — init Helcim checkout for outstanding balance
+- [x] `GET /api/client/payments` — payment history for client's invoices
 
 ### Pages
-- [ ] **Login** — client login (separate from admin)
-- [ ] **My account** — name, contact info, family members
-- [ ] **My enrollments** — active programs
-- [ ] **Invoices** — outstanding and past invoices
-- [ ] **Pay invoice** — Helcim.js card entry, pay outstanding balance
-- [ ] **Payment history** — receipts
+- [x] **Login** — client login (shared `/api/auth/login`, role-gated)
+- [x] **Home** — welcome dashboard: active programs count, balance due, overdue alert, quick links
+- [x] **My Account** — profile, contact info (phone, DOB), family name/billing email
+- [x] **My Programs** — active and past enrollments with billing frequency + next billing date
+- [x] **Invoices** — list with status badges; overdue highlighted; links to detail
+- [x] **Invoice detail** — line items, paid/outstanding amounts, payment history, pay button (Helcim.js)
+- [x] **Pay invoice** — HelcimPay.js iFrame card entry → submit token to `/api/payments`
+- [x] **Payment History** — all payments across all invoices with status badges
+- [x] **Support** — submit feedback/issue form + view past submissions
 
 ---
 

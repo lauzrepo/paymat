@@ -7,6 +7,11 @@ import { ProtectedRoute } from './components/shared/ProtectedRoute';
 
 import { LoginPage } from './pages/auth/LoginPage';
 import { HomePage } from './pages/home/HomePage';
+import { AccountPage } from './pages/account/AccountPage';
+import { EnrollmentsPage } from './pages/enrollments/EnrollmentsPage';
+import { InvoicesPage } from './pages/invoices/InvoicesPage';
+import { InvoiceDetailPage } from './pages/invoices/InvoiceDetailPage';
+import { PaymentHistoryPage } from './pages/payments/PaymentHistoryPage';
 import { FeedbackListPage } from './pages/feedback/FeedbackListPage';
 import { FeedbackFormPage } from './pages/feedback/FeedbackFormPage';
 
@@ -25,6 +30,11 @@ function App() {
             }
           >
             <Route index element={<HomePage />} />
+            <Route path="/account" element={<AccountPage />} />
+            <Route path="/enrollments" element={<EnrollmentsPage />} />
+            <Route path="/invoices" element={<InvoicesPage />} />
+            <Route path="/invoices/:id" element={<InvoiceDetailPage />} />
+            <Route path="/payments" element={<PaymentHistoryPage />} />
             <Route path="/feedback" element={<FeedbackListPage />} />
             <Route path="/feedback/new" element={<FeedbackFormPage />} />
           </Route>

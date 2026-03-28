@@ -1,11 +1,15 @@
 import { Outlet, NavLink, useNavigate } from 'react-router-dom';
-import { LayoutDashboard, MessageSquare, LogOut } from 'lucide-react';
+import { LayoutDashboard, BookOpen, FileText, Receipt, MessageSquare, User, LogOut } from 'lucide-react';
 import { cn } from '../../lib/utils';
 import { useMe, useLogout } from '../../hooks/useAuth';
 
 const nav = [
   { to: '/', label: 'Home', icon: LayoutDashboard, end: true },
-  { to: '/feedback', label: 'Feedback & Issues', icon: MessageSquare },
+  { to: '/enrollments', label: 'My Programs', icon: BookOpen },
+  { to: '/invoices', label: 'Invoices', icon: FileText },
+  { to: '/payments', label: 'Payment History', icon: Receipt },
+  { to: '/feedback', label: 'Support', icon: MessageSquare },
+  { to: '/account', label: 'My Account', icon: User },
 ];
 
 export function AppLayout() {
