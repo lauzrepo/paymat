@@ -67,7 +67,7 @@ const feedbackService = {
     return submission;
   },
 
-  async updateStatus(id: string, organizationId: string, status: string) {
+  async updateStatus(id: string, _organizationId: string, status: string) {
     return prisma.feedbackSubmission.update({
       where: { id },
       data: { status },
