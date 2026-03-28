@@ -2,7 +2,7 @@
 
 ## Current state
 
-Multi-tenant member management + recurring billing SaaS for small service businesses. Backend is live on Railway, admin portal is live on Vercel (`admin-navy-tau.vercel.app`), and super admin portal is live at `paymat.vercel.app`.
+Multi-tenant member management + recurring billing SaaS for small service businesses. Backend is live on Railway, admin portal on Vercel (`admin-navy-tau.vercel.app`), super admin portal at `paymat.vercel.app`, and client portal at `frontend-xxx.vercel.app`. Phases 1–3 complete. Next: billing automation (Phase 4).
 
 ---
 
@@ -32,13 +32,13 @@ Multi-tenant member management + recurring billing SaaS for small service busine
 - [x] `/api/enrollments` — enroll/unenroll contacts in programs (admin/staff)
 - [x] `/api/invoices` — create, list, mark paid, void (admin/staff)
 - [x] `/api/payments` — process payment against invoice (admin + client)
-- [ ] `/api/client/me` — client's own profile, enrollments, invoices
+- [x] `/api/client/*` — client-scoped endpoints (see Phase 3)
 - [x] Remove or gut: subscriptions, payment-methods, GDPR routes
 
 ### Backend — auth
 - [x] Role-based middleware (`requireRole('admin')`, `requireRole('client')`)
-- [ ] Client invite flow — admin creates a client account linked to a Contact
-- [ ] Client login returns only their own data
+- [x] Client login returns only their own data (scoped via `/api/client/*`)
+- [ ] Admin-side: create a client User account linked to an existing Contact
 
 ---
 
