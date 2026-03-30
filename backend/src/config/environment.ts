@@ -28,7 +28,7 @@ const envSchema = z.object({
   LOG_LEVEL: z.string().default('info'),
   RESEND_API_KEY: z.string().min(1, 'RESEND_API_KEY is required'),
   SUPER_ADMIN_EMAIL: z.string().email('SUPER_ADMIN_EMAIL must be a valid email'),
-  APP_URL: z.string().url().default('https://app.paymat.com'),
+  APP_URL: z.string().url().default('https://app.cliqpaymat.app'),
 });
 
 const parseEnv = () => {

@@ -150,7 +150,7 @@ export function OnboardingPage() {
             <label className="block text-sm font-medium text-gray-700 mb-1">Organization URL slug</label>
             <div className="flex items-center border border-gray-300 rounded-lg overflow-hidden focus-within:ring-2 focus-within:ring-violet-500">
               <span className="px-3 py-2 bg-gray-50 text-gray-400 text-sm border-r border-gray-300 select-none">
-                paymat.com/
+                cliqpaymat.app/
               </span>
               <input
                 type="text"

@@ -2,7 +2,7 @@ import { Resend } from 'resend';
 import { config } from '../config/environment';
 
 const resend = new Resend(config.email.resendApiKey);
-const FROM = 'Paymat <noreply@paymat.com>';
+const FROM = 'Cliq Paymat <noreply@cliqpaymat.app>';
 
 export async function sendFeedbackNotification(submission: {
   id: string;
