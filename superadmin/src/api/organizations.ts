@@ -32,3 +32,9 @@ export const updateOrganization = (id: string, body: {
 
 export const setOrganizationActive = (id: string, active: boolean): Promise<Organization> =>
   apiClient.patch(`/organizations/${id}/status`, { active }).then((r) => r.data.data.organization);
+
+export const sendBillingCheckout = (orgId: string): Promise<{ url: string }> =>
+  apiClient.post(`/billing/send-checkout/${orgId}`).then((r) => r.data.data);
+
+export const getBillingPortalLink = (orgId: string): Promise<{ url: string }> =>
+  apiClient.post(`/billing/portal/${orgId}`).then((r) => r.data.data);

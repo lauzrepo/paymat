@@ -24,6 +24,7 @@ import { PaymentsPage } from './pages/payments/PaymentsPage';
 import { SettingsPage } from './pages/settings/SettingsPage';
 import { FeedbackPage } from './pages/feedback/FeedbackPage';
 import { FeedbackDetailPage } from './pages/feedback/FeedbackDetailPage';
+import { BillingPage } from './pages/billing/BillingPage';
 import { OnboardingPage } from './pages/onboarding/OnboardingPage';
 
 function App() {
@@ -59,6 +60,7 @@ function App() {
             <Route path="/payments" element={<PaymentsPage />} />
             <Route path="/feedback" element={<FeedbackPage />} />
             <Route path="/feedback/:id" element={<FeedbackDetailPage />} />
+            <Route path="/billing" element={<BillingPage />} />
             <Route path="/settings" element={<SettingsPage />} />
           </Route>
 

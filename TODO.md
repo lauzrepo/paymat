@@ -141,9 +141,9 @@ Multi-tenant member management + recurring billing SaaS for small service busine
 
 ## Phase 5 — Polish & launch prep
 
-- [ ] Webhook handling for Helcim payment events
+- [x] Webhook handling for Helcim payment events — HMAC verification, approved/failed/refunded handlers at `POST /webhooks/helcim`
 - [x] Organization onboarding flow — invite email + guided setup via `/onboarding?token=`
-- [ ] Stripe-based billing for the platform itself (orgs pay you a monthly fee)
+- [x] Stripe-based billing for the platform itself — checkout link generation, customer portal, webhook sync of subscription status; admin Billing page shows status + portal link
 - [x] Deployment setup (Railway for backend, Vercel for frontends)
 - [ ] Basic test coverage for services and critical API routes
 - [x] Custom domain `cliqpaymat.app` — all subdomains live, Railway env vars updated, Resend verified

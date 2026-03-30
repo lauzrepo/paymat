@@ -30,4 +30,7 @@ export interface Organization {
   stats?: {
     totalRevenue: number;
   };
+  stripeCustomerId?: string | null;
+  stripeSubscriptionId?: string | null;
+  subscriptionStatus?: string;
 }

@@ -11,6 +11,7 @@ import {
   setOrganizationActive,
 } from '../controllers/superAdminController';
 import { createInvite, listInvites, verifyInvite, redeemInvite } from '../controllers/inviteController';
+import { sendCheckoutLink, getPortalLink } from '../controllers/stripeBillingController';
 
 const router = Router();
 
@@ -27,6 +28,10 @@ router.post('/organizations', authenticateSuperAdmin, createOrganization);
 router.get('/organizations/:id', authenticateSuperAdmin, getOrganization);
 router.put('/organizations/:id', authenticateSuperAdmin, updateOrganization);
 router.patch('/organizations/:id/status', authenticateSuperAdmin, setOrganizationActive);
+
+// Stripe billing — protected
+router.post('/billing/send-checkout/:orgId', authenticateSuperAdmin, sendCheckoutLink);
+router.post('/billing/portal/:orgId', authenticateSuperAdmin, getPortalLink);
 
 // Invites — verify/redeem are public (used by onboarding page before login)
 router.get('/invites/verify/:token', verifyInvite);

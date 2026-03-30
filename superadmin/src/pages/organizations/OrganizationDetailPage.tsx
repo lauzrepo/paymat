@@ -1,7 +1,8 @@
 import { useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { ChevronLeft } from 'lucide-react';
+import { ChevronLeft, CreditCard, ExternalLink } from 'lucide-react';
 import { useOrganization, useUpdateOrganization, useSetOrganizationActive } from '../../hooks/useOrganizations';
+import { sendBillingCheckout, getBillingPortalLink } from '../../api/organizations';
 import { Card, CardHeader, CardBody } from '../../components/ui/Card';
 import { Button } from '../../components/ui/Button';
 import { Badge } from '../../components/ui/Badge';
@@ -23,6 +24,39 @@ export function OrganizationDetailPage() {
   const setActive = useSetOrganizationActive();
 
   const [editing, setEditing] = useState(false);
+  const [billingLoading, setBillingLoading] = useState(false);
+  const [billingMsg, setBillingMsg] = useState('');
+
+  const handleSendCheckout = async () => {
+    if (!org) return;
+    setBillingLoading(true);
+    setBillingMsg('');
+    try {
+      const { url } = await sendBillingCheckout(org.id);
+      await navigator.clipboard.writeText(url);
+      setBillingMsg('Checkout link copied to clipboard.');
+    } catch (err: unknown) {
+      const msg = (err as { response?: { data?: { message?: string } } })?.response?.data?.message;
+      setBillingMsg(msg ?? 'Failed to generate checkout link.');
+    } finally {
+      setBillingLoading(false);
+    }
+  };
+
+  const handlePortalLink = async () => {
+    if (!org) return;
+    setBillingLoading(true);
+    setBillingMsg('');
+    try {
+      const { url } = await getBillingPortalLink(org.id);
+      window.open(url, '_blank');
+    } catch (err: unknown) {
+      const msg = (err as { response?: { data?: { message?: string } } })?.response?.data?.message;
+      setBillingMsg(msg ?? 'Failed to open billing portal.');
+    } finally {
+      setBillingLoading(false);
+    }
+  };
   const [form, setForm] = useState({ name: '', slug: '', type: '', timezone: '', primaryColor: '' });
   const [saveError, setSaveError] = useState('');
 
@@ -198,6 +232,41 @@ export function OrganizationDetailPage() {
           </CardBody>
         </Card>
       </div>
+
+      {/* Billing */}
+      <Card>
+        <CardHeader className="flex items-center gap-2">
+          <CreditCard className="h-4 w-4 text-gray-500" />
+          <h2 className="text-base font-semibold text-gray-900">Platform Billing</h2>
+        </CardHeader>
+        <CardBody className="flex items-center justify-between gap-4">
+          <div>
+            <p className="text-sm text-gray-700">
+              Status: <span className={`font-semibold ${
+                org.subscriptionStatus === 'active' ? 'text-green-600' :
+                org.subscriptionStatus === 'past_due' ? 'text-orange-600' :
+                org.subscriptionStatus === 'canceled' ? 'text-red-600' :
+                'text-gray-500'
+              }`}>
+                {org.subscriptionStatus ?? 'inactive'}
+              </span>
+            </p>
+            {billingMsg && <p className="text-xs text-gray-500 mt-1">{billingMsg}</p>}
+          </div>
+          <div className="flex gap-2 flex-shrink-0">
+            {org.subscriptionStatus !== 'active' && (
+              <Button size="sm" loading={billingLoading} onClick={handleSendCheckout}>
+                Copy checkout link
+              </Button>
+            )}
+            {org.stripeCustomerId && (
+              <Button size="sm" variant="secondary" loading={billingLoading} onClick={handlePortalLink}>
+                <ExternalLink className="h-3.5 w-3.5 mr-1" /> Billing portal
+              </Button>
+            )}
+          </div>
+        </CardBody>
+      </Card>
 
       {/* Danger zone */}
       <Card>

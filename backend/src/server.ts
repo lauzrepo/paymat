@@ -21,6 +21,7 @@ import paymentRoutes from './routes/payments';
 import billingRoutes from './routes/billing';
 import feedbackRoutes from './routes/feedback';
 import clientRoutes from './routes/client';
+import webhookRoutes from './routes/webhooks';
 
 const app: Application = express();
 
@@ -36,6 +37,9 @@ app.use(
     credentials: true,
   })
 );
+
+// Raw body for webhook signature verification — must come before express.json()
+app.use('/webhooks', express.raw({ type: 'application/json' }));
 
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
@@ -65,6 +69,7 @@ app.use('/api/invoices', invoiceRoutes);
 app.use('/api/payments', paymentRoutes);
 app.use('/api/billing', billingRoutes);
 app.use('/api/feedback', feedbackRoutes);
+app.use('/webhooks', webhookRoutes);
 app.use('/api/client', clientRoutes);
 
 app.use(notFoundHandler);

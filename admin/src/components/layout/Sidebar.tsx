@@ -7,6 +7,7 @@ import {
   ClipboardList,
   FileText,
   CreditCard,
+  Receipt,
   Settings,
   MessageSquare,
 } from 'lucide-react';
@@ -22,6 +23,7 @@ const nav = [
   { to: '/invoices', label: 'Invoices', icon: FileText },
   { to: '/payments', label: 'Payments', icon: CreditCard },
   { to: '/feedback', label: 'Feedback', icon: MessageSquare },
+  { to: '/billing', label: 'Billing', icon: Receipt },
   { to: '/settings', label: 'Settings', icon: Settings },
 ];
 
