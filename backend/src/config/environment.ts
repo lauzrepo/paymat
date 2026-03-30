@@ -29,9 +29,9 @@ const envSchema = z.object({
   RESEND_API_KEY: z.string().min(1, 'RESEND_API_KEY is required'),
   SUPER_ADMIN_EMAIL: z.string().email('SUPER_ADMIN_EMAIL must be a valid email'),
   APP_URL: z.string().url().default('https://app.cliqpaymat.app'),
-  STRIPE_SECRET_KEY: z.string().min(1, 'STRIPE_SECRET_KEY is required'),
-  STRIPE_WEBHOOK_SECRET: z.string().min(1, 'STRIPE_WEBHOOK_SECRET is required'),
-  STRIPE_PRICE_ID: z.string().min(1, 'STRIPE_PRICE_ID is required'),
+  STRIPE_SECRET_KEY: z.string().optional(),
+  STRIPE_WEBHOOK_SECRET: z.string().optional(),
+  STRIPE_PRICE_ID: z.string().optional(),
 });
 
 const parseEnv = () => {
@@ -105,8 +105,8 @@ export const config = {
     appUrl: env.APP_URL,
   },
   stripe: {
-    secretKey: env.STRIPE_SECRET_KEY,
-    webhookSecret: env.STRIPE_WEBHOOK_SECRET,
-    priceId: env.STRIPE_PRICE_ID,
+    secretKey: env.STRIPE_SECRET_KEY ?? '',
+    webhookSecret: env.STRIPE_WEBHOOK_SECRET ?? '',
+    priceId: env.STRIPE_PRICE_ID ?? '',
   },
 };
