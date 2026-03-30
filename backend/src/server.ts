@@ -1,8 +1,10 @@
 import express, { Application } from 'express';
 import helmet from 'helmet';
 import cors from 'cors';
+import cron from 'node-cron';
 import { config } from './config/environment';
 import logger from './utils/logger';
+import billingService from './services/billingService';
 import { errorHandler, notFoundHandler } from './middleware/errorHandler';
 import { apiLimiter } from './middleware/rateLimiter';
 import { resolveTenant } from './middleware/tenant';
@@ -74,6 +76,17 @@ const server = app.listen(PORT, () => {
   logger.info(`🚀 Server running on port ${PORT} in ${config.app.env} mode`);
   logger.info(`📝 API available at http://localhost:${PORT}/api`);
   logger.info(`❤️  Health check at http://localhost:${PORT}/health`);
+});
+
+// Run billing every day at 6am UTC
+cron.schedule('0 6 * * *', async () => {
+  logger.info('Cron: starting daily billing run');
+  try {
+    const result = await billingService.generateDueInvoices();
+    logger.info('Cron: billing run complete', result);
+  } catch (err) {
+    logger.error('Cron: billing run failed', { err });
+  }
 });
 
 process.on('SIGTERM', () => {

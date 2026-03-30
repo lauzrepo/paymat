@@ -1,7 +1,11 @@
 import { Decimal } from '@prisma/client/runtime/library';
 import prisma from '../config/database';
 import helcimService from './helcimService';
+import { sendInvoiceGenerated, sendPaymentReceived, sendPaymentFailed } from './emailService';
+import { config } from '../config/environment';
 import logger from '../utils/logger';
+
+const PORTAL_URL = config.email.appUrl.replace('app.', 'portal.');
 
 function advanceDate(date: Date, frequency: string): Date | null {
   const next = new Date(date);
@@ -33,7 +37,7 @@ class BillingService {
         contact: organizationId ? { organizationId } : undefined,
       },
       include: {
-        contact: { include: { family: true } },
+        contact: { include: { family: true, organization: true } },
         program: true,
       },
     });
@@ -81,6 +85,22 @@ class BillingService {
         invoicesCreated++;
         logger.info(`Billing: created ${invoiceNumber} for enrollment ${enrollment.id}`);
 
+        // Email contact — invoice generated (fire-and-forget)
+        const contactEmail = enrollment.contact.email;
+        const contactName = `${enrollment.contact.firstName} ${enrollment.contact.lastName}`.trim();
+        if (contactEmail) {
+          sendInvoiceGenerated(contactEmail, {
+            recipientName: contactName,
+            orgName: enrollment.contact.organization?.name ?? 'your organization',
+            invoiceNumber,
+            amount,
+            currency: 'USD',
+            dueDate,
+            programName: enrollment.program.name,
+            portalUrl: `${PORTAL_URL}/invoices/${invoice.id}`,
+          }).catch((err) => logger.error('Failed to send invoice email', { err }));
+        }
+
         // Attempt auto-charge — prefer contact token, fall back to family token
         const cardToken = enrollment.contact.helcimToken ?? enrollment.contact.family?.helcimToken ?? null;
         if (cardToken) {
@@ -113,8 +133,31 @@ class BillingService {
 
             autoCharged++;
             logger.info(`Billing: auto-charged invoice ${invoiceNumber}`);
+
+            // Email contact — payment received
+            if (contactEmail) {
+              sendPaymentReceived(contactEmail, {
+                recipientName: contactName,
+                orgName: enrollment.contact.organization?.name ?? 'your organization',
+                invoiceNumber,
+                amount,
+                currency: 'USD',
+              }).catch((err) => logger.error('Failed to send payment received email', { err }));
+            }
           } catch (chargeErr) {
             logger.warn(`Billing: auto-charge failed for ${invoiceNumber} — ${(chargeErr as Error).message}`);
+
+            // Email contact — payment failed
+            if (contactEmail) {
+              sendPaymentFailed(contactEmail, {
+                recipientName: contactName,
+                orgName: enrollment.contact.organization?.name ?? 'your organization',
+                invoiceNumber,
+                amount,
+                currency: 'USD',
+                portalUrl: `${PORTAL_URL}/invoices/${invoice.id}`,
+              }).catch((err) => logger.error('Failed to send payment failed email', { err }));
+            }
           }
         }
 

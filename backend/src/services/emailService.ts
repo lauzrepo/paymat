@@ -34,6 +34,114 @@ export async function sendFeedbackNotification(submission: {
   });
 }
 
+export async function sendInvoiceGenerated(to: string, details: {
+  recipientName: string;
+  orgName: string;
+  invoiceNumber: string;
+  amount: number;
+  currency: string;
+  dueDate: Date;
+  programName: string;
+  portalUrl: string;
+}) {
+  await resend.emails.send({
+    from: FROM,
+    to,
+    subject: `Invoice ${details.invoiceNumber} from ${details.orgName}`,
+    html: `
+      <div style="font-family:sans-serif;max-width:600px;margin:0 auto">
+        <div style="background:#4f46e5;padding:24px;border-radius:8px 8px 0 0;text-align:center">
+          <h1 style="color:#fff;margin:0;font-size:22px">New Invoice</h1>
+        </div>
+        <div style="background:#fff;border:1px solid #e5e7eb;border-top:none;border-radius:0 0 8px 8px;padding:32px">
+          <p style="font-size:16px;color:#111827">Hi ${details.recipientName},</p>
+          <p style="color:#6b7280">A new invoice has been generated for your ${details.orgName} membership.</p>
+          <div style="background:#f9fafb;border-radius:8px;padding:20px;margin:24px 0">
+            <table style="width:100%;border-collapse:collapse">
+              <tr><td style="padding:4px 0;color:#6b7280;width:140px">Invoice</td><td style="font-weight:600;color:#111827">${details.invoiceNumber}</td></tr>
+              <tr><td style="padding:4px 0;color:#6b7280">Program</td><td style="color:#111827">${details.programName}</td></tr>
+              <tr><td style="padding:4px 0;color:#6b7280">Amount due</td><td style="font-weight:700;color:#111827;font-size:18px">$${details.amount.toFixed(2)} ${details.currency}</td></tr>
+              <tr><td style="padding:4px 0;color:#6b7280">Due date</td><td style="color:#111827">${details.dueDate.toLocaleDateString()}</td></tr>
+            </table>
+          </div>
+          <div style="text-align:center;margin:24px 0">
+            <a href="${details.portalUrl}" style="background:#4f46e5;color:#fff;padding:12px 28px;border-radius:8px;text-decoration:none;font-size:15px;font-weight:600">Pay Now</a>
+          </div>
+          <p style="color:#9ca3af;font-size:12px">Log in to your member portal to view the invoice and pay online.</p>
+        </div>
+      </div>
+    `,
+  });
+}
+
+export async function sendPaymentReceived(to: string, details: {
+  recipientName: string;
+  orgName: string;
+  invoiceNumber: string;
+  amount: number;
+  currency: string;
+}) {
+  await resend.emails.send({
+    from: FROM,
+    to,
+    subject: `Payment received — ${details.invoiceNumber}`,
+    html: `
+      <div style="font-family:sans-serif;max-width:600px;margin:0 auto">
+        <div style="background:#059669;padding:24px;border-radius:8px 8px 0 0;text-align:center">
+          <h1 style="color:#fff;margin:0;font-size:22px">Payment Confirmed</h1>
+        </div>
+        <div style="background:#fff;border:1px solid #e5e7eb;border-top:none;border-radius:0 0 8px 8px;padding:32px">
+          <p style="font-size:16px;color:#111827">Hi ${details.recipientName},</p>
+          <p style="color:#6b7280">Your payment for <strong>${details.orgName}</strong> has been processed successfully.</p>
+          <div style="background:#f0fdf4;border-radius:8px;padding:20px;margin:24px 0">
+            <table style="width:100%;border-collapse:collapse">
+              <tr><td style="padding:4px 0;color:#6b7280;width:140px">Invoice</td><td style="font-weight:600;color:#111827">${details.invoiceNumber}</td></tr>
+              <tr><td style="padding:4px 0;color:#6b7280">Amount paid</td><td style="font-weight:700;color:#059669;font-size:18px">$${details.amount.toFixed(2)} ${details.currency}</td></tr>
+            </table>
+          </div>
+          <p style="color:#9ca3af;font-size:12px">Thank you for your payment. Keep this email as your receipt.</p>
+        </div>
+      </div>
+    `,
+  });
+}
+
+export async function sendPaymentFailed(to: string, details: {
+  recipientName: string;
+  orgName: string;
+  invoiceNumber: string;
+  amount: number;
+  currency: string;
+  portalUrl: string;
+}) {
+  await resend.emails.send({
+    from: FROM,
+    to,
+    subject: `Payment failed — action required for ${details.invoiceNumber}`,
+    html: `
+      <div style="font-family:sans-serif;max-width:600px;margin:0 auto">
+        <div style="background:#dc2626;padding:24px;border-radius:8px 8px 0 0;text-align:center">
+          <h1 style="color:#fff;margin:0;font-size:22px">Payment Failed</h1>
+        </div>
+        <div style="background:#fff;border:1px solid #e5e7eb;border-top:none;border-radius:0 0 8px 8px;padding:32px">
+          <p style="font-size:16px;color:#111827">Hi ${details.recipientName},</p>
+          <p style="color:#6b7280">We were unable to process your payment of <strong>$${details.amount.toFixed(2)} ${details.currency}</strong> for <strong>${details.orgName}</strong>.</p>
+          <div style="background:#fef2f2;border-radius:8px;padding:20px;margin:24px 0">
+            <table style="width:100%;border-collapse:collapse">
+              <tr><td style="padding:4px 0;color:#6b7280;width:140px">Invoice</td><td style="font-weight:600;color:#111827">${details.invoiceNumber}</td></tr>
+              <tr><td style="padding:4px 0;color:#6b7280">Amount due</td><td style="font-weight:700;color:#dc2626;font-size:18px">$${details.amount.toFixed(2)} ${details.currency}</td></tr>
+            </table>
+          </div>
+          <p style="color:#6b7280">Please log in to your member portal to update your payment method or pay manually.</p>
+          <div style="text-align:center;margin:24px 0">
+            <a href="${details.portalUrl}" style="background:#dc2626;color:#fff;padding:12px 28px;border-radius:8px;text-decoration:none;font-size:15px;font-weight:600">Pay Now</a>
+          </div>
+        </div>
+      </div>
+    `,
+  });
+}
+
 export async function sendInviteEmail(invite: {
   token: string;
   recipientEmail: string;

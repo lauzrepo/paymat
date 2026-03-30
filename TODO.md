@@ -2,7 +2,7 @@
 
 ## Current state
 
-Multi-tenant member management + recurring billing SaaS for small service businesses. Domain: `cliqpaymat.app` (live). Backend on Railway. `app.cliqpaymat.app` (admin), `admin.cliqpaymat.app` (super admin), `portal.cliqpaymat.app` (client portal). Resend verified. Phases 1–3 complete. Next: billing automation (Phase 4).
+Multi-tenant member management + recurring billing SaaS for small service businesses. Domain: `cliqpaymat.app` (live). Backend on Railway. `app.cliqpaymat.app` (admin), `admin.cliqpaymat.app` (super admin), `portal.cliqpaymat.app` (client portal). Resend verified. Phases 1–4 complete. Next: Phase 5 polish & launch prep.
 
 ---
 
@@ -125,12 +125,17 @@ Multi-tenant member management + recurring billing SaaS for small service busine
 
 ---
 
-## Phase 4 — Billing automation
+## Phase 4 — Billing automation ✅
 
-- [ ] Cron job (or scheduled function) to auto-generate invoices at billing cycle start
-- [ ] Auto-charge saved card on file if present
-- [ ] Overdue invoice detection and status update
-- [ ] Email notifications — invoice generated, payment received, payment failed (requires email service)
+- [x] Cron job — `node-cron` runs daily at 6am UTC, calls `billingService.generateDueInvoices()`
+- [x] Auto-generate invoices for all active enrollments where `nextBillingDate <= today`
+- [x] Auto-charge saved card on file (contact token → family token fallback)
+- [x] Advance `nextBillingDate` after each billing cycle (monthly/weekly/yearly); clear for one_time
+- [x] Overdue invoice detection — marks `draft`/`sent` invoices past due date as `overdue` on each run
+- [x] Email — invoice generated (sent to contact when invoice is created)
+- [x] Email — payment received (sent after successful auto-charge)
+- [x] Email — payment failed (sent when auto-charge throws, with link to pay manually)
+- [x] Manual trigger endpoint `POST /api/billing/run` (accepts `X-Billing-Secret` header for external callers)
 
 ---
 
