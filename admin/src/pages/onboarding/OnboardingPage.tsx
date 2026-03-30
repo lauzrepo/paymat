@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import axios from 'axios';
+import { authStore } from '../../store/authStore';
 
 const API_BASE = import.meta.env.VITE_API_URL ?? '';
 
@@ -69,6 +70,7 @@ export function OnboardingPage() {
         slug: form.slug,
         adminPassword: form.password,
       });
+      authStore.setSlug(form.slug);
       setStep('done');
     } catch (err: unknown) {
       const msg = (err as { response?: { data?: { message?: string } } })?.response?.data?.message;

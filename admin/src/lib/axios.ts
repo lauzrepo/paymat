@@ -8,10 +8,12 @@ export const apiClient = axios.create({
   headers: { 'Content-Type': 'application/json' },
 });
 
-// Inject access token on every request
+// Inject access token and workspace slug on every request
 apiClient.interceptors.request.use((config) => {
   const token = authStore.getAccessToken();
   if (token) config.headers.Authorization = `Bearer ${token}`;
+  const slug = authStore.getSlug();
+  if (slug) config.headers['x-organization-slug'] = slug;
   return config;
 });
 
