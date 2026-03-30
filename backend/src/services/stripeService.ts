@@ -1,12 +1,20 @@
 import Stripe from 'stripe';
 import { config } from '../config/environment';
 
-const stripe = new Stripe(config.stripe.secretKey);
-
 class StripeService {
+  private _client: Stripe | null = null;
+
+  private get client(): Stripe {
+    if (!this._client) {
+      if (!config.stripe.secretKey) throw new Error('Stripe is not configured');
+      this._client = new Stripe(config.stripe.secretKey);
+    }
+    return this._client;
+  }
+
   // Get or create a Stripe customer for an organization
   async getOrCreateCustomer(orgId: string, orgName: string, email: string): Promise<string> {
-    const customer = await stripe.customers.create({
+    const customer = await this.client.customers.create({
       name: orgName,
       email,
       metadata: { organizationId: orgId },
@@ -16,7 +24,7 @@ class StripeService {
 
   // Create a checkout session to start a subscription
   async createCheckoutSession(customerId: string, orgId: string, successUrl: string, cancelUrl: string) {
-    const session = await stripe.checkout.sessions.create({
+    const session = await this.client.checkout.sessions.create({
       customer: customerId,
       mode: 'subscription',
       line_items: [{ price: config.stripe.priceId, quantity: 1 }],
@@ -30,7 +38,7 @@ class StripeService {
 
   // Create a customer portal session for self-serve billing management
   async createPortalSession(customerId: string, returnUrl: string) {
-    const session = await stripe.billingPortal.sessions.create({
+    const session = await this.client.billingPortal.sessions.create({
       customer: customerId,
       return_url: returnUrl,
     });
@@ -39,7 +47,7 @@ class StripeService {
 
   // Verify and construct a Stripe webhook event from raw body
   constructWebhookEvent(rawBody: Buffer, signature: string) {
-    return stripe.webhooks.constructEvent(rawBody, signature, config.stripe.webhookSecret);
+    return this.client.webhooks.constructEvent(rawBody, signature, config.stripe.webhookSecret);
   }
 }
 
