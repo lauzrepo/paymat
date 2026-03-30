@@ -2,7 +2,7 @@
 
 ## Current state
 
-Multi-tenant member management + recurring billing SaaS for small service businesses. Domain: `cliqpaymat.app`. Backend on Railway. Subdomains: `app.cliqpaymat.app` (admin), `admin.cliqpaymat.app` (super admin), `portal.cliqpaymat.app` (client portal). Phases 1–3 complete. Next: billing automation (Phase 4).
+Multi-tenant member management + recurring billing SaaS for small service businesses. Domain: `cliqpaymat.app` (live). Backend on Railway. `app.cliqpaymat.app` (admin), `admin.cliqpaymat.app` (super admin), `portal.cliqpaymat.app` (client portal). Resend verified. Phases 1–3 complete. Next: billing automation (Phase 4).
 
 ---
 
@@ -141,7 +141,7 @@ Multi-tenant member management + recurring billing SaaS for small service busine
 - [ ] Stripe-based billing for the platform itself (orgs pay you a monthly fee)
 - [x] Deployment setup (Railway for backend, Vercel for frontends)
 - [ ] Basic test coverage for services and critical API routes
-- [x] Custom domain acquired: `cliqpaymat.app` — assign subdomains in Vercel + update Railway env vars
+- [x] Custom domain `cliqpaymat.app` — all subdomains live, Railway env vars updated, Resend verified
 
 ---
 
