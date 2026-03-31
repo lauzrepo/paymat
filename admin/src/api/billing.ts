@@ -4,6 +4,7 @@ export interface BillingRunResult {
   invoicesCreated: number;
   autoCharged: number;
   errors: number;
+  activeEnrollments?: number;
 }
 
 export const runBilling = (): Promise<BillingRunResult> =>

@@ -28,7 +28,18 @@ function advanceDate(date: Date, frequency: string): Date | null {
 class BillingService {
   async generateDueInvoices(organizationId?: string) {
     const today = new Date();
-    today.setHours(0, 0, 0, 0);
+    today.setUTCHours(0, 0, 0, 0);
+
+    logger.info(`Billing run started — today=${today.toISOString()}, org=${organizationId ?? 'ALL'}`);
+
+    // Diagnostic: count active enrollments before date filter
+    const totalActive = await prisma.enrollment.count({
+      where: {
+        status: 'active',
+        contact: organizationId ? { organizationId } : undefined,
+      },
+    });
+    logger.info(`Billing: ${totalActive} active enrollment(s) for org scope`);
 
     const enrollments = await prisma.enrollment.findMany({
       where: {
@@ -42,9 +53,11 @@ class BillingService {
       },
     });
 
+    logger.info(`Billing: ${enrollments.length} enrollment(s) due for billing`);
+
     if (!enrollments.length) {
       logger.info('Billing run: no due enrollments');
-      return { invoicesCreated: 0, autoCharged: 0, errors: 0 };
+      return { invoicesCreated: 0, autoCharged: 0, errors: 0, activeEnrollments: totalActive };
     }
 
     let invoicesCreated = 0;
@@ -199,7 +212,7 @@ class BillingService {
     });
 
     logger.info(`Billing run complete: ${invoicesCreated} created, ${autoCharged} auto-charged, ${errors} errors`);
-    return { invoicesCreated, autoCharged, errors };
+    return { invoicesCreated, autoCharged, errors, activeEnrollments: totalActive };
   }
 }
 

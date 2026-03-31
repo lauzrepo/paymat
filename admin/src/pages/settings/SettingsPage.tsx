@@ -54,7 +54,8 @@ export function SettingsPage() {
     setBillingResult(null);
     try {
       const result = await runBilling.mutateAsync();
-      setBillingResult(`Done — ${result.invoicesCreated} invoice(s) created, ${result.autoCharged} auto-charged, ${result.errors} error(s).`);
+      const activeNote = result.activeEnrollments !== undefined ? ` (${result.activeEnrollments} active enrollment(s) found)` : '';
+      setBillingResult(`Done — ${result.invoicesCreated} invoice(s) created, ${result.autoCharged} auto-charged, ${result.errors} error(s).${activeNote}`);
     } catch {
       setBillingResult('Billing run failed. Check the server logs.');
     }
