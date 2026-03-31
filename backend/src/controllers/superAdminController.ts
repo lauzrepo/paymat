@@ -186,3 +186,30 @@ export const setOrganizationActive = asyncHandler(async (req: Request, res: Resp
   });
   res.json({ status: 'success', data: { organization: org } });
 });
+
+export const deleteOrganization = asyncHandler(async (req: Request, res: Response) => {
+  const { id } = req.params;
+
+  const org = await prisma.organization.findUnique({ where: { id } });
+  if (!org) throw new AppError(404, 'Organization not found');
+
+  // Cascade delete in FK dependency order (no DB-level cascade on org relations)
+  await prisma.$transaction(async (tx) => {
+    await tx.payment.deleteMany({ where: { organizationId: id } });
+    await tx.feedbackSubmission.deleteMany({ where: { organizationId: id } });
+    // Deleting invoices cascades InvoiceLineItem (onDelete: Cascade on that relation)
+    await tx.invoice.deleteMany({ where: { organizationId: id } });
+    // Enrollments reference contacts/programs; lineItems already gone via invoice cascade
+    await tx.enrollment.deleteMany({ where: { contact: { organizationId: id } } });
+    // Clear User.contactId FK before deleting contacts
+    await tx.user.updateMany({ where: { organizationId: id }, data: { contactId: null } });
+    await tx.contact.deleteMany({ where: { organizationId: id } });
+    await tx.program.deleteMany({ where: { organizationId: id } });
+    await tx.family.deleteMany({ where: { organizationId: id } });
+    await tx.auditLog.deleteMany({ where: { organizationId: id } });
+    await tx.user.deleteMany({ where: { organizationId: id } });
+    await tx.organization.delete({ where: { id } });
+  });
+
+  res.status(204).send();
+});

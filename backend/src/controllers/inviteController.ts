@@ -62,6 +62,17 @@ export const verifyInvite = asyncHandler(async (req: Request, res: Response) => 
   });
 });
 
+export const deleteInvite = asyncHandler(async (req: Request, res: Response) => {
+  const { id } = req.params;
+
+  const invite = await prisma.inviteToken.findUnique({ where: { id } });
+  if (!invite) throw new AppError(404, 'Invite not found');
+
+  await prisma.inviteToken.delete({ where: { id } });
+
+  res.status(204).send();
+});
+
 export const redeemInvite = asyncHandler(async (req: Request, res: Response) => {
   const { token } = req.params;
   const { slug, adminPassword } = req.body;

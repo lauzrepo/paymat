@@ -33,6 +33,9 @@ export const updateOrganization = (id: string, body: {
 export const setOrganizationActive = (id: string, active: boolean): Promise<Organization> =>
   apiClient.patch(`/organizations/${id}/status`, { active }).then((r) => r.data.data.organization);
 
+export const deleteOrganization = (id: string): Promise<void> =>
+  apiClient.delete(`/organizations/${id}`).then(() => undefined);
+
 export const sendBillingCheckout = (orgId: string): Promise<{ url: string }> =>
   apiClient.post(`/billing/send-checkout/${orgId}`).then((r) => r.data.data);
 

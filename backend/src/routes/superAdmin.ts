@@ -9,8 +9,9 @@ import {
   createOrganization,
   updateOrganization,
   setOrganizationActive,
+  deleteOrganization,
 } from '../controllers/superAdminController';
-import { createInvite, listInvites, verifyInvite, redeemInvite } from '../controllers/inviteController';
+import { createInvite, listInvites, verifyInvite, redeemInvite, deleteInvite } from '../controllers/inviteController';
 import { sendCheckoutLink, getPortalLink } from '../controllers/stripeBillingController';
 
 const router = Router();
@@ -28,6 +29,7 @@ router.post('/organizations', authenticateSuperAdmin, createOrganization);
 router.get('/organizations/:id', authenticateSuperAdmin, getOrganization);
 router.put('/organizations/:id', authenticateSuperAdmin, updateOrganization);
 router.patch('/organizations/:id/status', authenticateSuperAdmin, setOrganizationActive);
+router.delete('/organizations/:id', authenticateSuperAdmin, deleteOrganization);
 
 // Stripe billing — protected
 router.post('/billing/send-checkout/:orgId', authenticateSuperAdmin, sendCheckoutLink);
@@ -39,5 +41,6 @@ router.post('/invites/redeem/:token', redeemInvite);
 // Invites management — protected
 router.get('/invites', authenticateSuperAdmin, listInvites);
 router.post('/invites', authenticateSuperAdmin, createInvite);
+router.delete('/invites/:id', authenticateSuperAdmin, deleteInvite);
 
 export default router;

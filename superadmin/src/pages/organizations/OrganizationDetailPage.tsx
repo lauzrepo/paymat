@@ -1,7 +1,7 @@
 import { useState } from 'react';
-import { useParams, Link } from 'react-router-dom';
+import { useParams, Link, useNavigate } from 'react-router-dom';
 import { ChevronLeft, CreditCard, ExternalLink } from 'lucide-react';
-import { useOrganization, useUpdateOrganization, useSetOrganizationActive } from '../../hooks/useOrganizations';
+import { useOrganization, useUpdateOrganization, useSetOrganizationActive, useDeleteOrganization } from '../../hooks/useOrganizations';
 import { sendBillingCheckout, getBillingPortalLink } from '../../api/organizations';
 import { Card, CardHeader, CardBody } from '../../components/ui/Card';
 import { Button } from '../../components/ui/Button';
@@ -19,9 +19,11 @@ const ORG_TYPES = ['general', 'studio', 'gym', 'school', 'clinic', 'other'];
 
 export function OrganizationDetailPage() {
   const { id } = useParams<{ id: string }>();
+  const navigate = useNavigate();
   const { data: org, isLoading } = useOrganization(id!);
   const update = useUpdateOrganization(id!);
   const setActive = useSetOrganizationActive();
+  const deleteOrg = useDeleteOrganization();
 
   const [editing, setEditing] = useState(false);
   const [billingLoading, setBillingLoading] = useState(false);
@@ -84,6 +86,20 @@ export function OrganizationDetailPage() {
     const action = org.isActive ? 'deactivate' : 'activate';
     if (!window.confirm(`Are you sure you want to ${action} this organization?`)) return;
     await setActive.mutateAsync({ id: org.id, active: !org.isActive });
+  };
+
+  const handleDelete = async () => {
+    if (!org) return;
+    if (!window.confirm(
+      `Permanently delete "${org.name}"?\n\nThis will delete ALL data including contacts, invoices, payments, enrollments, and users. This cannot be undone.`
+    )) return;
+    try {
+      await deleteOrg.mutateAsync(org.id);
+      navigate('/');
+    } catch (err: unknown) {
+      const msg = (err as { response?: { data?: { message?: string } } })?.response?.data?.message;
+      alert(msg ?? 'Failed to delete organization.');
+    }
   };
 
   if (isLoading) return <div className="flex justify-center py-20"><Spinner /></div>;
@@ -271,25 +287,43 @@ export function OrganizationDetailPage() {
       {/* Danger zone */}
       <Card>
         <CardHeader><h2 className="text-base font-semibold text-gray-900">Danger Zone</h2></CardHeader>
-        <CardBody className="flex items-center justify-between">
-          <div>
-            <p className="text-sm font-medium text-gray-900">
-              {org.isActive ? 'Deactivate organization' : 'Activate organization'}
-            </p>
-            <p className="text-xs text-gray-500 mt-0.5">
-              {org.isActive
-                ? 'Prevents all users from logging in. Data is preserved.'
-                : 'Re-enables login for all users in this organization.'}
-            </p>
+        <CardBody className="divide-y divide-gray-100 !py-0">
+          <div className="flex items-center justify-between py-4">
+            <div>
+              <p className="text-sm font-medium text-gray-900">
+                {org.isActive ? 'Deactivate organization' : 'Activate organization'}
+              </p>
+              <p className="text-xs text-gray-500 mt-0.5">
+                {org.isActive
+                  ? 'Prevents all users from logging in. Data is preserved.'
+                  : 'Re-enables login for all users in this organization.'}
+              </p>
+            </div>
+            <Button
+              variant={org.isActive ? 'danger' : 'secondary'}
+              size="sm"
+              loading={setActive.isPending}
+              onClick={handleToggleActive}
+            >
+              {org.isActive ? 'Deactivate' : 'Activate'}
+            </Button>
           </div>
-          <Button
-            variant={org.isActive ? 'danger' : 'secondary'}
-            size="sm"
-            loading={setActive.isPending}
-            onClick={handleToggleActive}
-          >
-            {org.isActive ? 'Deactivate' : 'Activate'}
-          </Button>
+          <div className="flex items-center justify-between py-4">
+            <div>
+              <p className="text-sm font-medium text-gray-900">Delete organization permanently</p>
+              <p className="text-xs text-gray-500 mt-0.5">
+                Removes all data — contacts, invoices, payments, users, and more. Cannot be undone.
+              </p>
+            </div>
+            <Button
+              variant="danger"
+              size="sm"
+              loading={deleteOrg.isPending}
+              onClick={handleDelete}
+            >
+              Delete permanently
+            </Button>
+          </div>
         </CardBody>
       </Card>
     </div>

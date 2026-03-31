@@ -46,3 +46,10 @@ export function useSetOrganizationActive() {
     },
   });
 }
+
+export function useDeleteOrganization() {
+  return useMutation({
+    mutationFn: api.deleteOrganization,
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['organizations'] }),
+  });
+}

@@ -1,6 +1,6 @@
 import { useState } from 'react';
-import { Send, CheckCircle, Clock, XCircle } from 'lucide-react';
-import { useInviteList, useCreateInvite } from '../../hooks/useInvites';
+import { Send, CheckCircle, Clock, XCircle, Trash2 } from 'lucide-react';
+import { useInviteList, useCreateInvite, useDeleteInvite } from '../../hooks/useInvites';
 import { Card, CardHeader, CardBody } from '../../components/ui/Card';
 import { Button } from '../../components/ui/Button';
 import type { InviteToken } from '../../api/invites';
@@ -30,6 +30,7 @@ function InviteStatusBadge({ invite }: { invite: InviteToken }) {
 export function InvitesPage() {
   const { data, isLoading } = useInviteList();
   const createInvite = useCreateInvite();
+  const deleteInvite = useDeleteInvite();
 
   const [form, setForm] = useState({ email: '', recipientName: '', orgName: '' });
   const [error, setError] = useState('');
@@ -132,6 +133,7 @@ export function InvitesPage() {
                   <th className="text-left px-6 py-3 text-xs font-medium text-gray-500 uppercase tracking-wide">Email</th>
                   <th className="text-left px-6 py-3 text-xs font-medium text-gray-500 uppercase tracking-wide">Status</th>
                   <th className="text-left px-6 py-3 text-xs font-medium text-gray-500 uppercase tracking-wide">Sent</th>
+                  <th className="px-6 py-3" />
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-50">
@@ -142,6 +144,20 @@ export function InvitesPage() {
                     <td className="px-6 py-3 text-gray-600">{invite.email}</td>
                     <td className="px-6 py-3"><InviteStatusBadge invite={invite} /></td>
                     <td className="px-6 py-3 text-gray-400">{new Date(invite.createdAt).toLocaleDateString()}</td>
+                    <td className="px-6 py-3">
+                      <button
+                        onClick={() => {
+                          if (window.confirm(`Delete the invite for ${invite.recipientName} (${invite.orgName})?`)) {
+                            deleteInvite.mutate(invite.id);
+                          }
+                        }}
+                        disabled={deleteInvite.isPending}
+                        className="text-gray-400 hover:text-red-500 transition-colors disabled:opacity-50"
+                        title="Delete invite"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </button>
+                    </td>
                   </tr>
                 ))}
               </tbody>
