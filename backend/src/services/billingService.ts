@@ -131,6 +131,7 @@ class BillingService {
     let invoicesCreated = 0;
     let autoCharged = 0;
     let errors = 0;
+    const errorMessages: string[] = [];
 
     // ── Family-grouped invoices ───────────────────────────────────────────────
     for (const [familyId, groupEnrollments] of familyGroups) {
@@ -268,6 +269,8 @@ class BillingService {
         }
       } catch (err) {
         errors++;
+        const msg = `Family group ${familyId}: ${(err as Error).message}`;
+        errorMessages.push(msg);
         logger.error(`Billing: error processing family group ${familyId} — ${(err as Error).message}`);
       }
     }
@@ -389,6 +392,8 @@ class BillingService {
         }
       } catch (err) {
         errors++;
+        const msg = `Enrollment ${enrollment.id} (${enrollment.contact.firstName} ${enrollment.contact.lastName} — ${enrollment.program.name}): ${(err as Error).message}`;
+        errorMessages.push(msg);
         logger.error(`Billing: error processing enrollment ${enrollment.id} — ${(err as Error).message}`);
       }
     }
@@ -404,7 +409,7 @@ class BillingService {
     });
 
     logger.info(`Billing run complete: ${invoicesCreated} created, ${autoCharged} auto-charged, ${errors} errors`);
-    return { invoicesCreated, autoCharged, errors, activeEnrollments: totalActive };
+    return { invoicesCreated, autoCharged, errors, errorMessages, activeEnrollments: totalActive };
   }
 }
 

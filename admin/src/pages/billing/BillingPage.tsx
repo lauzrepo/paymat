@@ -16,6 +16,7 @@ interface RunResult {
   invoicesCreated: number;
   autoCharged: number;
   errors: number;
+  errorMessages: string[];
   activeEnrollments: number;
 }
 
@@ -177,11 +178,21 @@ export function BillingPage() {
           </Button>
 
           {runResult && (
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-              <RunStat label="Invoices created" value={runResult.invoicesCreated} />
-              <RunStat label="Auto-charged" value={runResult.autoCharged} />
-              <RunStat label="Active enrollments" value={runResult.activeEnrollments} />
-              <RunStat label="Errors" value={runResult.errors} valueClass={runResult.errors > 0 ? 'text-red-600' : 'text-gray-900'} />
+            <div className="space-y-3">
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                <RunStat label="Invoices created" value={runResult.invoicesCreated} />
+                <RunStat label="Auto-charged" value={runResult.autoCharged} />
+                <RunStat label="Active enrollments" value={runResult.activeEnrollments} />
+                <RunStat label="Errors" value={runResult.errors} valueClass={runResult.errors > 0 ? 'text-red-600' : 'text-gray-900'} />
+              </div>
+              {runResult.errorMessages?.length > 0 && (
+                <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 space-y-1">
+                  <p className="text-xs font-semibold text-red-700 uppercase tracking-wide mb-1">Error details</p>
+                  {runResult.errorMessages.map((msg, i) => (
+                    <p key={i} className="text-xs text-red-600 font-mono">{msg}</p>
+                  ))}
+                </div>
+              )}
             </div>
           )}
 
