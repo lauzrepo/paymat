@@ -114,7 +114,8 @@ describe('FeedbackPage', () => {
     renderWithProviders(<FeedbackPage />);
     fireEvent.change(screen.getByDisplayValue('All statuses'), { target: { value: 'open' } });
     await waitFor(() => {
-      expect((useFeedbackList as Mock).mock.calls.at(-1)?.[0]).toMatchObject({ status: 'open' });
+      const calls = (useFeedbackList as Mock).mock.calls;
+      expect(calls[calls.length - 1]?.[0]).toMatchObject({ status: 'open' });
     });
   });
 
@@ -122,7 +123,8 @@ describe('FeedbackPage', () => {
     renderWithProviders(<FeedbackPage />);
     fireEvent.change(screen.getByDisplayValue('All types'), { target: { value: 'bug' } });
     await waitFor(() => {
-      expect((useFeedbackList as Mock).mock.calls.at(-1)?.[0]).toMatchObject({ type: 'bug' });
+      const calls = (useFeedbackList as Mock).mock.calls;
+      expect(calls[calls.length - 1]?.[0]).toMatchObject({ type: 'bug' });
     });
   });
 });
