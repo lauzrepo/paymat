@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
-import { useParams, Link, useSearchParams } from 'react-router-dom';
+import { useParams, Link, useSearchParams, useNavigate } from 'react-router-dom';
 import { ChevronLeft, CreditCard } from 'lucide-react';
-import { useFamily } from '../../hooks/useFamilies';
+import { useFamily, useDeleteFamily } from '../../hooks/useFamilies';
 import { initializeFamilyCardCheckout, saveFamilyCardToken } from '../../api/families';
 import { queryClient } from '../../lib/queryClient';
 import { Card, CardHeader, CardBody } from '../../components/ui/Card';
@@ -12,8 +12,10 @@ import { formatDate } from '../../lib/utils';
 
 export function FamilyDetailPage() {
   const { id } = useParams<{ id: string }>();
+  const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const { data: family, isLoading } = useFamily(id!);
+  const deleteFamily = useDeleteFamily();
   const [cardStatus, setCardStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle');
   const [cardMessage, setCardMessage] = useState('');
 
@@ -73,6 +75,17 @@ export function FamilyDetailPage() {
     return () => window.removeEventListener('message', onMessage);
   }, [id]);
 
+  const handleDelete = async () => {
+    if (!window.confirm('Permanently delete this family? Members will be unlinked but not deleted.')) return;
+    try {
+      await deleteFamily.mutateAsync(family!.id);
+      navigate('/families');
+    } catch (err: unknown) {
+      const msg = (err as { response?: { data?: { message?: string } } })?.response?.data?.message ?? 'Delete failed.';
+      alert(msg);
+    }
+  };
+
   if (isLoading) return <div className="flex justify-center py-20"><Spinner /></div>;
   if (!family) return <p className="text-center text-gray-500 py-20">Family not found.</p>;
 
@@ -89,10 +102,20 @@ export function FamilyDetailPage() {
         <CardHeader>
           <div className="flex items-center justify-between">
             <h2 className="text-base font-semibold text-gray-900">Family info</h2>
-            <Button variant="secondary" size="sm" onClick={openCardForm} loading={cardStatus === 'loading'}>
-              <CreditCard className="h-4 w-4 mr-1" />
-              {family.helcimToken ? 'Replace card' : 'Save card on file'}
-            </Button>
+            <div className="flex gap-2">
+              <Button variant="secondary" size="sm" onClick={openCardForm} loading={cardStatus === 'loading'}>
+                <CreditCard className="h-4 w-4 mr-1" />
+                {family.helcimToken ? 'Replace card' : 'Save card on file'}
+              </Button>
+              <Button
+                variant="danger"
+                size="sm"
+                loading={deleteFamily.isPending}
+                onClick={handleDelete}
+              >
+                Delete
+              </Button>
+            </div>
           </div>
         </CardHeader>
         <CardBody className="space-y-3 text-sm">

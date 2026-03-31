@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Plus } from 'lucide-react';
-import { usePrograms, useCreateProgram, useUpdateProgram } from '../../hooks/usePrograms';
+import { usePrograms, useCreateProgram, useUpdateProgram, useDeleteProgram } from '../../hooks/usePrograms';
 import { Card, CardHeader, CardBody } from '../../components/ui/Card';
 import { Button } from '../../components/ui/Button';
 import { Input } from '../../components/ui/Input';
@@ -91,6 +91,7 @@ export function ProgramsPage() {
   const [editingId, setEditingId] = useState<string | null>(null);
   const programs = usePrograms();
   const create = useCreateProgram();
+  const deleteProgram = useDeleteProgram();
 
   return (
     <div className="space-y-6">
@@ -158,7 +159,22 @@ export function ProgramsPage() {
                         <Badge variant={p.isActive ? 'green' : 'gray'}>{p.isActive ? 'Active' : 'Inactive'}</Badge>
                       </td>
                       <td className="px-6 py-3">
-                        <Button variant="ghost" size="sm" onClick={() => setEditingId(p.id)}>Edit</Button>
+                        <div className="flex gap-1">
+                          <Button variant="ghost" size="sm" onClick={() => setEditingId(p.id)}>Edit</Button>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="text-red-500 hover:text-red-700"
+                            loading={deleteProgram.isPending}
+                            onClick={() => {
+                              if (window.confirm(`Delete "${p.name}"? This cannot be undone.`)) {
+                                deleteProgram.mutate(p.id);
+                              }
+                            }}
+                          >
+                            Delete
+                          </Button>
+                        </div>
                       </td>
                     </tr>
                   )

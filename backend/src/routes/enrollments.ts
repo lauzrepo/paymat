@@ -5,6 +5,7 @@ import {
   getEnrollments,
   getEnrollment,
   unenroll,
+  deleteEnrollment,
   pauseEnrollment,
   resumeEnrollment,
 } from '../controllers/enrollmentController';
@@ -18,6 +19,7 @@ router.get('/', getEnrollments);
 router.post('/', enroll);
 router.get('/:id', getEnrollment);
 router.delete('/:id', unenroll);
+router.delete('/:id/force', deleteEnrollment);
 router.post('/:id/pause', pauseEnrollment);
 router.post('/:id/resume', resumeEnrollment);
 

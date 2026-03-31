@@ -30,3 +30,10 @@ export function useUpdateProgram(id: string) {
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['programs'] }),
   });
 }
+
+export function useDeleteProgram() {
+  return useMutation({
+    mutationFn: api.deleteProgram,
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['programs'] }),
+  });
+}

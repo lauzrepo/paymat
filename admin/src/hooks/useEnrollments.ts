@@ -26,6 +26,16 @@ export function useUnenroll() {
   });
 }
 
+export function useDeleteEnrollment() {
+  return useMutation({
+    mutationFn: api.deleteEnrollment,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['enrollments'] });
+      queryClient.invalidateQueries({ queryKey: ['contacts'] });
+    },
+  });
+}
+
 export function usePauseEnrollment() {
   return useMutation({
     mutationFn: api.pauseEnrollment,

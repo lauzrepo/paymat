@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Plus } from 'lucide-react';
-import { useEnrollments, useEnroll, useUnenroll, usePauseEnrollment, useResumeEnrollment } from '../../hooks/useEnrollments';
+import { useEnrollments, useEnroll, useUnenroll, useDeleteEnrollment, usePauseEnrollment, useResumeEnrollment } from '../../hooks/useEnrollments';
 import { useContacts } from '../../hooks/useContacts';
 import { usePrograms } from '../../hooks/usePrograms';
 import { Card, CardHeader, CardBody } from '../../components/ui/Card';
@@ -20,6 +20,7 @@ export function EnrollmentsPage() {
   const programs = usePrograms({ activeOnly: true });
   const enroll = useEnroll();
   const unenroll = useUnenroll();
+  const deleteEnrollment = useDeleteEnrollment();
   const pause = usePauseEnrollment();
   const resume = useResumeEnrollment();
 
@@ -153,6 +154,18 @@ export function EnrollmentsPage() {
                             Unenroll
                           </Button>
                         )}
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="text-red-500 hover:text-red-700"
+                          onClick={() => {
+                            if (window.confirm('Permanently delete this enrollment?')) {
+                              deleteEnrollment.mutate(e.id);
+                            }
+                          }}
+                        >
+                          Delete
+                        </Button>
                       </div>
                     </td>
                   </tr>

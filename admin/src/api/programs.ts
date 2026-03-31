@@ -14,3 +14,6 @@ export const createProgram = (body: Partial<Program>): Promise<Program> =>
 
 export const updateProgram = (id: string, body: Partial<Program>): Promise<Program> =>
   apiClient.put(`/programs/${id}`, body).then((r) => r.data.data.program);
+
+export const deleteProgram = (id: string): Promise<void> =>
+  apiClient.delete(`/programs/${id}`).then(() => undefined);

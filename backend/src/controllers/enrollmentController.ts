@@ -1,6 +1,7 @@
 import { Request, Response } from 'express';
 import enrollmentService from '../services/enrollmentService';
 import { asyncHandler, AppError } from '../middleware/errorHandler';
+import prisma from '../config/database';
 
 export const enroll = asyncHandler(async (req: Request, res: Response) => {
   if (!req.user) throw new AppError(401, 'Not authenticated');
@@ -37,6 +38,14 @@ export const unenroll = asyncHandler(async (req: Request, res: Response) => {
   const { endDate } = req.body;
   const enrollment = await enrollmentService.unenroll(req.params.id, req.organization!.id, endDate ? new Date(endDate) : undefined);
   res.status(200).json({ status: 'success', data: { enrollment } });
+});
+
+export const deleteEnrollment = asyncHandler(async (req: Request, res: Response) => {
+  if (!req.user) throw new AppError(401, 'Not authenticated');
+  await prisma.enrollment.deleteMany({
+    where: { id: req.params.id, program: { organizationId: req.organization!.id } },
+  });
+  res.status(200).json({ status: 'success', data: {} });
 });
 
 export const pauseEnrollment = asyncHandler(async (req: Request, res: Response) => {

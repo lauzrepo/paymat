@@ -12,6 +12,9 @@ export const enroll = (body: { contactId: string; programId: string; startDate: 
 export const unenroll = (id: string, endDate?: string): Promise<Enrollment> =>
   apiClient.delete(`/enrollments/${id}`, { data: { endDate } }).then((r) => r.data.data.enrollment);
 
+export const deleteEnrollment = (id: string): Promise<void> =>
+  apiClient.delete(`/enrollments/${id}/force`).then(() => undefined);
+
 export const pauseEnrollment = (id: string): Promise<Enrollment> =>
   apiClient.post(`/enrollments/${id}/pause`).then((r) => r.data.data.enrollment);
 
