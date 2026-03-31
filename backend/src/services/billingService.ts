@@ -56,6 +56,21 @@ class BillingService {
         const orgId = enrollment.contact.organizationId;
         const dueDate = enrollment.nextBillingDate ?? today;
 
+        // Check if max billing cycles reached
+        if (enrollment.program.maxBillingCycles !== null && enrollment.program.maxBillingCycles !== undefined) {
+          const cyclesCompleted = await prisma.invoiceLineItem.count({
+            where: { enrollmentId: enrollment.id },
+          });
+          if (cyclesCompleted >= enrollment.program.maxBillingCycles) {
+            await prisma.enrollment.update({
+              where: { id: enrollment.id },
+              data: { status: 'cancelled', endDate: today, nextBillingDate: null },
+            });
+            logger.info(`Billing: enrollment ${enrollment.id} reached max cycles (${enrollment.program.maxBillingCycles}) — auto-cancelled`);
+            continue;
+          }
+        }
+
         // Generate invoice number
         const count = await prisma.invoice.count({ where: { organizationId: orgId } });
         const invoiceNumber = `INV-${String(count + 1).padStart(5, '0')}`;

@@ -6,6 +6,7 @@ export interface Program {
   price: number;
   billingFrequency: string;
   capacity: number | null;
+  maxBillingCycles: number | null;
   isActive: boolean;
   createdAt: string;
   _count?: { enrollments: number };

@@ -109,6 +109,7 @@ model Program {
   price            Decimal  @db.Decimal(10, 2)
   billingFrequency String   @map("billing_frequency")
   capacity         Int?
+  maxBillingCycles Int?     @map("max_billing_cycles")
   isActive         Boolean  @default(true) @map("is_active")
   createdAt        DateTime @default(now()) @map("created_at")
   updatedAt        DateTime @updatedAt @map("updated_at")

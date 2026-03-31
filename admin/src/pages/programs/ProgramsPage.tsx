@@ -30,6 +30,7 @@ function ProgramForm({
     price: String(initial?.price ?? ''),
     billingFrequency: initial?.billingFrequency ?? 'monthly',
     capacity: String(initial?.capacity ?? ''),
+    maxBillingCycles: String(initial?.maxBillingCycles ?? ''),
     isActive: initial?.isActive ?? true,
   });
 
@@ -41,6 +42,7 @@ function ProgramForm({
       price: parseFloat(form.price),
       billingFrequency: form.billingFrequency,
       capacity: form.capacity ? parseInt(form.capacity) : undefined,
+      maxBillingCycles: form.maxBillingCycles ? parseInt(form.maxBillingCycles) : undefined,
       isActive: form.isActive,
     });
   };
@@ -63,6 +65,15 @@ function ProgramForm({
         </select>
       </div>
       <Input label="Capacity (optional)" id="capacity" type="number" min="1" value={form.capacity} onChange={(e) => setForm({ ...form, capacity: e.target.value })} />
+      <Input
+        label="Max payments (optional)"
+        id="maxBillingCycles"
+        type="number"
+        min="1"
+        value={form.maxBillingCycles}
+        onChange={(e) => setForm({ ...form, maxBillingCycles: e.target.value })}
+        placeholder="Leave blank to bill indefinitely"
+      />
       <div className="col-span-2">
         <Input label="Description (optional)" id="description" value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} />
       </div>
@@ -132,6 +143,7 @@ export function ProgramsPage() {
                   <th className="px-6 py-3 text-left">Price</th>
                   <th className="px-6 py-3 text-left">Frequency</th>
                   <th className="px-6 py-3 text-left">Enrolled</th>
+                  <th className="px-6 py-3 text-left">Payments</th>
                   <th className="px-6 py-3 text-left">Status</th>
                   <th className="px-6 py-3 text-left"></th>
                 </tr>
@@ -154,6 +166,9 @@ export function ProgramsPage() {
                       <td className="px-6 py-3 text-gray-600">{FREQ_LABELS[p.billingFrequency] ?? p.billingFrequency}</td>
                       <td className="px-6 py-3 text-gray-600">
                         {p._count?.enrollments ?? 0}{p.capacity ? ` / ${p.capacity}` : ''}
+                      </td>
+                      <td className="px-6 py-3 text-gray-600">
+                        {p.maxBillingCycles ? p.maxBillingCycles : <span className="text-gray-400">Ongoing</span>}
                       </td>
                       <td className="px-6 py-3">
                         <Badge variant={p.isActive ? 'green' : 'gray'}>{p.isActive ? 'Active' : 'Inactive'}</Badge>
