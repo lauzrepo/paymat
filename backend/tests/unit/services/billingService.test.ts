@@ -242,7 +242,214 @@ describe('BillingService.generateDueInvoices()', () => {
       expect(prisma.payment.create as jest.Mock).toHaveBeenCalledTimes(1);
     });
 
-    it('falls back to family helcimToken when contact token is absent', async () => {
+    it('does NOT auto-charge the contact card when the contact has no card on file', async () => {
+      // contact.helcimToken = null, family = null → individual invoice, no charge attempt
+      const enrollment = makeEnrollment(); // helcimToken: null, family: null
+
+      (prisma.enrollment.count as jest.Mock).mockResolvedValue(1);
+      (prisma.enrollment.findMany as jest.Mock).mockResolvedValue([enrollment]);
+      (prisma.invoice.count as jest.Mock).mockResolvedValue(0);
+      (prisma.invoice.create as jest.Mock).mockResolvedValue(makeInvoice());
+      (prisma.enrollment.update as jest.Mock).mockResolvedValue({});
+      (prisma.invoice.updateMany as jest.Mock).mockResolvedValue({ count: 0 });
+
+      const result = await billingService.generateDueInvoices();
+
+      expect(result.autoCharged).toBe(0);
+      expect(helcimService.processPayment as jest.Mock).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('family-grouped invoicing', () => {
+    function makeFamilyEnrollment(overrides: Record<string, unknown> = {}) {
+      return {
+        id: 'enroll-fam-1',
+        contactId: 'contact-fam-1',
+        nextBillingDate: new Date('2026-03-01T00:00:00.000Z'),
+        contact: {
+          id: 'contact-fam-1',
+          organizationId: 'org-1',
+          firstName: 'Emma',
+          lastName: 'Johnson',
+          email: 'emma@example.com',
+          helcimToken: null,
+          familyId: 'family-1',
+          family: {
+            id: 'family-1',
+            name: 'Johnson Family',
+            helcimToken: 'tok_family_card',
+            billingEmail: 'johnson.family@example.com',
+          },
+          organization: { name: 'Test Org' },
+        },
+        program: {
+          id: 'prog-1',
+          name: 'Beginner Karate',
+          price: 120,
+          billingFrequency: 'monthly',
+          maxBillingCycles: null,
+        },
+        ...overrides,
+      };
+    }
+
+    it('creates one family invoice (with familyId) for all contacts in the same family', async () => {
+      const e1 = makeFamilyEnrollment();
+      const e2 = makeFamilyEnrollment({
+        id: 'enroll-fam-2',
+        contactId: 'contact-fam-2',
+        contact: {
+          id: 'contact-fam-2',
+          organizationId: 'org-1',
+          firstName: 'Liam',
+          lastName: 'Johnson',
+          email: 'liam@example.com',
+          helcimToken: null,
+          familyId: 'family-1',
+          family: {
+            id: 'family-1',
+            name: 'Johnson Family',
+            helcimToken: 'tok_family_card',
+            billingEmail: 'johnson.family@example.com',
+          },
+          organization: { name: 'Test Org' },
+        },
+        program: {
+          id: 'prog-2',
+          name: 'Advanced Karate',
+          price: 150,
+          billingFrequency: 'monthly',
+          maxBillingCycles: null,
+        },
+      });
+
+      (prisma.enrollment.count as jest.Mock).mockResolvedValue(2);
+      (prisma.enrollment.findMany as jest.Mock).mockResolvedValue([e1, e2]);
+      (prisma.invoice.count as jest.Mock).mockResolvedValue(0);
+      (prisma.invoice.create as jest.Mock).mockResolvedValue(makeInvoice({ id: 'fam-invoice-1' }));
+      (prisma.payment.create as jest.Mock).mockResolvedValue({});
+      (prisma.invoice.update as jest.Mock).mockResolvedValue({});
+      (prisma.enrollment.update as jest.Mock).mockResolvedValue({});
+      (prisma.invoice.updateMany as jest.Mock).mockResolvedValue({ count: 0 });
+      (helcimService.processPayment as jest.Mock).mockResolvedValue({
+        transactionId: 'tx-fam',
+        status: 'succeeded',
+      });
+
+      const result = await billingService.generateDueInvoices();
+
+      // One invoice for the whole family, not two individual invoices
+      expect(prisma.invoice.create as jest.Mock).toHaveBeenCalledTimes(1);
+      expect(result.invoicesCreated).toBe(1);
+
+      const createCall = (prisma.invoice.create as jest.Mock).mock.calls[0][0];
+      expect(createCall.data.familyId).toBe('family-1');
+      expect(createCall.data.contactId).toBeUndefined();
+    });
+
+    it('includes one line item per family member with contact name prefix', async () => {
+      const e1 = makeFamilyEnrollment();
+
+      (prisma.enrollment.count as jest.Mock).mockResolvedValue(1);
+      (prisma.enrollment.findMany as jest.Mock).mockResolvedValue([e1]);
+      (prisma.invoice.count as jest.Mock).mockResolvedValue(0);
+      (prisma.invoice.create as jest.Mock).mockResolvedValue(makeInvoice({ id: 'fam-invoice-1' }));
+      (prisma.payment.create as jest.Mock).mockResolvedValue({});
+      (prisma.invoice.update as jest.Mock).mockResolvedValue({});
+      (prisma.enrollment.update as jest.Mock).mockResolvedValue({});
+      (prisma.invoice.updateMany as jest.Mock).mockResolvedValue({ count: 0 });
+      (helcimService.processPayment as jest.Mock).mockResolvedValue({
+        transactionId: 'tx-fam',
+        status: 'succeeded',
+      });
+
+      await billingService.generateDueInvoices();
+
+      const createCall = (prisma.invoice.create as jest.Mock).mock.calls[0][0];
+      const lineItems = createCall.data.lineItems.create;
+      expect(lineItems).toHaveLength(1);
+      expect(lineItems[0].description).toMatch(/Emma Johnson/);
+      expect(lineItems[0].description).toMatch(/Beginner Karate/);
+    });
+
+    it('charges the family card for the combined total', async () => {
+      const e1 = makeFamilyEnrollment(); // $120
+      const e2 = makeFamilyEnrollment({
+        id: 'enroll-fam-2',
+        contactId: 'contact-fam-2',
+        contact: {
+          id: 'contact-fam-2',
+          organizationId: 'org-1',
+          firstName: 'Liam',
+          lastName: 'Johnson',
+          email: 'liam@example.com',
+          helcimToken: null,
+          familyId: 'family-1',
+          family: {
+            id: 'family-1',
+            name: 'Johnson Family',
+            helcimToken: 'tok_family_card',
+            billingEmail: null,
+          },
+          organization: { name: 'Test Org' },
+        },
+        program: {
+          id: 'prog-2',
+          name: 'Advanced Karate',
+          price: 150,
+          billingFrequency: 'monthly',
+          maxBillingCycles: null,
+        },
+      });
+
+      (prisma.enrollment.count as jest.Mock).mockResolvedValue(2);
+      (prisma.enrollment.findMany as jest.Mock).mockResolvedValue([e1, e2]);
+      (prisma.invoice.count as jest.Mock).mockResolvedValue(0);
+      (prisma.invoice.create as jest.Mock).mockResolvedValue(makeInvoice({ id: 'fam-invoice-1' }));
+      (prisma.payment.create as jest.Mock).mockResolvedValue({});
+      (prisma.invoice.update as jest.Mock).mockResolvedValue({});
+      (prisma.enrollment.update as jest.Mock).mockResolvedValue({});
+      (prisma.invoice.updateMany as jest.Mock).mockResolvedValue({ count: 0 });
+      (helcimService.processPayment as jest.Mock).mockResolvedValue({
+        transactionId: 'tx-fam',
+        status: 'succeeded',
+      });
+
+      const result = await billingService.generateDueInvoices();
+
+      expect(result.autoCharged).toBe(1);
+      expect(helcimService.processPayment as jest.Mock).toHaveBeenCalledWith(
+        expect.objectContaining({ cardToken: 'tok_family_card', amount: 270 }),
+      );
+    });
+
+    it('sends payment received email to family.billingEmail when set', async () => {
+      const e1 = makeFamilyEnrollment(); // billingEmail: 'johnson.family@example.com'
+
+      (prisma.enrollment.count as jest.Mock).mockResolvedValue(1);
+      (prisma.enrollment.findMany as jest.Mock).mockResolvedValue([e1]);
+      (prisma.invoice.count as jest.Mock).mockResolvedValue(0);
+      (prisma.invoice.create as jest.Mock).mockResolvedValue(makeInvoice({ id: 'fam-invoice-1' }));
+      (prisma.payment.create as jest.Mock).mockResolvedValue({});
+      (prisma.invoice.update as jest.Mock).mockResolvedValue({});
+      (prisma.enrollment.update as jest.Mock).mockResolvedValue({});
+      (prisma.invoice.updateMany as jest.Mock).mockResolvedValue({ count: 0 });
+      (helcimService.processPayment as jest.Mock).mockResolvedValue({
+        transactionId: 'tx-fam',
+        status: 'succeeded',
+      });
+
+      await billingService.generateDueInvoices();
+      await Promise.resolve();
+
+      expect(sendPaymentReceived as jest.Mock).toHaveBeenCalledWith(
+        'johnson.family@example.com',
+        expect.objectContaining({ recipientName: 'Johnson Family' }),
+      );
+    });
+
+    it('falls through to individual billing when family has no card on file', async () => {
+      // Family exists but helcimToken is null → treated as individual
       const enrollment = makeEnrollment({
         contact: {
           id: 'contact-1',
@@ -251,7 +458,13 @@ describe('BillingService.generateDueInvoices()', () => {
           lastName: 'Doe',
           email: 'jane@example.com',
           helcimToken: null,
-          family: { helcimToken: 'tok_family' },
+          familyId: 'family-1',
+          family: {
+            id: 'family-1',
+            name: 'Doe Family',
+            helcimToken: null, // no card on file
+            billingEmail: null,
+          },
           organization: { name: 'Test Org' },
         },
       });
@@ -259,22 +472,18 @@ describe('BillingService.generateDueInvoices()', () => {
       (prisma.enrollment.count as jest.Mock).mockResolvedValue(1);
       (prisma.enrollment.findMany as jest.Mock).mockResolvedValue([enrollment]);
       (prisma.invoice.count as jest.Mock).mockResolvedValue(0);
-      (prisma.invoice.create as jest.Mock).mockResolvedValue(makeInvoice());
-      (prisma.payment.create as jest.Mock).mockResolvedValue({});
-      (prisma.invoice.update as jest.Mock).mockResolvedValue({});
+      (prisma.invoice.create as jest.Mock).mockResolvedValue(makeInvoice({ id: 'invoice-1' }));
       (prisma.enrollment.update as jest.Mock).mockResolvedValue({});
       (prisma.invoice.updateMany as jest.Mock).mockResolvedValue({ count: 0 });
-      (helcimService.processPayment as jest.Mock).mockResolvedValue({
-        transactionId: 'tx-456',
-        status: 'succeeded',
-      });
 
       const result = await billingService.generateDueInvoices();
 
-      expect(result.autoCharged).toBe(1);
-      expect(helcimService.processPayment as jest.Mock).toHaveBeenCalledWith(
-        expect.objectContaining({ cardToken: 'tok_family' }),
-      );
+      // Individual invoice — contactId set, not familyId
+      const createCall = (prisma.invoice.create as jest.Mock).mock.calls[0][0];
+      expect(createCall.data.contactId).toBe('contact-1');
+      expect(createCall.data.familyId).toBeUndefined();
+      expect(result.invoicesCreated).toBe(1);
+      expect(result.autoCharged).toBe(0); // no card to charge
     });
   });
 

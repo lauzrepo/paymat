@@ -1,5 +1,5 @@
 import { useParams, Link } from 'react-router-dom';
-import { ArrowLeft } from 'lucide-react';
+import { ArrowLeft, ChevronDown } from 'lucide-react';
 import { useFeedbackSubmission, useUpdateFeedbackStatus } from '../../hooks/useFeedback';
 import { Card, CardHeader, CardBody } from '../../components/ui/Card';
 import { Badge } from '../../components/ui/Badge';
@@ -53,19 +53,22 @@ export function FeedbackDetailPage() {
               </Badge>
               <span className="text-sm text-gray-500">{TYPE_LABELS[submission.type]}</span>
             </div>
-            <div>
-              <label className="text-sm text-gray-500 mr-2">Update status:</label>
-              <select
-                value={submission.status}
-                onChange={(e) =>
-                  updateStatus.mutate({ id: submission.id, status: e.target.value as FeedbackStatus })
-                }
-                className="appearance-none bg-white text-sm border border-gray-300 rounded-lg px-3 py-1.5 focus:outline-none focus:ring-2 focus:ring-indigo-500"
-              >
-                {STATUSES.map((s) => (
-                  <option key={s.value} value={s.value}>{s.label}</option>
-                ))}
-              </select>
+            <div className="flex items-center gap-2">
+              <label className="text-sm text-gray-500">Update status:</label>
+              <div className="relative">
+                <select
+                  value={submission.status}
+                  onChange={(e) =>
+                    updateStatus.mutate({ id: submission.id, status: e.target.value as FeedbackStatus })
+                  }
+                  className="appearance-none bg-white text-sm border border-gray-300 rounded-lg pl-3 pr-8 py-1.5 focus:outline-none focus:ring-2 focus:ring-indigo-500 cursor-pointer"
+                >
+                  {STATUSES.map((s) => (
+                    <option key={s.value} value={s.value}>{s.label}</option>
+                  ))}
+                </select>
+                <ChevronDown className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+              </div>
             </div>
           </div>
         </CardHeader>

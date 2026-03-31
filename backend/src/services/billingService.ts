@@ -25,6 +25,30 @@ function advanceDate(date: Date, frequency: string): Date | null {
   return null;
 }
 
+// Shape returned by the enrollment query
+type EnrollmentWithRelations = Awaited<
+  ReturnType<typeof prisma.enrollment.findMany>
+>[number] & {
+  contact: {
+    id: string;
+    firstName: string;
+    lastName: string;
+    email: string | null;
+    organizationId: string;
+    helcimToken: string | null;
+    familyId: string | null;
+    family: { id: string; name: string; helcimToken: string | null; billingEmail: string | null } | null;
+    organization: { name: string } | null;
+  };
+  program: {
+    id: string;
+    name: string;
+    price: Decimal;
+    billingFrequency: string;
+    maxBillingCycles: number | null;
+  };
+};
+
 class BillingService {
   async generateDueInvoices(organizationId?: string) {
     const today = new Date();
@@ -32,7 +56,6 @@ class BillingService {
 
     logger.info(`Billing run started — today=${today.toISOString()}, org=${organizationId ?? 'ALL'}`);
 
-    // Diagnostic: count active enrollments before date filter
     const totalActive = await prisma.enrollment.count({
       where: {
         status: 'active',
@@ -48,41 +71,217 @@ class BillingService {
         contact: organizationId ? { organizationId } : undefined,
       },
       include: {
-        contact: { include: { family: true, organization: true } },
+        contact: {
+          include: {
+            family: true,
+            organization: true,
+          },
+        },
         program: true,
       },
-    });
+    }) as EnrollmentWithRelations[];
 
     logger.info(`Billing: ${enrollments.length} enrollment(s) due for billing`);
+
+    // ── Check max billing cycles, remove exhausted enrollments ───────────────
+    const eligible: EnrollmentWithRelations[] = [];
+    for (const enrollment of enrollments) {
+      if (enrollment.program.maxBillingCycles !== null) {
+        const cyclesCompleted = await prisma.invoiceLineItem.count({
+          where: { enrollmentId: enrollment.id },
+        });
+        if (cyclesCompleted >= enrollment.program.maxBillingCycles) {
+          await prisma.enrollment.update({
+            where: { id: enrollment.id },
+            data: { status: 'cancelled', endDate: today, nextBillingDate: null },
+          });
+          logger.info(`Billing: enrollment ${enrollment.id} reached max cycles — auto-cancelled`);
+          continue;
+        }
+      }
+      eligible.push(enrollment);
+    }
+
+    // ── Partition: family-billed vs individual-billed ─────────────────────────
+    //
+    // An enrollment is family-billed when:
+    //   - the contact belongs to a family, AND
+    //   - that family has a card on file (helcimToken)
+    //
+    // Everything else is billed individually to the contact.
+    //
+    const familyGroups = new Map<string, EnrollmentWithRelations[]>();
+    const individualEnrollments: EnrollmentWithRelations[] = [];
+
+    for (const enrollment of eligible) {
+      const family = enrollment.contact.family;
+      if (family && family.helcimToken) {
+        const group = familyGroups.get(family.id) ?? [];
+        group.push(enrollment);
+        familyGroups.set(family.id, group);
+      } else {
+        individualEnrollments.push(enrollment);
+      }
+    }
+
+    logger.info(
+      `Billing: ${familyGroups.size} family group(s), ${individualEnrollments.length} individual enrollment(s)`
+    );
 
     let invoicesCreated = 0;
     let autoCharged = 0;
     let errors = 0;
 
-    for (const enrollment of enrollments) {
+    // ── Family-grouped invoices ───────────────────────────────────────────────
+    for (const [familyId, groupEnrollments] of familyGroups) {
       try {
-        const orgId = enrollment.contact.organizationId;
-        const dueDate = enrollment.nextBillingDate ?? today;
+        const family = groupEnrollments[0].contact.family!;
+        const orgId = groupEnrollments[0].contact.organizationId;
+        const orgName = groupEnrollments[0].contact.organization?.name ?? 'your organization';
 
-        // Check if max billing cycles reached
-        if (enrollment.program.maxBillingCycles !== null && enrollment.program.maxBillingCycles !== undefined) {
-          const cyclesCompleted = await prisma.invoiceLineItem.count({
-            where: { enrollmentId: enrollment.id },
-          });
-          if (cyclesCompleted >= enrollment.program.maxBillingCycles) {
-            await prisma.enrollment.update({
-              where: { id: enrollment.id },
-              data: { status: 'cancelled', endDate: today, nextBillingDate: null },
-            });
-            logger.info(`Billing: enrollment ${enrollment.id} reached max cycles (${enrollment.program.maxBillingCycles}) — auto-cancelled`);
-            continue;
-          }
-        }
+        // Use the earliest due date across the group as the invoice due date
+        const dueDate = groupEnrollments.reduce<Date>((earliest, e) => {
+          const d = e.nextBillingDate ?? today;
+          return d < earliest ? d : earliest;
+        }, groupEnrollments[0].nextBillingDate ?? today);
 
-        // Generate invoice number
+        const totalAmount = groupEnrollments.reduce(
+          (sum, e) => sum + Number(e.program.price),
+          0
+        );
+
         const count = await prisma.invoice.count({ where: { organizationId: orgId } });
         const invoiceNumber = `INV-${String(count + 1).padStart(5, '0')}`;
+
+        const invoice = await prisma.invoice.create({
+          data: {
+            organizationId: orgId,
+            familyId,
+            invoiceNumber,
+            amountDue: new Decimal(totalAmount),
+            dueDate,
+            status: 'sent',
+            notes: `Auto-generated — ${family.name}`,
+            lineItems: {
+              create: groupEnrollments.map((e) => ({
+                enrollmentId: e.id,
+                description: `${e.contact.firstName} ${e.contact.lastName} — ${e.program.name}`,
+                quantity: 1,
+                unitPrice: new Decimal(Number(e.program.price)),
+                total: new Decimal(Number(e.program.price)),
+              })),
+            },
+          },
+        });
+
+        invoicesCreated++;
+        logger.info(
+          `Billing: created family invoice ${invoiceNumber} for family ${familyId} ` +
+          `(${groupEnrollments.length} line items, $${totalAmount})`
+        );
+
+        // Advance billing dates for all enrollments in the group
+        for (const e of groupEnrollments) {
+          const nextDate = advanceDate(e.nextBillingDate ?? today, e.program.billingFrequency);
+          await prisma.enrollment.update({
+            where: { id: e.id },
+            data: { nextBillingDate: nextDate },
+          });
+        }
+
+        // Attempt auto-charge on the family card
+        try {
+          const helcimTx = await helcimService.processPayment({
+            amount: totalAmount,
+            currency: 'USD',
+            cardToken: family.helcimToken!,
+            customerId: family.helcimToken!,
+          });
+
+          await prisma.payment.create({
+            data: {
+              organizationId: orgId,
+              invoiceId: invoice.id,
+              helcimTransactionId: helcimTx.transactionId,
+              amount: new Decimal(totalAmount),
+              currency: 'USD',
+              status: helcimTx.status || 'succeeded',
+              paymentMethodType: 'card',
+              cardToken: family.helcimToken!,
+              notes: 'Auto-charged via recurring billing (family card)',
+            },
+          });
+
+          await prisma.invoice.update({
+            where: { id: invoice.id },
+            data: { status: 'paid', amountPaid: new Decimal(totalAmount), paidAt: new Date() },
+          });
+
+          autoCharged++;
+          logger.info(`Billing: auto-charged family invoice ${invoiceNumber}`);
+
+          // Email the family billing address if set, otherwise each contact with an email
+          const billingEmail = family.billingEmail;
+          const emailTargets: Array<{ email: string; name: string }> = billingEmail
+            ? [{ email: billingEmail, name: family.name }]
+            : groupEnrollments
+                .filter((e) => e.contact.email)
+                .map((e) => ({
+                  email: e.contact.email!,
+                  name: `${e.contact.firstName} ${e.contact.lastName}`,
+                }));
+
+          for (const target of emailTargets) {
+            sendPaymentReceived(target.email, {
+              recipientName: target.name,
+              orgName,
+              invoiceNumber,
+              amount: totalAmount,
+              currency: 'USD',
+            }).catch((err) => logger.error('Failed to send family payment received email', { err }));
+          }
+        } catch (chargeErr) {
+          logger.warn(
+            `Billing: auto-charge failed for family invoice ${invoiceNumber} — ${(chargeErr as Error).message}`
+          );
+
+          const billingEmail = family.billingEmail;
+          const emailTargets: Array<{ email: string; name: string }> = billingEmail
+            ? [{ email: billingEmail, name: family.name }]
+            : groupEnrollments
+                .filter((e) => e.contact.email)
+                .map((e) => ({
+                  email: e.contact.email!,
+                  name: `${e.contact.firstName} ${e.contact.lastName}`,
+                }));
+
+          for (const target of emailTargets) {
+            sendPaymentFailed(target.email, {
+              recipientName: target.name,
+              orgName,
+              invoiceNumber,
+              amount: totalAmount,
+              currency: 'USD',
+              portalUrl: `${PORTAL_URL}/invoices/${invoice.id}`,
+            }).catch((err) => logger.error('Failed to send family payment failed email', { err }));
+          }
+        }
+      } catch (err) {
+        errors++;
+        logger.error(`Billing: error processing family group ${familyId} — ${(err as Error).message}`);
+      }
+    }
+
+    // ── Individual invoices ───────────────────────────────────────────────────
+    for (const enrollment of individualEnrollments) {
+      try {
+        const orgId = enrollment.contact.organizationId;
+        const orgName = enrollment.contact.organization?.name ?? 'your organization';
+        const dueDate = enrollment.nextBillingDate ?? today;
         const amount = Number(enrollment.program.price);
+
+        const count = await prisma.invoice.count({ where: { organizationId: orgId } });
+        const invoiceNumber = `INV-${String(count + 1).padStart(5, '0')}`;
 
         const invoice = await prisma.invoice.create({
           data: {
@@ -106,15 +305,15 @@ class BillingService {
         });
 
         invoicesCreated++;
-        logger.info(`Billing: created ${invoiceNumber} for enrollment ${enrollment.id}`);
+        logger.info(`Billing: created individual invoice ${invoiceNumber} for enrollment ${enrollment.id}`);
 
-        // Email contact — invoice generated (fire-and-forget)
+        // Email the contact
         const contactEmail = enrollment.contact.email;
         const contactName = `${enrollment.contact.firstName} ${enrollment.contact.lastName}`.trim();
         if (contactEmail) {
           sendInvoiceGenerated(contactEmail, {
             recipientName: contactName,
-            orgName: enrollment.contact.organization?.name ?? 'your organization',
+            orgName,
             invoiceNumber,
             amount,
             currency: 'USD',
@@ -124,8 +323,15 @@ class BillingService {
           }).catch((err) => logger.error('Failed to send invoice email', { err }));
         }
 
-        // Attempt auto-charge — prefer contact token, fall back to family token
-        const cardToken = enrollment.contact.helcimToken ?? enrollment.contact.family?.helcimToken ?? null;
+        // Advance billing date before attempting charge (so a charge failure doesn't block it)
+        const nextDate = advanceDate(dueDate, enrollment.program.billingFrequency);
+        await prisma.enrollment.update({
+          where: { id: enrollment.id },
+          data: { nextBillingDate: nextDate },
+        });
+
+        // Attempt auto-charge on the contact's card
+        const cardToken = enrollment.contact.helcimToken;
         if (cardToken) {
           try {
             const helcimTx = await helcimService.processPayment({
@@ -157,11 +363,10 @@ class BillingService {
             autoCharged++;
             logger.info(`Billing: auto-charged invoice ${invoiceNumber}`);
 
-            // Email contact — payment received
             if (contactEmail) {
               sendPaymentReceived(contactEmail, {
                 recipientName: contactName,
-                orgName: enrollment.contact.organization?.name ?? 'your organization',
+                orgName,
                 invoiceNumber,
                 amount,
                 currency: 'USD',
@@ -170,11 +375,10 @@ class BillingService {
           } catch (chargeErr) {
             logger.warn(`Billing: auto-charge failed for ${invoiceNumber} — ${(chargeErr as Error).message}`);
 
-            // Email contact — payment failed
             if (contactEmail) {
               sendPaymentFailed(contactEmail, {
                 recipientName: contactName,
-                orgName: enrollment.contact.organization?.name ?? 'your organization',
+                orgName,
                 invoiceNumber,
                 amount,
                 currency: 'USD',
@@ -183,20 +387,13 @@ class BillingService {
             }
           }
         }
-
-        // Advance or clear nextBillingDate
-        const nextDate = advanceDate(dueDate, enrollment.program.billingFrequency);
-        await prisma.enrollment.update({
-          where: { id: enrollment.id },
-          data: { nextBillingDate: nextDate },
-        });
       } catch (err) {
         errors++;
         logger.error(`Billing: error processing enrollment ${enrollment.id} — ${(err as Error).message}`);
       }
     }
 
-    // Also mark overdue invoices while we're here
+    // Mark overdue invoices
     await prisma.invoice.updateMany({
       where: {
         status: { in: ['draft', 'sent'] },

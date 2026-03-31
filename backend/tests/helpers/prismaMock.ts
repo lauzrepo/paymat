@@ -15,6 +15,8 @@ const prismaMock = {
     findUnique: jest.fn(),
     create: jest.fn(),
     update: jest.fn(),
+    delete: jest.fn(),
+    deleteMany: jest.fn(),
     count: jest.fn(),
   },
   program: {
@@ -42,13 +44,16 @@ const prismaMock = {
     findMany: jest.fn(),
     findFirst: jest.fn(),
     create: jest.fn(),
+    update: jest.fn(),
     count: jest.fn(),
+    aggregate: jest.fn(),
   },
   family: {
     findMany: jest.fn(),
     findFirst: jest.fn(),
     create: jest.fn(),
     update: jest.fn(),
+    delete: jest.fn(),
     count: jest.fn(),
     deleteMany: jest.fn(),
   },
@@ -94,6 +99,10 @@ const prismaMock = {
   $connect: jest.fn().mockResolvedValue(undefined),
   $disconnect: jest.fn().mockResolvedValue(undefined),
   $on: jest.fn(),
+  $transaction: jest.fn() as jest.MockedFunction<any>,
 };
+
+// Allow $transaction to execute its callback with prismaMock as the transaction client
+(prismaMock.$transaction as jest.Mock).mockImplementation((fn: (tx: any) => any) => fn(prismaMock));
 
 export default prismaMock;

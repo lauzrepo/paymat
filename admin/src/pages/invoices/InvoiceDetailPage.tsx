@@ -1,14 +1,19 @@
-import { useState } from 'react';
+import { useState, lazy, Suspense } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { ChevronLeft } from 'lucide-react';
 import { useInvoice, useVoidInvoice } from '../../hooks/useInvoices';
 import { usePayments, useProcessPayment, useRefundPayment } from '../../hooks/usePayments';
+import { useTenantBranding } from '../../hooks/useTenant';
 import { queryClient } from '../../lib/queryClient';
 import { Card, CardHeader, CardBody } from '../../components/ui/Card';
 import { Button } from '../../components/ui/Button';
 import { Badge } from '../../components/ui/Badge';
 import { Spinner } from '../../components/ui/Spinner';
 import { formatCurrency, formatDate } from '../../lib/utils';
+
+const InvoiceDownloadButton = lazy(() =>
+  import('../../components/InvoiceDownloadButton').then((m) => ({ default: m.InvoiceDownloadButton }))
+);
 
 const STATUS_VARIANT: Record<string, 'green' | 'red' | 'gray' | 'blue' | 'yellow'> = {
   paid: 'green', overdue: 'red', draft: 'gray', sent: 'blue', void: 'gray',
@@ -22,6 +27,7 @@ export function InvoiceDetailPage() {
   const { id } = useParams<{ id: string }>();
   const { data: invoice, isLoading } = useInvoice(id!);
   const payments = usePayments({ invoiceId: id });
+  const { data: branding } = useTenantBranding();
   const voidInv = useVoidInvoice();
   const processPayment = useProcessPayment();
   const refund = useRefundPayment();
@@ -70,20 +76,25 @@ export function InvoiceDetailPage() {
   const canAct = invoice.status !== 'paid' && invoice.status !== 'void';
 
   return (
-    <div className="space-y-6 max-w-3xl">
+    <div className="space-y-6">
       <div className="flex items-center gap-3">
         <Link to="/invoices" className="text-gray-400 hover:text-gray-600">
           <ChevronLeft className="h-5 w-5" />
         </Link>
         <h1 className="text-2xl font-bold text-gray-900">{invoice.invoiceNumber}</h1>
         <Badge variant={STATUS_VARIANT[invoice.status] ?? 'gray'}>{invoice.status}</Badge>
+        <div className="ml-auto">
+          <Suspense fallback={<Button variant="secondary" size="sm" loading>Download PDF</Button>}>
+            <InvoiceDownloadButton invoice={invoice} orgName={branding?.name ?? 'Invoice'} />
+          </Suspense>
+        </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <div className="lg:col-span-1 space-y-6">
+      <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
+        <div className="lg:col-span-2 space-y-6">
           <Card>
             <CardHeader><h2 className="text-base font-semibold text-gray-900">Details</h2></CardHeader>
-            <CardBody className="space-y-3 text-sm">
+            <CardBody className="divide-y divide-gray-100 !py-0">
               <Row label="Bill to">
                 {billTo ? (
                   <Link to={billTo.href} className="text-indigo-600 hover:underline font-medium">{billTo.label}</Link>
@@ -102,13 +113,12 @@ export function InvoiceDetailPage() {
           </Card>
 
           {canAct && (
-            <div className="flex flex-col gap-2">
-              <Button variant="secondary" size="sm" onClick={openPayForm}>
+            <div className="flex flex-col gap-3">
+              <Button variant="secondary" onClick={openPayForm}>
                 Record payment
               </Button>
               <Button
                 variant="ghost"
-                size="sm"
                 loading={voidInv.isPending}
                 onClick={() => {
                   if (window.confirm('Void this invoice? This cannot be undone.')) {
@@ -123,7 +133,7 @@ export function InvoiceDetailPage() {
           )}
         </div>
 
-        <div className="lg:col-span-2 space-y-6">
+        <div className="lg:col-span-3 space-y-6">
           <Card>
             <CardHeader><h2 className="text-base font-semibold text-gray-900">Line Items</h2></CardHeader>
             <CardBody className="p-0">
@@ -285,9 +295,9 @@ export function InvoiceDetailPage() {
 
 function Row({ label, value, children }: { label: string; value?: string; children?: React.ReactNode }) {
   return (
-    <div className="flex justify-between items-start">
-      <span className="text-gray-500">{label}</span>
-      {children ?? <span className="text-gray-900 font-medium text-right max-w-xs truncate">{value}</span>}
+    <div className="flex items-center justify-between py-3 gap-4">
+      <span className="text-sm text-gray-500 shrink-0">{label}</span>
+      <span className="text-sm text-gray-900 font-medium text-right">{children ?? value}</span>
     </div>
   );
 }
