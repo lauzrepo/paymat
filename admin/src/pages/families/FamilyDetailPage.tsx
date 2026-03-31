@@ -54,21 +54,35 @@ export function FamilyDetailPage() {
 
   useEffect(() => {
     const onMessage = async (event: MessageEvent) => {
+      let data: Record<string, unknown>;
       try {
-        const data = typeof event.data === 'string' ? JSON.parse(event.data) : event.data;
-        if (data.eventType === 'HELCIM_PAY_JS_SUCCESS') {
-          const cardToken: string = data.eventMessage?.data?.cardToken ?? data.eventMessage?.cardToken;
-          if (!cardToken) return;
+        data = typeof event.data === 'string' ? JSON.parse(event.data) : event.data;
+      } catch {
+        return; // not a relevant message
+      }
+      if (data.eventType === 'HELCIM_PAY_JS_SUCCESS') {
+        const msg = data.eventMessage as Record<string, unknown> | undefined;
+        const cardToken = (msg?.data as Record<string, unknown> | undefined)?.cardToken as string | undefined
+          ?? msg?.cardToken as string | undefined;
+        if (!cardToken) {
+          setCardStatus('error');
+          setCardMessage('Card processed but no token received. Please try again.');
+          return;
+        }
+        setCardStatus('loading');
+        try {
           await saveFamilyCardToken(id!, cardToken);
           queryClient.invalidateQueries({ queryKey: ['families', id] });
           setCardStatus('success');
           setCardMessage('Card saved for this family.');
-        } else if (data.eventType === 'HELCIM_PAY_JS_FAILED') {
+        } catch {
           setCardStatus('error');
-          setCardMessage(data.eventMessage ?? 'Card capture failed.');
+          setCardMessage('Failed to save card. Please try again.');
         }
-      } catch {
-        // not a relevant message
+      } else if (data.eventType === 'HELCIM_PAY_JS_FAILED') {
+        setCardStatus('error');
+        const msg = data.eventMessage;
+        setCardMessage(typeof msg === 'string' ? msg : 'Card capture failed.');
       }
     };
     window.addEventListener('message', onMessage);
