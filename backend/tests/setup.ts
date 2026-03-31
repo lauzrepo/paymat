@@ -1,0 +1,14 @@
+process.env.NODE_ENV = 'test';
+process.env.PORT = '0'; // Let the OS assign a random free port to avoid EADDRINUSE in integration tests
+process.env.DATABASE_URL = 'postgresql://test:test@localhost:5432/paymat_test';
+process.env.JWT_SECRET = 'test-jwt-secret-that-is-at-least-32-characters-long';
+process.env.JWT_REFRESH_SECRET = 'test-refresh-secret-at-least-32-characters-long';
+process.env.HELCIM_API_TOKEN = 'test-helcim-api-token';
+process.env.HELCIM_WEBHOOK_SECRET = 'test-helcim-webhook-secret';
+process.env.FRONTEND_URL = 'http://localhost:3000';
+process.env.SUPER_ADMIN_JWT_SECRET = 'test-super-admin-jwt-secret-at-least-32-chars';
+process.env.SUPER_ADMIN_JWT_REFRESH_SECRET = 'test-super-admin-refresh-secret-32-chars-ok';
+process.env.RESEND_API_KEY = 're_test_key';
+process.env.SUPER_ADMIN_EMAIL = 'admin@test.com';
+process.env.APP_URL = 'https://app.cliqpaymat.app';
+process.env.BILLING_SECRET = 'test-billing-secret';

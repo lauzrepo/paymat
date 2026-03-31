@@ -10,15 +10,15 @@ const PORTAL_URL = config.email.appUrl.replace('app.', 'portal.');
 function advanceDate(date: Date, frequency: string): Date | null {
   const next = new Date(date);
   if (frequency === 'monthly') {
-    next.setMonth(next.getMonth() + 1);
+    next.setUTCMonth(next.getUTCMonth() + 1);
     return next;
   }
   if (frequency === 'weekly') {
-    next.setDate(next.getDate() + 7);
+    next.setUTCDate(next.getUTCDate() + 7);
     return next;
   }
   if (frequency === 'yearly') {
-    next.setFullYear(next.getFullYear() + 1);
+    next.setUTCFullYear(next.getUTCFullYear() + 1);
     return next;
   }
   // one_time — don't bill again
@@ -54,11 +54,6 @@ class BillingService {
     });
 
     logger.info(`Billing: ${enrollments.length} enrollment(s) due for billing`);
-
-    if (!enrollments.length) {
-      logger.info('Billing run: no due enrollments');
-      return { invoicesCreated: 0, autoCharged: 0, errors: 0, activeEnrollments: totalActive };
-    }
 
     let invoicesCreated = 0;
     let autoCharged = 0;

@@ -1,0 +1,451 @@
+import prisma from '../../../src/config/database';
+
+jest.mock('../../../src/services/helcimService', () => ({
+  __esModule: true,
+  default: {
+    processPayment: jest.fn(),
+  },
+}));
+
+jest.mock('../../../src/services/emailService', () => ({
+  sendInvoiceGenerated: jest.fn().mockResolvedValue(undefined),
+  sendPaymentReceived: jest.fn().mockResolvedValue(undefined),
+  sendPaymentFailed: jest.fn().mockResolvedValue(undefined),
+}));
+
+jest.mock('../../../src/config/environment', () => ({
+  config: {
+    email: { appUrl: 'https://app.cliqpaymat.app' },
+  },
+}));
+
+jest.mock('../../../src/utils/logger', () => ({
+  __esModule: true,
+  default: { info: jest.fn(), warn: jest.fn(), error: jest.fn() },
+}));
+
+import helcimService from '../../../src/services/helcimService';
+import { sendInvoiceGenerated, sendPaymentReceived, sendPaymentFailed } from '../../../src/services/emailService';
+
+// billingService must be imported after mocks are in place
+import billingService from '../../../src/services/billingService';
+
+// ─── Helpers ────────────────────────────────────────────────────────────────
+
+function makeEnrollment(overrides: Record<string, unknown> = {}) {
+  return {
+    id: 'enroll-1',
+    contactId: 'contact-1',
+    nextBillingDate: new Date('2026-03-01T00:00:00.000Z'),
+    contact: {
+      id: 'contact-1',
+      organizationId: 'org-1',
+      firstName: 'Jane',
+      lastName: 'Doe',
+      email: 'jane@example.com',
+      helcimToken: null,
+      family: null,
+      organization: { name: 'Test Org' },
+    },
+    program: {
+      id: 'prog-1',
+      name: 'Soccer Academy',
+      price: 100,
+      billingFrequency: 'monthly',
+      maxBillingCycles: null,
+    },
+    ...overrides,
+  };
+}
+
+function makeInvoice(overrides: Record<string, unknown> = {}) {
+  return {
+    id: 'invoice-1',
+    invoiceNumber: 'INV-00001',
+    status: 'sent',
+    ...overrides,
+  };
+}
+
+// ─── Tests ───────────────────────────────────────────────────────────────────
+
+beforeEach(() => {
+  jest.clearAllMocks();
+});
+
+describe('BillingService.generateDueInvoices()', () => {
+  describe('when there are no due enrollments', () => {
+    it('returns zero counters and activeEnrollments count', async () => {
+      (prisma.enrollment.count as jest.Mock).mockResolvedValue(3);
+      (prisma.enrollment.findMany as jest.Mock).mockResolvedValue([]);
+
+      const result = await billingService.generateDueInvoices();
+
+      expect(result).toEqual({
+        invoicesCreated: 0,
+        autoCharged: 0,
+        errors: 0,
+        activeEnrollments: 3,
+      });
+      expect(prisma.invoice.create as jest.Mock).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('when one enrollment is due', () => {
+    it('creates an invoice and increments invoicesCreated', async () => {
+      const enrollment = makeEnrollment();
+
+      (prisma.enrollment.count as jest.Mock).mockResolvedValue(1);
+      (prisma.enrollment.findMany as jest.Mock).mockResolvedValue([enrollment]);
+      (prisma.invoice.count as jest.Mock).mockResolvedValue(0);
+      (prisma.invoice.create as jest.Mock).mockResolvedValue(makeInvoice());
+      (prisma.enrollment.update as jest.Mock).mockResolvedValue({});
+      (prisma.invoice.updateMany as jest.Mock).mockResolvedValue({ count: 0 });
+
+      const result = await billingService.generateDueInvoices();
+
+      expect(result.invoicesCreated).toBe(1);
+      expect(result.autoCharged).toBe(0);
+      expect(result.errors).toBe(0);
+      expect(prisma.invoice.create as jest.Mock).toHaveBeenCalledTimes(1);
+    });
+  });
+
+  describe('when max billing cycles are reached', () => {
+    it('cancels the enrollment and does NOT create an invoice', async () => {
+      const enrollment = makeEnrollment({
+        program: {
+          id: 'prog-1',
+          name: 'Soccer Academy',
+          price: 100,
+          billingFrequency: 'monthly',
+          maxBillingCycles: 3,
+        },
+      });
+
+      (prisma.enrollment.count as jest.Mock).mockResolvedValue(1);
+      (prisma.enrollment.findMany as jest.Mock).mockResolvedValue([enrollment]);
+      // invoiceLineItem.count returns >= maxBillingCycles
+      (prisma.invoiceLineItem.count as jest.Mock).mockResolvedValue(3);
+      (prisma.enrollment.update as jest.Mock).mockResolvedValue({});
+      (prisma.invoice.updateMany as jest.Mock).mockResolvedValue({ count: 0 });
+
+      const result = await billingService.generateDueInvoices();
+
+      expect(result.invoicesCreated).toBe(0);
+      expect(prisma.invoice.create as jest.Mock).not.toHaveBeenCalled();
+      expect(prisma.enrollment.update as jest.Mock).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: { id: enrollment.id },
+          data: expect.objectContaining({ status: 'cancelled', nextBillingDate: null }),
+        }),
+      );
+    });
+  });
+
+  describe('nextBillingDate advancement', () => {
+    async function runWithFrequency(billingFrequency: string) {
+      const dueDate = new Date('2026-03-01T00:00:00.000Z');
+      const enrollment = makeEnrollment({
+        nextBillingDate: dueDate,
+        program: {
+          id: 'prog-1',
+          name: 'Soccer Academy',
+          price: 100,
+          billingFrequency,
+          maxBillingCycles: null,
+        },
+      });
+
+      (prisma.enrollment.count as jest.Mock).mockResolvedValue(1);
+      (prisma.enrollment.findMany as jest.Mock).mockResolvedValue([enrollment]);
+      (prisma.invoice.count as jest.Mock).mockResolvedValue(0);
+      (prisma.invoice.create as jest.Mock).mockResolvedValue(makeInvoice());
+      (prisma.enrollment.update as jest.Mock).mockResolvedValue({});
+      (prisma.invoice.updateMany as jest.Mock).mockResolvedValue({ count: 0 });
+
+      await billingService.generateDueInvoices();
+
+      const updateCall = (prisma.enrollment.update as jest.Mock).mock.calls.find(
+        (call) => call[0].data?.nextBillingDate !== undefined,
+      );
+      return updateCall?.[0].data.nextBillingDate as Date | null;
+    }
+
+    it('advances nextBillingDate by one month for monthly frequency', async () => {
+      const nextDate = await runWithFrequency('monthly');
+      expect(nextDate).not.toBeNull();
+      expect(nextDate!.getUTCMonth()).toBe(3); // April (0-indexed)
+      expect(nextDate!.getUTCFullYear()).toBe(2026);
+    });
+
+    it('advances nextBillingDate by 7 days for weekly frequency', async () => {
+      const nextDate = await runWithFrequency('weekly');
+      expect(nextDate).not.toBeNull();
+      const expected = new Date('2026-03-08T00:00:00.000Z');
+      expect(nextDate!.toISOString()).toBe(expected.toISOString());
+    });
+
+    it('advances nextBillingDate by one year for yearly frequency', async () => {
+      const nextDate = await runWithFrequency('yearly');
+      expect(nextDate).not.toBeNull();
+      expect(nextDate!.getUTCFullYear()).toBe(2027);
+      expect(nextDate!.getUTCMonth()).toBe(2); // March
+    });
+
+    it('sets nextBillingDate to null for one_time frequency', async () => {
+      const nextDate = await runWithFrequency('one_time');
+      expect(nextDate).toBeNull();
+    });
+  });
+
+  describe('auto-charge with card token', () => {
+    it('calls helcimService.processPayment, marks invoice paid, and increments autoCharged', async () => {
+      const enrollment = makeEnrollment({
+        contact: {
+          id: 'contact-1',
+          organizationId: 'org-1',
+          firstName: 'Jane',
+          lastName: 'Doe',
+          email: 'jane@example.com',
+          helcimToken: 'tok_abc123',
+          family: null,
+          organization: { name: 'Test Org' },
+        },
+      });
+
+      (prisma.enrollment.count as jest.Mock).mockResolvedValue(1);
+      (prisma.enrollment.findMany as jest.Mock).mockResolvedValue([enrollment]);
+      (prisma.invoice.count as jest.Mock).mockResolvedValue(0);
+      (prisma.invoice.create as jest.Mock).mockResolvedValue(makeInvoice({ id: 'invoice-1' }));
+      (prisma.payment.create as jest.Mock).mockResolvedValue({});
+      (prisma.invoice.update as jest.Mock).mockResolvedValue({});
+      (prisma.enrollment.update as jest.Mock).mockResolvedValue({});
+      (prisma.invoice.updateMany as jest.Mock).mockResolvedValue({ count: 0 });
+      (helcimService.processPayment as jest.Mock).mockResolvedValue({
+        transactionId: 'tx-123',
+        status: 'succeeded',
+      });
+
+      const result = await billingService.generateDueInvoices();
+
+      expect(result.autoCharged).toBe(1);
+      expect(helcimService.processPayment as jest.Mock).toHaveBeenCalledWith(
+        expect.objectContaining({ cardToken: 'tok_abc123', amount: 100 }),
+      );
+      expect(prisma.invoice.update as jest.Mock).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: { id: 'invoice-1' },
+          data: expect.objectContaining({ status: 'paid' }),
+        }),
+      );
+      expect(prisma.payment.create as jest.Mock).toHaveBeenCalledTimes(1);
+    });
+
+    it('falls back to family helcimToken when contact token is absent', async () => {
+      const enrollment = makeEnrollment({
+        contact: {
+          id: 'contact-1',
+          organizationId: 'org-1',
+          firstName: 'Jane',
+          lastName: 'Doe',
+          email: 'jane@example.com',
+          helcimToken: null,
+          family: { helcimToken: 'tok_family' },
+          organization: { name: 'Test Org' },
+        },
+      });
+
+      (prisma.enrollment.count as jest.Mock).mockResolvedValue(1);
+      (prisma.enrollment.findMany as jest.Mock).mockResolvedValue([enrollment]);
+      (prisma.invoice.count as jest.Mock).mockResolvedValue(0);
+      (prisma.invoice.create as jest.Mock).mockResolvedValue(makeInvoice());
+      (prisma.payment.create as jest.Mock).mockResolvedValue({});
+      (prisma.invoice.update as jest.Mock).mockResolvedValue({});
+      (prisma.enrollment.update as jest.Mock).mockResolvedValue({});
+      (prisma.invoice.updateMany as jest.Mock).mockResolvedValue({ count: 0 });
+      (helcimService.processPayment as jest.Mock).mockResolvedValue({
+        transactionId: 'tx-456',
+        status: 'succeeded',
+      });
+
+      const result = await billingService.generateDueInvoices();
+
+      expect(result.autoCharged).toBe(1);
+      expect(helcimService.processPayment as jest.Mock).toHaveBeenCalledWith(
+        expect.objectContaining({ cardToken: 'tok_family' }),
+      );
+    });
+  });
+
+  describe('auto-charge failure', () => {
+    it('leaves invoice in sent status, does not increment autoCharged, and sends payment failed email', async () => {
+      const enrollment = makeEnrollment({
+        contact: {
+          id: 'contact-1',
+          organizationId: 'org-1',
+          firstName: 'Jane',
+          lastName: 'Doe',
+          email: 'jane@example.com',
+          helcimToken: 'tok_bad',
+          family: null,
+          organization: { name: 'Test Org' },
+        },
+      });
+
+      (prisma.enrollment.count as jest.Mock).mockResolvedValue(1);
+      (prisma.enrollment.findMany as jest.Mock).mockResolvedValue([enrollment]);
+      (prisma.invoice.count as jest.Mock).mockResolvedValue(0);
+      (prisma.invoice.create as jest.Mock).mockResolvedValue(makeInvoice({ id: 'invoice-1' }));
+      (prisma.enrollment.update as jest.Mock).mockResolvedValue({});
+      (prisma.invoice.updateMany as jest.Mock).mockResolvedValue({ count: 0 });
+      (helcimService.processPayment as jest.Mock).mockRejectedValue(new Error('Card declined'));
+
+      const result = await billingService.generateDueInvoices();
+
+      expect(result.autoCharged).toBe(0);
+      // Invoice.update to paid should NOT have been called
+      expect(prisma.invoice.update as jest.Mock).not.toHaveBeenCalled();
+      // invoicesCreated still increments — the invoice was created
+      expect(result.invoicesCreated).toBe(1);
+      // sendPaymentFailed should fire (fire-and-forget, may need to flush)
+      await Promise.resolve(); // flush micro-tasks
+      expect(sendPaymentFailed as jest.Mock).toHaveBeenCalled();
+    });
+  });
+
+  describe('overdue invoice marking', () => {
+    it('calls invoice.updateMany to mark overdue invoices at the end of the run', async () => {
+      (prisma.enrollment.count as jest.Mock).mockResolvedValue(0);
+      (prisma.enrollment.findMany as jest.Mock).mockResolvedValue([]);
+      (prisma.invoice.updateMany as jest.Mock).mockResolvedValue({ count: 2 });
+
+      await billingService.generateDueInvoices();
+
+      expect(prisma.invoice.updateMany as jest.Mock).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: expect.objectContaining({
+            status: { in: ['draft', 'sent'] },
+            dueDate: expect.objectContaining({ lt: expect.any(Date) }),
+          }),
+          data: { status: 'overdue' },
+        }),
+      );
+    });
+  });
+
+  describe('organizationId scoping', () => {
+    it('passes organizationId filter to findMany and updateMany when provided', async () => {
+      (prisma.enrollment.count as jest.Mock).mockResolvedValue(0);
+      (prisma.enrollment.findMany as jest.Mock).mockResolvedValue([]);
+      (prisma.invoice.updateMany as jest.Mock).mockResolvedValue({ count: 0 });
+
+      await billingService.generateDueInvoices('org-42');
+
+      expect(prisma.enrollment.findMany as jest.Mock).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: expect.objectContaining({
+            contact: { organizationId: 'org-42' },
+          }),
+        }),
+      );
+
+      expect(prisma.invoice.updateMany as jest.Mock).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: expect.objectContaining({ organizationId: 'org-42' }),
+        }),
+      );
+    });
+
+    it('omits contact filter when organizationId is not provided', async () => {
+      (prisma.enrollment.count as jest.Mock).mockResolvedValue(0);
+      (prisma.enrollment.findMany as jest.Mock).mockResolvedValue([]);
+      (prisma.invoice.updateMany as jest.Mock).mockResolvedValue({ count: 0 });
+
+      await billingService.generateDueInvoices();
+
+      const findManyCall = (prisma.enrollment.findMany as jest.Mock).mock.calls[0][0];
+      expect(findManyCall.where.contact).toBeUndefined();
+    });
+  });
+
+  describe('UTC midnight date comparison', () => {
+    it('uses UTC midnight for the today date boundary', async () => {
+      (prisma.enrollment.count as jest.Mock).mockResolvedValue(0);
+      (prisma.enrollment.findMany as jest.Mock).mockResolvedValue([]);
+      (prisma.invoice.updateMany as jest.Mock).mockResolvedValue({ count: 0 });
+
+      await billingService.generateDueInvoices();
+
+      const findManyCall = (prisma.enrollment.findMany as jest.Mock).mock.calls[0][0];
+      const todayUsed: Date = findManyCall.where.nextBillingDate.lte;
+
+      expect(todayUsed.getUTCHours()).toBe(0);
+      expect(todayUsed.getUTCMinutes()).toBe(0);
+      expect(todayUsed.getUTCSeconds()).toBe(0);
+      expect(todayUsed.getUTCMilliseconds()).toBe(0);
+    });
+  });
+
+  describe('email notifications', () => {
+    it('sends sendInvoiceGenerated email when contact has an email address', async () => {
+      const enrollment = makeEnrollment();
+
+      (prisma.enrollment.count as jest.Mock).mockResolvedValue(1);
+      (prisma.enrollment.findMany as jest.Mock).mockResolvedValue([enrollment]);
+      (prisma.invoice.count as jest.Mock).mockResolvedValue(0);
+      (prisma.invoice.create as jest.Mock).mockResolvedValue(makeInvoice());
+      (prisma.enrollment.update as jest.Mock).mockResolvedValue({});
+      (prisma.invoice.updateMany as jest.Mock).mockResolvedValue({ count: 0 });
+
+      await billingService.generateDueInvoices();
+      // flush fire-and-forget promise
+      await Promise.resolve();
+
+      expect(sendInvoiceGenerated as jest.Mock).toHaveBeenCalledWith(
+        'jane@example.com',
+        expect.objectContaining({
+          recipientName: 'Jane Doe',
+          invoiceNumber: 'INV-00001',
+          amount: 100,
+        }),
+      );
+    });
+
+    it('sends sendPaymentReceived after successful auto-charge', async () => {
+      const enrollment = makeEnrollment({
+        contact: {
+          id: 'contact-1',
+          organizationId: 'org-1',
+          firstName: 'Jane',
+          lastName: 'Doe',
+          email: 'jane@example.com',
+          helcimToken: 'tok_abc',
+          family: null,
+          organization: { name: 'Test Org' },
+        },
+      });
+
+      (prisma.enrollment.count as jest.Mock).mockResolvedValue(1);
+      (prisma.enrollment.findMany as jest.Mock).mockResolvedValue([enrollment]);
+      (prisma.invoice.count as jest.Mock).mockResolvedValue(0);
+      (prisma.invoice.create as jest.Mock).mockResolvedValue(makeInvoice());
+      (prisma.payment.create as jest.Mock).mockResolvedValue({});
+      (prisma.invoice.update as jest.Mock).mockResolvedValue({});
+      (prisma.enrollment.update as jest.Mock).mockResolvedValue({});
+      (prisma.invoice.updateMany as jest.Mock).mockResolvedValue({ count: 0 });
+      (helcimService.processPayment as jest.Mock).mockResolvedValue({
+        transactionId: 'tx-789',
+        status: 'succeeded',
+      });
+
+      await billingService.generateDueInvoices();
+      await Promise.resolve();
+
+      expect(sendPaymentReceived as jest.Mock).toHaveBeenCalledWith(
+        'jane@example.com',
+        expect.objectContaining({ invoiceNumber: 'INV-00001' }),
+      );
+    });
+  });
+});
