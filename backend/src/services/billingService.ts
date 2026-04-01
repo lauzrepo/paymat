@@ -49,6 +49,18 @@ type EnrollmentWithRelations = Awaited<
   };
 };
 
+/** Returns the next globally-unique invoice number (INV-XXXXX).
+ *  Finds the current highest numeric suffix across ALL orgs and increments it.
+ *  invoiceNumber has a @unique constraint, so this must be global. */
+async function nextInvoiceNumber(): Promise<string> {
+  const last = await prisma.invoice.findFirst({
+    orderBy: { invoiceNumber: 'desc' },
+    select: { invoiceNumber: true },
+  });
+  const n = last ? parseInt(last.invoiceNumber.replace(/\D/g, ''), 10) : 0;
+  return `INV-${String((isNaN(n) ? 0 : n) + 1).padStart(5, '0')}`;
+}
+
 class BillingService {
   async generateDueInvoices(organizationId?: string) {
     const today = new Date();
@@ -151,8 +163,7 @@ class BillingService {
           0
         );
 
-        const count = await prisma.invoice.count({ where: { organizationId: orgId } });
-        const invoiceNumber = `INV-${String(count + 1).padStart(5, '0')}`;
+        const invoiceNumber = await nextInvoiceNumber();
 
         const invoice = await prisma.invoice.create({
           data: {
@@ -283,8 +294,7 @@ class BillingService {
         const dueDate = enrollment.nextBillingDate ?? today;
         const amount = Number(enrollment.program.price);
 
-        const count = await prisma.invoice.count({ where: { organizationId: orgId } });
-        const invoiceNumber = `INV-${String(count + 1).padStart(5, '0')}`;
+        const invoiceNumber = await nextInvoiceNumber();
 
         const invoice = await prisma.invoice.create({
           data: {
