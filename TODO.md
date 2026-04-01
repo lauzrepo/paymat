@@ -2,7 +2,7 @@
 
 ## Current state
 
-Multi-tenant member management + recurring billing SaaS for small service businesses. Domain: `cliqpaymat.app` (live). Backend on Railway. `app.cliqpaymat.app` (admin), `admin.cliqpaymat.app` (super admin), `portal.cliqpaymat.app` (client portal). Resend verified. Phases 1–4 complete. Next: Phase 5 polish & launch prep.
+Multi-tenant member management + recurring billing SaaS for small service businesses. Domain: `cliqpaymat.app` (live). Backend on Railway. `app.cliqpaymat.app` (admin), `admin.cliqpaymat.app` (super admin), `portal.cliqpaymat.app` (client portal). Resend verified. Phases 1–5 largely complete. **Active work: migrating payment processing from Helcim → Stripe Connect** (per-org Express accounts provisioned during onboarding).
 
 ---
 
@@ -60,7 +60,7 @@ Multi-tenant member management + recurring billing SaaS for small service busine
 - [x] **Payments** — payment history; process a payment against an invoice
 - [x] **Settings** — organization branding (name, logo, primary color), timezone
 
-### Helcim integration
+### Payment integration (Helcim — being replaced)
 - [x] Card on file — save card via `appendHelcimPayIframe` on contact and family detail pages
 - [x] Process payment against invoice (manual + card on file)
 - [x] Recurring billing foundation via Helcim tokens stored on Contact/Family
@@ -145,8 +145,32 @@ Multi-tenant member management + recurring billing SaaS for small service busine
 - [x] Organization onboarding flow — invite email + guided setup via `/onboarding?token=`
 - [x] Stripe-based billing for the platform itself — checkout link generation, customer portal, webhook sync of subscription status; admin Billing page shows status + portal link
 - [x] Deployment setup (Railway for backend, Vercel for frontends)
-- [ ] Basic test coverage for services and critical API routes
+- [x] Basic test coverage for services and critical API routes (276 backend + 225 frontend)
 - [x] Custom domain `cliqpaymat.app` — all subdomains live, Railway env vars updated, Resend verified
+- [x] Super admin — delete organization (cascading) + delete invite
+- [x] Billing run error surfacing — error messages returned and displayed in admin UI
+- [x] Invoice number uniqueness — global sequence via `findFirst(orderBy: invoiceNumber desc)`
+- [x] Vercel SPA rewrite for portal deep links (fixed 404 on `/invoices/:id`)
+
+---
+
+## Phase 6 — Stripe Connect migration (in progress)
+
+Replacing Helcim with Stripe Connect so each org gets their own Express merchant account, provisioned automatically during onboarding. Helcim confirmed no programmatic sub-merchant API.
+
+- [x] Schema — add `stripeConnectAccountId`, `stripeConnectOnboardingComplete` to Organization
+- [x] Schema — replace `helcimToken` with `stripeCustomerId` + `stripeDefaultPaymentMethodId` on Contact/Family
+- [x] Schema — replace `helcimTransactionId`/`cardToken` with `stripePaymentIntentId`/`stripeChargeId` on Payment
+- [x] Environment — add `STRIPE_CONNECT_WEBHOOK_SECRET`, `STRIPE_APPLICATION_FEE_PERCENT`, `STRIPE_PUBLISHABLE_KEY`; make Helcim vars optional
+- [ ] `stripeConnectService.ts` — createConnectAccount, onboarding link, createSetupIntent, chargeCustomer, refund
+- [ ] Onboarding flow — provision Connect account on redeem, redirect to Stripe Express onboarding
+- [ ] `billingService.ts` — swap Helcim charge calls for Stripe Connect
+- [ ] `paymentService.ts` — swap Helcim charge/refund for Stripe Connect
+- [ ] `clientController.ts` — return Stripe PaymentIntent `clientSecret` instead of Helcim checkout token
+- [ ] Portal `InvoiceDetailPage.tsx` — replace HelcimPay.js with Stripe Elements
+- [ ] Webhooks — add `POST /webhooks/stripe-connect` handler (`payment_intent.succeeded`, `account.updated`, etc.)
+- [ ] One-time script — provision existing orgs with Connect accounts + notify admins
+- [ ] Final cleanup migration — drop Helcim columns, delete `helcimService.ts`
 
 ---
 
