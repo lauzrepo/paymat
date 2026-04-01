@@ -20,6 +20,10 @@ class StripeConnectService {
       email,
       business_profile: { name: orgName },
       metadata: { organizationId: orgId },
+      capabilities: {
+        card_payments: { requested: true },
+        transfers: { requested: true },
+      },
     });
     logger.info(`[StripeConnect] created Express account ${account.id} for org ${orgId}`);
     return account.id;
