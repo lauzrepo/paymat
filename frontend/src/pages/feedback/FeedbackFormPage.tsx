@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { CheckCircle, ArrowLeft } from 'lucide-react';
 import { useSubmitFeedback } from '../../hooks/useFeedback';
 import { useMe } from '../../hooks/useAuth';
+import { useOrgSlug } from '../../context/OrgSlugContext';
 import { Button } from '../../components/ui/Button';
 import { Input } from '../../components/ui/Input';
 import { Alert } from '../../components/ui/Alert';
@@ -15,6 +16,7 @@ export function FeedbackFormPage() {
   const [form, setForm] = useState(EMPTY_FORM);
   const [submitted, setSubmitted] = useState(false);
   const submit = useSubmitFeedback();
+  const orgSlug = useOrgSlug();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -30,7 +32,7 @@ export function FeedbackFormPage() {
     return (
       <div className="max-w-md space-y-6">
         <div className="flex items-center gap-3">
-          <Link to="/" className="text-gray-400 hover:text-gray-600">
+          <Link to={`/${orgSlug}/feedback`} className="text-gray-400 hover:text-gray-600">
             <ArrowLeft className="h-5 w-5" />
           </Link>
           <h1 className="text-2xl font-bold text-gray-900">Feedback & Issues</h1>
@@ -53,7 +55,7 @@ export function FeedbackFormPage() {
   return (
     <div className="max-w-md space-y-6">
       <div className="flex items-center gap-3">
-        <Link to="/" className="text-gray-400 hover:text-gray-600">
+        <Link to={`/${orgSlug}/feedback`} className="text-gray-400 hover:text-gray-600">
           <ArrowLeft className="h-5 w-5" />
         </Link>
         <h1 className="text-2xl font-bold text-gray-900">Feedback & Issues</h1>

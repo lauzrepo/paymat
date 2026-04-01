@@ -1,6 +1,7 @@
 import { Link } from 'react-router-dom';
 import { FileText, ChevronRight } from 'lucide-react';
 import { useMyInvoices } from '../../hooks/useClient';
+import { useOrgSlug } from '../../context/OrgSlugContext';
 
 const STATUS_COLORS: Record<string, string> = {
   paid: 'bg-green-100 text-green-700',
@@ -12,6 +13,7 @@ const STATUS_COLORS: Record<string, string> = {
 
 export function InvoicesPage() {
   const { data, isLoading } = useMyInvoices();
+  const orgSlug = useOrgSlug();
 
   return (
     <div className="space-y-6 max-w-2xl">
@@ -33,7 +35,7 @@ export function InvoicesPage() {
         return (
           <Link
             key={invoice.id}
-            to={`/invoices/${invoice.id}`}
+            to={`/${orgSlug}/invoices/${invoice.id}`}
             className="block bg-white rounded-xl border border-gray-200 hover:border-indigo-200 hover:shadow-sm transition-all"
           >
             <div className="px-5 py-4 flex items-center justify-between">

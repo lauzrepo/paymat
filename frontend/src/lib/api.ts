@@ -3,6 +3,9 @@ import { authStore } from '../store/authStore';
 
 const API_BASE = import.meta.env.VITE_API_URL ?? '';
 
+let currentOrgSlug = '';
+export function setOrgSlug(slug: string) { currentOrgSlug = slug; }
+
 export const apiClient = axios.create({
   baseURL: `${API_BASE}/api`,
   headers: { 'Content-Type': 'application/json' },
@@ -11,6 +14,7 @@ export const apiClient = axios.create({
 apiClient.interceptors.request.use((config) => {
   const token = authStore.getAccessToken();
   if (token) config.headers.Authorization = `Bearer ${token}`;
+  if (currentOrgSlug) config.headers['x-organization-slug'] = currentOrgSlug;
   return config;
 });
 
@@ -31,7 +35,7 @@ apiClient.interceptors.response.use(
       const refreshToken = authStore.getRefreshToken();
       if (!refreshToken) {
         authStore.clearAuth();
-        window.location.href = '/login';
+        window.location.href = `/${currentOrgSlug}/login`;
         return Promise.reject(error);
       }
 
@@ -57,7 +61,7 @@ apiClient.interceptors.response.use(
       } catch (err) {
         processQueue(err, null);
         authStore.clearAuth();
-        window.location.href = '/login';
+        window.location.href = `/${currentOrgSlug}/login`;
         return Promise.reject(err);
       } finally {
         isRefreshing = false;

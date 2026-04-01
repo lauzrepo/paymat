@@ -1,5 +1,5 @@
 /**
- * Reset script for kings-martial-arts:
+ * Reset script for lauz:
  *   1. Replaces all programs with taekwondo equivalents (in-place update
  *      so existing enrollments keep their foreign keys intact)
  *   2. Clears all payments and invoices for the org
@@ -14,7 +14,7 @@ import { PrismaClient } from '@prisma/client';
 import { Decimal } from '@prisma/client/runtime/library';
 
 const prisma = new PrismaClient();
-const ORG_SLUG = 'kings-martial-arts';
+const ORG_SLUG = 'lauz';
 
 // Taekwondo program definitions — assigned to existing programs in order.
 // If the org has fewer programs than this list, extra entries are created.

@@ -6,6 +6,7 @@ import { Elements, PaymentElement, useStripe, useElements } from '@stripe/react-
 import { useMyInvoice, useInitializeInvoicePayment } from '../../hooks/useClient';
 import { useQueryClient } from '@tanstack/react-query';
 import type { PaymentInitData } from '../../api/client';
+import { useOrgSlug } from '../../context/OrgSlugContext';
 
 const STATUS_COLORS: Record<string, string> = {
   paid: 'bg-green-100 text-green-700',
@@ -58,6 +59,7 @@ function PaymentForm({ onSuccess, onError }: { onSuccess: () => void; onError: (
 
 export function InvoiceDetailPage() {
   const { id } = useParams<{ id: string }>();
+  const orgSlug = useOrgSlug();
   const [searchParams] = useSearchParams();
   const qc = useQueryClient();
   const { data: invoice, isLoading } = useMyInvoice(id!);
@@ -104,7 +106,7 @@ export function InvoiceDetailPage() {
   return (
     <div className="max-w-lg space-y-6">
       <div className="flex items-center gap-2">
-        <Link to="/invoices" className="text-sm text-gray-500 hover:text-gray-700 flex items-center gap-1">
+        <Link to={`/${orgSlug}/invoices`} className="text-sm text-gray-500 hover:text-gray-700 flex items-center gap-1">
           <ChevronLeft className="h-4 w-4" /> Back
         </Link>
       </div>

@@ -2,11 +2,13 @@ import { Link } from 'react-router-dom';
 import { BookOpen, FileText, CreditCard, MessageSquare } from 'lucide-react';
 import { useMe } from '../../hooks/useAuth';
 import { useMyEnrollments, useMyInvoices } from '../../hooks/useClient';
+import { useOrgSlug } from '../../context/OrgSlugContext';
 
 export function HomePage() {
   const { data: user } = useMe();
   const { data: enrollments } = useMyEnrollments();
   const { data: invoicesData } = useMyInvoices();
+  const orgSlug = useOrgSlug();
 
   const firstName = user?.firstName ?? 'there';
   const activeEnrollments = enrollments?.filter((e) => e.status === 'active').length ?? 0;
@@ -22,7 +24,7 @@ export function HomePage() {
       </div>
 
       <div className="grid grid-cols-2 gap-4">
-        <Link to="/enrollments" className="bg-white rounded-xl border border-gray-200 p-4 hover:border-indigo-200 hover:shadow-sm transition-all">
+        <Link to={`/${orgSlug}/enrollments`} className="bg-white rounded-xl border border-gray-200 p-4 hover:border-indigo-200 hover:shadow-sm transition-all">
           <div className="flex items-center gap-3 mb-2">
             <div className="h-8 w-8 rounded-lg bg-indigo-50 flex items-center justify-center">
               <BookOpen className="h-4 w-4 text-indigo-600" />
@@ -32,7 +34,7 @@ export function HomePage() {
           <p className="text-2xl font-bold text-gray-900">{activeEnrollments}</p>
         </Link>
 
-        <Link to="/invoices" className="bg-white rounded-xl border border-gray-200 p-4 hover:border-indigo-200 hover:shadow-sm transition-all">
+        <Link to={`/${orgSlug}/invoices`} className="bg-white rounded-xl border border-gray-200 p-4 hover:border-indigo-200 hover:shadow-sm transition-all">
           <div className="flex items-center gap-3 mb-2">
             <div className={`h-8 w-8 rounded-lg flex items-center justify-center ${overdueInvoices.length ? 'bg-red-50' : 'bg-gray-50'}`}>
               <FileText className={`h-4 w-4 ${overdueInvoices.length ? 'text-red-600' : 'text-gray-500'}`} />
@@ -54,7 +56,7 @@ export function HomePage() {
             You have {overdueInvoices.length} overdue invoice{overdueInvoices.length > 1 ? 's' : ''}.
           </p>
           <Link
-            to="/invoices"
+            to={`/${orgSlug}/invoices`}
             className="text-sm font-medium text-red-700 underline hover:text-red-900"
           >
             View and pay now →
@@ -63,7 +65,7 @@ export function HomePage() {
       )}
 
       <div className="grid grid-cols-2 gap-4">
-        <Link to="/invoices" className="bg-white rounded-xl border border-gray-200 p-4 flex items-start gap-3 hover:border-indigo-200 hover:shadow-sm transition-all">
+        <Link to={`/${orgSlug}/invoices`} className="bg-white rounded-xl border border-gray-200 p-4 flex items-start gap-3 hover:border-indigo-200 hover:shadow-sm transition-all">
           <CreditCard className="h-5 w-5 text-indigo-600 flex-shrink-0 mt-0.5" />
           <div>
             <p className="text-sm font-medium text-gray-900">Pay an invoice</p>
@@ -71,7 +73,7 @@ export function HomePage() {
           </div>
         </Link>
 
-        <Link to="/feedback/new" className="bg-white rounded-xl border border-gray-200 p-4 flex items-start gap-3 hover:border-indigo-200 hover:shadow-sm transition-all">
+        <Link to={`/${orgSlug}/feedback/new`} className="bg-white rounded-xl border border-gray-200 p-4 flex items-start gap-3 hover:border-indigo-200 hover:shadow-sm transition-all">
           <MessageSquare className="h-5 w-5 text-indigo-600 flex-shrink-0 mt-0.5" />
           <div>
             <p className="text-sm font-medium text-gray-900">Get support</p>

@@ -2,24 +2,28 @@ import { Outlet, NavLink, useNavigate } from 'react-router-dom';
 import { LayoutDashboard, BookOpen, FileText, Receipt, MessageSquare, User, LogOut } from 'lucide-react';
 import { cn } from '../../lib/utils';
 import { useMe, useLogout } from '../../hooks/useAuth';
-
-const nav = [
-  { to: '/', label: 'Home', icon: LayoutDashboard, end: true },
-  { to: '/enrollments', label: 'My Programs', icon: BookOpen },
-  { to: '/invoices', label: 'Invoices', icon: FileText },
-  { to: '/payments', label: 'Payment History', icon: Receipt },
-  { to: '/feedback', label: 'Support', icon: MessageSquare },
-  { to: '/account', label: 'My Account', icon: User },
-];
+import { useOrgSlug } from '../../context/OrgSlugContext';
 
 export function AppLayout() {
   const { data: user } = useMe();
   const logout = useLogout();
   const navigate = useNavigate();
+  const orgSlug = useOrgSlug();
+
+  const base = `/${orgSlug}`;
+
+  const nav = [
+    { to: base,                   label: 'Home',            icon: LayoutDashboard, end: true },
+    { to: `${base}/enrollments`,  label: 'My Programs',     icon: BookOpen },
+    { to: `${base}/invoices`,     label: 'Invoices',        icon: FileText },
+    { to: `${base}/payments`,     label: 'Payment History', icon: Receipt },
+    { to: `${base}/feedback`,     label: 'Support',         icon: MessageSquare },
+    { to: `${base}/account`,      label: 'My Account',      icon: User },
+  ];
 
   const handleLogout = () => {
     logout();
-    navigate('/login');
+    navigate(`${base}/login`);
   };
 
   return (

@@ -1,5 +1,5 @@
 /**
- * Prepares kings-martial-arts for a live email test:
+ * Prepares lauz for a live email test:
  *   1. Finds one contact with no card on file (so billing generates an invoice
  *      email without auto-charging) and sets their email to the test address.
  *   2. Clears all payments + invoices for the org.
@@ -20,7 +20,7 @@ function dotenv() {
 }
 
 const prisma = new PrismaClient();
-const ORG_SLUG = 'kings-martial-arts';
+const ORG_SLUG = 'lauz';
 const TEST_EMAIL = 'm2rcu7.528@gmail.com';
 
 async function main() {

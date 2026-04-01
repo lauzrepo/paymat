@@ -27,6 +27,6 @@ export function useLogout() {
   return () => {
     authStore.clearAuth();
     queryClient.clear();
-    window.location.href = '/login';
+    // Caller is responsible for navigating to /:orgSlug/login
   };
 }

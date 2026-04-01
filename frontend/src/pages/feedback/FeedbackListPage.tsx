@@ -2,6 +2,7 @@ import { Link } from 'react-router-dom';
 import { Plus, MessageSquare } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
 import { getMyFeedback } from '../../api/feedback';
+import { useOrgSlug } from '../../context/OrgSlugContext';
 import { Button } from '../../components/ui/Button';
 import { Spinner } from '../../components/ui/Spinner';
 import { formatDate } from '../../lib/utils';
@@ -18,12 +19,13 @@ export function FeedbackListPage() {
     queryKey: ['my-feedback'],
     queryFn: getMyFeedback,
   });
+  const orgSlug = useOrgSlug();
 
   return (
     <div className="space-y-6 max-w-2xl">
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-bold text-gray-900">Feedback & Issues</h1>
-        <Link to="/feedback/new">
+        <Link to={`/${orgSlug}/feedback/new`}>
           <Button size="sm">
             <Plus className="h-4 w-4 mr-1" /> New submission
           </Button>
@@ -37,7 +39,7 @@ export function FeedbackListPage() {
           <div className="flex flex-col items-center py-12 text-gray-400 gap-2">
             <MessageSquare className="h-8 w-8" />
             <p className="text-sm">No submissions yet.</p>
-            <Link to="/feedback/new" className="text-sm text-indigo-600 hover:text-indigo-700 font-medium">
+            <Link to={`/${orgSlug}/feedback/new`} className="text-sm text-indigo-600 hover:text-indigo-700 font-medium">
               Submit your first one →
             </Link>
           </div>

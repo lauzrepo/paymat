@@ -46,6 +46,7 @@ type EnrollmentWithRelations = Awaited<
       billingEmail: string | null;
     } | null;
     organization: {
+      slug: string;
       name: string;
       stripeConnectAccountId: string | null;
       stripeConnectOnboardingComplete: boolean;
@@ -107,6 +108,7 @@ class BillingService {
             },
             organization: {
               select: {
+                slug: true,
                 name: true,
                 stripeConnectAccountId: true,
                 stripeConnectOnboardingComplete: true,
@@ -176,6 +178,7 @@ class BillingService {
         const family = groupEnrollments[0].contact.family!;
         const orgId = groupEnrollments[0].contact.organizationId;
         const orgName = groupEnrollments[0].contact.organization?.name ?? 'your organization';
+        const orgSlug = groupEnrollments[0].contact.organization?.slug ?? '';
 
         // Use the earliest due date across the group as the invoice due date
         const dueDate = groupEnrollments.reduce<Date>((earliest, e) => {
@@ -309,7 +312,7 @@ class BillingService {
               invoiceNumber,
               amount: totalAmount,
               currency: 'USD',
-              portalUrl: `${PORTAL_URL}/invoices/${invoice.id}`,
+              portalUrl: `${PORTAL_URL}/${orgSlug}/invoices/${invoice.id}`,
             }).catch((err) => logger.error('Failed to send family payment failed email', { err }));
           }
         }
@@ -327,6 +330,7 @@ class BillingService {
       try {
         const orgId = enrollment.contact.organizationId;
         const orgName = enrollment.contact.organization?.name ?? 'your organization';
+        const orgSlug = enrollment.contact.organization?.slug ?? '';
         const dueDate = enrollment.nextBillingDate ?? today;
         const amount = Number(enrollment.program.price);
 
@@ -368,7 +372,7 @@ class BillingService {
             currency: 'USD',
             dueDate,
             programName: enrollment.program.name,
-            portalUrl: `${PORTAL_URL}/invoices/${invoice.id}`,
+            portalUrl: `${PORTAL_URL}/${orgSlug}/invoices/${invoice.id}`,
           }).catch((err) => logger.error('Failed to send invoice email', { err }));
         }
 
@@ -439,7 +443,7 @@ class BillingService {
                 invoiceNumber,
                 amount,
                 currency: 'USD',
-                portalUrl: `${PORTAL_URL}/invoices/${invoice.id}`,
+                portalUrl: `${PORTAL_URL}/${orgSlug}/invoices/${invoice.id}`,
               }).catch((err) => logger.error('Failed to send payment failed email', { err }));
             }
           }
