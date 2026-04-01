@@ -153,15 +153,15 @@ export async function sendInviteEmail(invite: {
   await resend.emails.send({
     from: FROM,
     to: invite.recipientEmail,
-    subject: `You're invited to set up ${invite.orgName} on Paymat`,
+    subject: `You're invited to set up ${invite.orgName} on Cliqpaymat`,
     html: `
       <div style="font-family:sans-serif;max-width:600px;margin:0 auto">
         <div style="background:#7c3aed;padding:24px;border-radius:8px 8px 0 0;text-align:center">
-          <h1 style="color:#fff;margin:0;font-size:24px">Welcome to Paymat</h1>
+          <h1 style="color:#fff;margin:0;font-size:24px">Welcome to Cliqpaymat</h1>
         </div>
         <div style="background:#fff;border:1px solid #e5e7eb;border-top:none;border-radius:0 0 8px 8px;padding:32px">
           <p style="font-size:16px;color:#111827">Hi ${invite.recipientName},</p>
-          <p style="color:#6b7280">You've been invited to set up <strong>${invite.orgName}</strong> on Paymat — the all-in-one platform for managing memberships, billing, and payments.</p>
+          <p style="color:#6b7280">You've been invited to set up <strong>${invite.orgName}</strong> on Cliqpaymat — the all-in-one platform for managing memberships, billing, and payments — built for your business.</p>
           <p style="color:#6b7280">Click the button below to get started. You'll be guided through creating your account and configuring your organization. This link expires in 7 days.</p>
           <div style="text-align:center;margin:32px 0">
             <a href="${onboardingUrl}" style="background:#7c3aed;color:#fff;padding:14px 28px;border-radius:8px;text-decoration:none;font-size:16px;font-weight:600">Set Up My Account</a>
