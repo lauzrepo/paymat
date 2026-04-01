@@ -79,7 +79,7 @@ export const config = {
   },
   frontend: {
     url: env.FRONTEND_URL,
-    allowedOrigins: env.ALLOWED_ORIGINS.split(','),
+    allowedOrigins: env.ALLOWED_ORIGINS.split(',').map((o) => o.trim()),
   },
   security: {
     bcryptRounds: parseInt(env.BCRYPT_ROUNDS, 10),
