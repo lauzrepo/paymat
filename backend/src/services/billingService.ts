@@ -49,7 +49,6 @@ type EnrollmentWithRelations = Awaited<
       slug: string;
       name: string;
       stripeConnectAccountId: string | null;
-      stripeConnectOnboardingComplete: boolean;
     } | null;
   };
   program: {
@@ -111,7 +110,6 @@ class BillingService {
                 slug: true,
                 name: true,
                 stripeConnectAccountId: true,
-                stripeConnectOnboardingComplete: true,
               },
             },
           },
@@ -231,10 +229,9 @@ class BillingService {
 
         // Attempt auto-charge on the family card
         const connectAccountId = groupEnrollments[0].contact.organization?.stripeConnectAccountId;
-        const onboardingComplete = groupEnrollments[0].contact.organization?.stripeConnectOnboardingComplete ?? false;
 
-        if (!connectAccountId || !onboardingComplete) {
-          logger.info(`Billing: skipping auto-charge for family invoice ${invoiceNumber} — Connect not ready`);
+        if (!connectAccountId) {
+          logger.info(`Billing: skipping auto-charge for family invoice ${invoiceNumber} — no Connect account`);
         } else {
         try {
           const stripeTx = await stripeConnectService.chargeCustomer({
@@ -385,11 +382,10 @@ class BillingService {
 
         // Attempt auto-charge on the contact's card
         const connectAccountId = enrollment.contact.organization?.stripeConnectAccountId;
-        const onboardingComplete = enrollment.contact.organization?.stripeConnectOnboardingComplete ?? false;
         const stripeCustomerId = enrollment.contact.stripeCustomerId;
         const stripePaymentMethodId = enrollment.contact.stripeDefaultPaymentMethodId;
 
-        if (connectAccountId && onboardingComplete && stripeCustomerId && stripePaymentMethodId) {
+        if (connectAccountId && stripeCustomerId && stripePaymentMethodId) {
           try {
             const stripeTx = await stripeConnectService.chargeCustomer({
               connectAccountId,
