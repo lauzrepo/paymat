@@ -9,6 +9,8 @@ import { AppLayout } from './components/layout/AppLayout';
 import { ProtectedRoute } from './components/shared/ProtectedRoute';
 
 import { LoginPage } from './pages/auth/LoginPage';
+import { ForgotPasswordPage } from './pages/auth/ForgotPasswordPage';
+import { ResetPasswordPage } from './pages/auth/ResetPasswordPage';
 import { HomePage } from './pages/home/HomePage';
 import { AccountPage } from './pages/account/AccountPage';
 import { EnrollmentsPage } from './pages/enrollments/EnrollmentsPage';
@@ -29,6 +31,8 @@ function OrgRoutes() {
     <OrgSlugContext.Provider value={orgSlug}>
       <Routes>
         <Route path="login" element={<LoginPage />} />
+        <Route path="forgot-password" element={<ForgotPasswordPage />} />
+        <Route path="reset-password" element={<ResetPasswordPage />} />
 
         <Route
           element={

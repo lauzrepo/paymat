@@ -7,6 +7,7 @@ import { asyncHandler, AppError } from '../middleware/errorHandler';
 import { config } from '../config/environment';
 import logger from '../utils/logger';
 import prisma from '../config/database';
+import { sendPasswordReset } from '../services/emailService';
 
 /**
  * Register a new user
@@ -193,13 +194,22 @@ export const forgotPassword = asyncHandler(async (req: Request, res: Response) =
     data: { passwordResetToken: token, passwordResetExpiry: expiry },
   });
 
-  const resetUrl = `http://localhost:5173/reset-password?token=${token}`;
-  logger.info(`Password reset link for ${email}: ${resetUrl}`);
+  const origin = req.headers.origin ?? config.email.appUrl;
+  const orgSlug = req.organization!.slug;
+  // Portal resets include the org slug in the path; admin resets do not
+  const isPortal = origin.includes('portal.');
+  const resetUrl = isPortal
+    ? `${origin}/${orgSlug}/reset-password?token=${token}`
+    : `${origin}/reset-password?token=${token}`;
+
+  sendPasswordReset(user.email, {
+    recipientName: `${user.firstName ?? ''} ${user.lastName ?? ''}`.trim() || user.email,
+    resetUrl,
+  }).catch((err) => logger.error('Failed to send password reset email', { err }));
 
   res.status(200).json({
     status: 'success',
     message: 'If an account with that email exists, a password reset link has been sent',
-    ...(config.app.isDevelopment && { resetUrl }),
   });
 });
 

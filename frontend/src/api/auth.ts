@@ -21,3 +21,13 @@ export async function getMe() {
 export async function logout() {
   // JWT is stateless — just clear local tokens
 }
+
+export async function forgotPassword(email: string) {
+  const { data } = await apiClient.post('/auth/forgot-password', { email });
+  return data as { status: string; message: string };
+}
+
+export async function resetPassword(token: string, newPassword: string) {
+  const { data } = await apiClient.post('/auth/reset-password', { token, newPassword });
+  return data as { status: string };
+}

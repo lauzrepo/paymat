@@ -1,6 +1,7 @@
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import { useLogin } from '../../hooks/useAuth';
+import { useOrgSlug } from '../../context/OrgSlugContext';
 import { Button } from '../../components/ui/Button';
 import { Input } from '../../components/ui/Input';
 import { Alert } from '../../components/ui/Alert';
@@ -10,12 +11,13 @@ export function LoginPage() {
   const [password, setPassword] = useState('');
   const login = useLogin();
   const navigate = useNavigate();
+  const orgSlug = useOrgSlug();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
       await login.mutateAsync({ email, password });
-      navigate('/');
+      navigate(`/${orgSlug}`);
     } catch {
       // error shown below
     }
@@ -55,6 +57,11 @@ export function LoginPage() {
               Sign in
             </Button>
           </form>
+          <p className="mt-4 text-center text-sm text-gray-500">
+            <Link to={`/${orgSlug}/forgot-password`} className="text-indigo-600 hover:text-indigo-500 font-medium">
+              Forgot your password?
+            </Link>
+          </p>
         </div>
       </div>
     </div>
