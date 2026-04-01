@@ -1,4 +1,4 @@
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useQuery, useMutation } from '@tanstack/react-query';
 import {
   getMe,
   getMyEnrollments,
@@ -6,7 +6,6 @@ import {
   getMyInvoice,
   initializeInvoicePayment,
   getMyPayments,
-  submitPayment,
 } from '../api/client';
 
 export const useClientMe = () =>
@@ -27,14 +26,3 @@ export const useInitializeInvoicePayment = () =>
 export const useMyPayments = (page = 1) =>
   useQuery({ queryKey: ['client', 'payments', page], queryFn: () => getMyPayments(page) });
 
-export const useSubmitPayment = () => {
-  const qc = useQueryClient();
-  return useMutation({
-    mutationFn: ({ invoiceId, cardToken, amount }: { invoiceId: string; cardToken: string; amount: number }) =>
-      submitPayment(invoiceId, cardToken, amount),
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ['client', 'invoices'] });
-      qc.invalidateQueries({ queryKey: ['client', 'payments'] });
-    },
-  });
-};

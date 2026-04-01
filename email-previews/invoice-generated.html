@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Preview — Invoice Generated Email</title>
+  <style>
+    body { background: #f3f4f6; margin: 0; padding: 40px 20px; font-family: sans-serif; }
+    .meta { max-width: 600px; margin: 0 auto 16px; font-size: 13px; color: #6b7280; }
+    .meta strong { color: #111827; }
+    .meta span { display: inline-block; background: #e0e7ff; color: #4338ca; border-radius: 4px; padding: 2px 8px; font-size: 11px; font-weight: 600; margin-left: 8px; }
+  </style>
+</head>
+<body>
+
+<div class="meta">
+  <strong>From:</strong> Cliq Paymat &lt;noreply@cliqpaymat.app&gt;
+  &nbsp;·&nbsp;
+  <strong>To:</strong> alex.teststudent@example.com
+  &nbsp;·&nbsp;
+  <strong>Subject:</strong> Invoice INV-00001 from Kings Martial Arts
+  <span>PREVIEW</span>
+</div>
+
+<!-- ─── Email body (matches emailService.ts exactly) ─── -->
+<div style="font-family:sans-serif;max-width:600px;margin:0 auto">
+  <div style="background:#4f46e5;padding:24px;border-radius:8px 8px 0 0;text-align:center">
+    <h1 style="color:#fff;margin:0;font-size:22px">New Invoice</h1>
+  </div>
+  <div style="background:#fff;border:1px solid #e5e7eb;border-top:none;border-radius:0 0 8px 8px;padding:32px">
+    <p style="font-size:16px;color:#111827">Hi Alex,</p>
+    <p style="color:#6b7280">A new invoice has been generated for your Kings Martial Arts membership.</p>
+    <div style="background:#f9fafb;border-radius:8px;padding:20px;margin:24px 0">
+      <table style="width:100%;border-collapse:collapse">
+        <tr><td style="padding:4px 0;color:#6b7280;width:140px">Invoice</td><td style="font-weight:600;color:#111827">INV-00001</td></tr>
+        <tr><td style="padding:4px 0;color:#6b7280">Program</td><td style="color:#111827">White Belt — Beginner TKD</td></tr>
+        <tr><td style="padding:4px 0;color:#6b7280">Amount due</td><td style="font-weight:700;color:#111827;font-size:18px">$90.00 USD</td></tr>
+        <tr><td style="padding:4px 0;color:#6b7280">Due date</td><td style="color:#111827">5/1/2026</td></tr>
+      </table>
+    </div>
+    <div style="text-align:center;margin:24px 0">
+      <a href="#" style="background:#4f46e5;color:#fff;padding:12px 28px;border-radius:8px;text-decoration:none;font-size:15px;font-weight:600">Pay Now</a>
+    </div>
+    <p style="color:#9ca3af;font-size:12px">Log in to your member portal to view the invoice and pay online.</p>
+  </div>
+</div>
+
+<!-- ─── Divider ─── -->
+<div style="max-width:600px;margin:48px auto 16px;border-top:2px dashed #d1d5db;padding-top:24px">
+  <div class="meta" style="margin:0 0 16px">Other email templates in this system:</div>
+</div>
+
+<!-- ─── Payment Received ─── -->
+<div class="meta" style="max-width:600px;margin:0 auto 16px">
+  <strong>Subject:</strong> Payment received — INV-00001
+  <span>PREVIEW</span>
+</div>
+<div style="font-family:sans-serif;max-width:600px;margin:0 auto">
+  <div style="background:#059669;padding:24px;border-radius:8px 8px 0 0;text-align:center">
+    <h1 style="color:#fff;margin:0;font-size:22px">Payment Confirmed</h1>
+  </div>
+  <div style="background:#fff;border:1px solid #e5e7eb;border-top:none;border-radius:0 0 8px 8px;padding:32px">
+    <p style="font-size:16px;color:#111827">Hi Alex,</p>
+    <p style="color:#6b7280">Your payment for <strong>Kings Martial Arts</strong> has been processed successfully.</p>
+    <div style="background:#f0fdf4;border-radius:8px;padding:20px;margin:24px 0">
+      <table style="width:100%;border-collapse:collapse">
+        <tr><td style="padding:4px 0;color:#6b7280;width:140px">Invoice</td><td style="font-weight:600;color:#111827">INV-00001</td></tr>
+        <tr><td style="padding:4px 0;color:#6b7280">Amount paid</td><td style="font-weight:700;color:#059669;font-size:18px">$90.00 USD</td></tr>
+      </table>
+    </div>
+    <p style="color:#9ca3af;font-size:12px">Thank you for your payment. Keep this email as your receipt.</p>
+  </div>
+</div>
+
+<!-- ─── Divider ─── -->
+<div style="max-width:600px;margin:48px auto 0;border-top:2px dashed #d1d5db;padding-top:24px"></div>
+
+<!-- ─── Payment Failed ─── -->
+<div class="meta" style="max-width:600px;margin:16px auto 16px">
+  <strong>Subject:</strong> Payment failed — action required for INV-00001
+  <span>PREVIEW</span>
+</div>
+<div style="font-family:sans-serif;max-width:600px;margin:0 auto">
+  <div style="background:#dc2626;padding:24px;border-radius:8px 8px 0 0;text-align:center">
+    <h1 style="color:#fff;margin:0;font-size:22px">Payment Failed</h1>
+  </div>
+  <div style="background:#fff;border:1px solid #e5e7eb;border-top:none;border-radius:0 0 8px 8px;padding:32px">
+    <p style="font-size:16px;color:#111827">Hi Alex,</p>
+    <p style="color:#6b7280">We were unable to process your payment of <strong>$90.00 USD</strong> for <strong>Kings Martial Arts</strong>.</p>
+    <div style="background:#fef2f2;border-radius:8px;padding:20px;margin:24px 0">
+      <table style="width:100%;border-collapse:collapse">
+        <tr><td style="padding:4px 0;color:#6b7280;width:140px">Invoice</td><td style="font-weight:600;color:#111827">INV-00001</td></tr>
+        <tr><td style="padding:4px 0;color:#6b7280">Amount due</td><td style="font-weight:700;color:#dc2626;font-size:18px">$90.00 USD</td></tr>
+      </table>
+    </div>
+    <p style="color:#6b7280">Please log in to your member portal to update your payment method or pay manually.</p>
+    <div style="text-align:center;margin:24px 0">
+      <a href="#" style="background:#dc2626;color:#fff;padding:12px 28px;border-radius:8px;text-decoration:none;font-size:15px;font-weight:600">Pay Now</a>
+    </div>
+  </div>
+</div>
+
+<div style="max-width:600px;margin:40px auto 0;font-size:11px;color:#9ca3af;text-align:center;padding-bottom:40px">
+  This is a local preview only — no emails were sent.
+</div>
+
+</body>
+</html>

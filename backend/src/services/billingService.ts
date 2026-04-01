@@ -1,6 +1,6 @@
 import { Decimal } from '@prisma/client/runtime/library';
 import prisma from '../config/database';
-import helcimService from './helcimService';
+import stripeConnectService from './stripeConnectService';
 import { sendInvoiceGenerated, sendPaymentReceived, sendPaymentFailed } from './emailService';
 import { config } from '../config/environment';
 import logger from '../utils/logger';
@@ -35,10 +35,21 @@ type EnrollmentWithRelations = Awaited<
     lastName: string;
     email: string | null;
     organizationId: string;
-    helcimToken: string | null;
+    stripeCustomerId: string | null;
+    stripeDefaultPaymentMethodId: string | null;
     familyId: string | null;
-    family: { id: string; name: string; helcimToken: string | null; billingEmail: string | null } | null;
-    organization: { name: string } | null;
+    family: {
+      id: string;
+      name: string;
+      stripeCustomerId: string | null;
+      stripeDefaultPaymentMethodId: string | null;
+      billingEmail: string | null;
+    } | null;
+    organization: {
+      name: string;
+      stripeConnectAccountId: string | null;
+      stripeConnectOnboardingComplete: boolean;
+    } | null;
   };
   program: {
     id: string;
@@ -85,8 +96,22 @@ class BillingService {
       include: {
         contact: {
           include: {
-            family: true,
-            organization: true,
+            family: {
+              select: {
+                id: true,
+                name: true,
+                billingEmail: true,
+                stripeCustomerId: true,
+                stripeDefaultPaymentMethodId: true,
+              },
+            },
+            organization: {
+              select: {
+                name: true,
+                stripeConnectAccountId: true,
+                stripeConnectOnboardingComplete: true,
+              },
+            },
           },
         },
         program: true,
@@ -118,7 +143,7 @@ class BillingService {
     //
     // An enrollment is family-billed when:
     //   - the contact belongs to a family, AND
-    //   - that family has a card on file (helcimToken)
+    //   - that family has a Stripe customer + saved payment method
     //
     // Everything else is billed individually to the contact.
     //
@@ -127,7 +152,7 @@ class BillingService {
 
     for (const enrollment of eligible) {
       const family = enrollment.contact.family;
-      if (family && family.helcimToken) {
+      if (family && family.stripeCustomerId && family.stripeDefaultPaymentMethodId) {
         const group = familyGroups.get(family.id) ?? [];
         group.push(enrollment);
         familyGroups.set(family.id, group);
@@ -202,24 +227,34 @@ class BillingService {
         }
 
         // Attempt auto-charge on the family card
+        const connectAccountId = groupEnrollments[0].contact.organization?.stripeConnectAccountId;
+        const onboardingComplete = groupEnrollments[0].contact.organization?.stripeConnectOnboardingComplete ?? false;
+
+        if (!connectAccountId || !onboardingComplete) {
+          logger.info(`Billing: skipping auto-charge for family invoice ${invoiceNumber} — Connect not ready`);
+        } else {
         try {
-          const helcimTx = await helcimService.processPayment({
-            amount: totalAmount,
+          const stripeTx = await stripeConnectService.chargeCustomer({
+            connectAccountId,
+            customerId: family.stripeCustomerId!,
+            paymentMethodId: family.stripeDefaultPaymentMethodId!,
+            amountCents: Math.round(totalAmount * 100),
             currency: 'USD',
-            cardToken: family.helcimToken!,
-            customerId: family.helcimToken!,
+            description: `Invoice ${invoiceNumber} — ${family.name}`,
+            idempotencyKey: `billing-family-${invoice.id}`,
+            metadata: { invoiceId: invoice.id, invoiceNumber },
           });
 
           await prisma.payment.create({
             data: {
               organizationId: orgId,
               invoiceId: invoice.id,
-              helcimTransactionId: helcimTx.transactionId,
+              stripePaymentIntentId: stripeTx.paymentIntentId,
+              stripeChargeId: stripeTx.chargeId || null,
               amount: new Decimal(totalAmount),
               currency: 'USD',
-              status: helcimTx.status || 'succeeded',
+              status: stripeTx.status,
               paymentMethodType: 'card',
-              cardToken: family.helcimToken!,
               notes: 'Auto-charged via recurring billing (family card)',
             },
           });
@@ -278,6 +313,7 @@ class BillingService {
             }).catch((err) => logger.error('Failed to send family payment failed email', { err }));
           }
         }
+        } // end else (Connect ready)
       } catch (err) {
         errors++;
         const msg = `Family group ${familyId}: ${(err as Error).message}`;
@@ -344,26 +380,34 @@ class BillingService {
         });
 
         // Attempt auto-charge on the contact's card
-        const cardToken = enrollment.contact.helcimToken;
-        if (cardToken) {
+        const connectAccountId = enrollment.contact.organization?.stripeConnectAccountId;
+        const onboardingComplete = enrollment.contact.organization?.stripeConnectOnboardingComplete ?? false;
+        const stripeCustomerId = enrollment.contact.stripeCustomerId;
+        const stripePaymentMethodId = enrollment.contact.stripeDefaultPaymentMethodId;
+
+        if (connectAccountId && onboardingComplete && stripeCustomerId && stripePaymentMethodId) {
           try {
-            const helcimTx = await helcimService.processPayment({
-              amount,
+            const stripeTx = await stripeConnectService.chargeCustomer({
+              connectAccountId,
+              customerId: stripeCustomerId,
+              paymentMethodId: stripePaymentMethodId,
+              amountCents: Math.round(amount * 100),
               currency: 'USD',
-              cardToken,
-              customerId: cardToken,
+              description: `Invoice ${invoiceNumber} — ${enrollment.program.name}`,
+              idempotencyKey: `billing-${invoice.id}`,
+              metadata: { invoiceId: invoice.id, invoiceNumber },
             });
 
             await prisma.payment.create({
               data: {
                 organizationId: orgId,
                 invoiceId: invoice.id,
-                helcimTransactionId: helcimTx.transactionId,
+                stripePaymentIntentId: stripeTx.paymentIntentId,
+                stripeChargeId: stripeTx.chargeId || null,
                 amount: new Decimal(amount),
                 currency: 'USD',
-                status: helcimTx.status || 'succeeded',
+                status: stripeTx.status,
                 paymentMethodType: 'card',
-                cardToken,
                 notes: 'Auto-charged via recurring billing',
               },
             });

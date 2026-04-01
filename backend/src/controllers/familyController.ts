@@ -51,12 +51,13 @@ export const initializeFamilyCardCheckout = asyncHandler(async (req: Request, re
 
 export const saveFamilyCardToken = asyncHandler(async (req: Request, res: Response) => {
   if (!req.user) throw new AppError(401, 'Not authenticated');
-  const { cardToken } = req.body;
-  if (!cardToken) throw new AppError(400, 'cardToken is required');
+  const { stripeCustomerId, stripeDefaultPaymentMethodId } = req.body;
+  if (!stripeCustomerId) throw new AppError(400, 'stripeCustomerId is required');
+  if (!stripeDefaultPaymentMethodId) throw new AppError(400, 'stripeDefaultPaymentMethodId is required');
   await familyService.getFamilyById(req.params.id, req.organization!.id);
   const family = await prisma.family.update({
     where: { id: req.params.id },
-    data: { helcimToken: cardToken },
+    data: { stripeCustomerId, stripeDefaultPaymentMethodId },
   });
   res.status(200).json({ status: 'success', data: { family } });
 });

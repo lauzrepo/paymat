@@ -1,7 +1,8 @@
 import { Request, Response } from 'express';
 import prisma from '../config/database';
 import { asyncHandler, AppError } from '../middleware/errorHandler';
-import helcimService from '../services/helcimService';
+import stripeConnectService from '../services/stripeConnectService';
+import { config } from '../config/environment';
 
 // GET /api/client/me
 export const getMe = asyncHandler(async (req: Request, res: Response) => {
@@ -145,9 +146,52 @@ export const initializeInvoicePayment = asyncHandler(async (req: Request, res: R
   const amountDue = Number(invoice.amountDue) - Number(invoice.amountPaid);
   if (amountDue <= 0) throw new AppError(400, 'Invoice has no outstanding balance');
 
-  const checkout = await helcimService.initializeCheckout(amountDue, invoice.currency);
+  const org = await prisma.organization.findUnique({
+    where: { id: req.organization!.id },
+    select: { stripeConnectAccountId: true, stripeConnectOnboardingComplete: true },
+  });
+  if (!org?.stripeConnectAccountId || !org.stripeConnectOnboardingComplete) {
+    throw new AppError(503, 'Payment processing is not yet configured for this organization');
+  }
 
-  res.json({ status: 'success', data: checkout });
+  // Get or create a Stripe customer for this contact on the connected account
+  const contact = await prisma.contact.findUnique({
+    where: { id: user.contactId! },
+    select: { stripeCustomerId: true, email: true, firstName: true, lastName: true },
+  });
+
+  let stripeCustomerId = contact?.stripeCustomerId ?? null;
+  if (!stripeCustomerId && contact?.email) {
+    stripeCustomerId = await stripeConnectService.createCustomer(
+      org.stripeConnectAccountId,
+      contact.email,
+      `${contact.firstName ?? ''} ${contact.lastName ?? ''}`.trim()
+    );
+    await prisma.contact.update({
+      where: { id: user.contactId! },
+      data: { stripeCustomerId },
+    });
+  }
+
+  const { clientSecret, paymentIntentId } = await stripeConnectService.createPaymentIntent(
+    org.stripeConnectAccountId,
+    Math.round(amountDue * 100),
+    invoice.currency,
+    stripeCustomerId,
+    { invoiceId: invoice.id, invoiceNumber: invoice.invoiceNumber }
+  );
+
+  res.json({
+    status: 'success',
+    data: {
+      clientSecret,
+      paymentIntentId,
+      connectAccountId: org.stripeConnectAccountId,
+      publishableKey: config.stripe.publishableKey,
+      amountCents: Math.round(amountDue * 100),
+      currency: invoice.currency,
+    },
+  });
 });
 
 // GET /api/client/payments

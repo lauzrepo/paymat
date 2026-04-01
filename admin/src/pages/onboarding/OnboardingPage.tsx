@@ -5,7 +5,7 @@ import { authStore } from '../../store/authStore';
 
 const API_BASE = import.meta.env.VITE_API_URL ?? '';
 
-type Step = 'loading' | 'invalid' | 'setup' | 'done';
+type Step = 'loading' | 'invalid' | 'setup' | 'connect' | 'done';
 
 interface InviteInfo {
   email: string;
@@ -25,8 +25,28 @@ export function OnboardingPage() {
   const [form, setForm] = useState({ slug: '', password: '', confirmPassword: '' });
   const [submitting, setSubmitting] = useState(false);
   const [formError, setFormError] = useState('');
+  const [connectOnboardingUrl, setConnectOnboardingUrl] = useState<string | null>(null);
 
   useEffect(() => {
+    // Handle return from Stripe Connect onboarding
+    const stripeParam = searchParams.get('stripe');
+    if (stripeParam === 'connected') {
+      setStep('done');
+      return;
+    }
+    if (stripeParam === 'refresh' && token) {
+      // Re-generate onboarding link via backend and redirect again
+      axios
+        .post(`${API_BASE}/super-admin/invites/connect-refresh`, { token })
+        .then((res) => {
+          const url = res.data.data?.connectOnboardingUrl;
+          if (url) window.location.href = url;
+          else setStep('done');
+        })
+        .catch(() => setStep('done'));
+      return;
+    }
+
     if (!token) { setStep('invalid'); return; }
 
     axios
@@ -45,7 +65,7 @@ export function OnboardingPage() {
         setErrorMsg(msg);
         setStep('invalid');
       });
-  }, [token]);
+  }, [token, searchParams]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -66,12 +86,18 @@ export function OnboardingPage() {
 
     setSubmitting(true);
     try {
-      await axios.post(`${API_BASE}/super-admin/invites/redeem/${token}`, {
+      const res = await axios.post(`${API_BASE}/super-admin/invites/redeem/${token}`, {
         slug: form.slug,
         adminPassword: form.password,
       });
       authStore.setSlug(form.slug);
-      setStep('done');
+      const url = res.data.data?.connectOnboardingUrl;
+      if (url) {
+        setConnectOnboardingUrl(url);
+        setStep('connect');
+      } else {
+        setStep('done');
+      }
     } catch (err: unknown) {
       const msg = (err as { response?: { data?: { message?: string } } })?.response?.data?.message;
       setFormError(msg ?? 'Something went wrong. Please try again.');
@@ -102,6 +128,37 @@ export function OnboardingPage() {
     );
   }
 
+  if (step === 'connect') {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <div className="max-w-md w-full bg-white rounded-xl shadow-sm border border-gray-200 p-8 text-center">
+          <div className="h-12 w-12 rounded-full bg-indigo-100 flex items-center justify-center mx-auto mb-4">
+            <span className="text-indigo-600 text-xl">💳</span>
+          </div>
+          <h1 className="text-xl font-bold text-gray-900 mb-2">Set up payments</h1>
+          <p className="text-gray-500 text-sm mb-2">
+            Your account is ready. The last step is connecting your payment account so you can collect membership fees.
+          </p>
+          <p className="text-gray-400 text-xs mb-6">
+            You'll be taken to Stripe to verify your business and add your bank details. This takes about 5 minutes.
+          </p>
+          <a
+            href={connectOnboardingUrl!}
+            className="block w-full bg-indigo-600 text-white py-2.5 rounded-lg text-sm font-semibold hover:bg-indigo-700 transition-colors"
+          >
+            Set up payment processing →
+          </a>
+          <button
+            onClick={() => navigate('/login')}
+            className="mt-3 text-xs text-gray-400 hover:text-gray-600 transition-colors"
+          >
+            Skip for now — do this later in Settings
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   if (step === 'done') {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50">
@@ -111,7 +168,7 @@ export function OnboardingPage() {
           </div>
           <h1 className="text-xl font-bold text-gray-900 mb-2">You're all set!</h1>
           <p className="text-gray-500 text-sm mb-6">
-            Your account and organization have been created. Log in to get started.
+            Your account, organization, and payment processing are ready. Log in to get started.
           </p>
           <button
             onClick={() => navigate('/login')}

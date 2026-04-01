@@ -2,6 +2,7 @@ import { Request, Response } from 'express';
 import prisma from '../config/database';
 import { asyncHandler, AppError } from '../middleware/errorHandler';
 import { sendInviteEmail } from '../services/emailService';
+import stripeConnectService from '../services/stripeConnectService';
 
 export const createInvite = asyncHandler(async (req: Request, res: Response) => {
   const { email, recipientName, orgName } = req.body;
@@ -96,10 +97,13 @@ export const redeemInvite = asyncHandler(async (req: Request, res: Response) => 
   const firstName = nameParts[0] ?? '';
   const lastName = invite.recipientName.split(' ').slice(1).join(' ') ?? '';
 
+  let orgId = '';
+
   await prisma.$transaction(async (tx) => {
     const organization = await tx.organization.create({
       data: { name: invite.orgName, slug: slug.trim(), type: 'general', timezone: 'America/New_York' },
     });
+    orgId = organization.id;
 
     await tx.user.create({
       data: {
@@ -118,5 +122,37 @@ export const redeemInvite = asyncHandler(async (req: Request, res: Response) => 
     });
   });
 
-  res.json({ status: 'success', data: { message: 'Account created. You can now log in.' } });
+  // Provision Stripe Connect Express account and generate onboarding link
+  let connectOnboardingUrl: string | null = null;
+  try {
+    const connectAccountId = await stripeConnectService.createConnectAccount(
+      orgId!,
+      invite.orgName,
+      invite.email
+    );
+
+    await prisma.organization.update({
+      where: { id: orgId! },
+      data: { stripeConnectAccountId: connectAccountId },
+    });
+
+    const appUrl = config.email.appUrl;
+    connectOnboardingUrl = await stripeConnectService.createAccountOnboardingLink(
+      connectAccountId,
+      `${appUrl}/onboarding?stripe=connected`,
+      `${appUrl}/onboarding?stripe=refresh&token=${token}`
+    );
+  } catch (err) {
+    // Non-fatal — org is created, Connect can be retried later
+    const logger = (await import('../utils/logger')).default;
+    logger.error('[Onboarding] Failed to provision Stripe Connect account', { err, orgId });
+  }
+
+  res.json({
+    status: 'success',
+    data: {
+      message: 'Account created. Complete payment setup to get started.',
+      connectOnboardingUrl,
+    },
+  });
 });

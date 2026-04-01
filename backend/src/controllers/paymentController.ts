@@ -5,7 +5,7 @@ import prisma from '../config/database';
 
 export const processPayment = asyncHandler(async (req: Request, res: Response) => {
   if (!req.user) throw new AppError(401, 'Not authenticated');
-  const { invoiceId, amount, currency, cardToken, paymentMethodType, notes } = req.body;
+  const { invoiceId, amount, currency, paymentMethodType, notes } = req.body;
 
   const payment = await paymentService.processPayment({
     organizationId: req.organization!.id,
@@ -13,7 +13,6 @@ export const processPayment = asyncHandler(async (req: Request, res: Response) =
     userId: req.user.userId,
     amount,
     currency,
-    cardToken,
     paymentMethodType,
     notes,
   });

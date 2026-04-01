@@ -1,6 +1,6 @@
 import { Decimal } from '@prisma/client/runtime/library';
 import prisma from '../config/database';
-import helcimService from './helcimService';
+import stripeConnectService from './stripeConnectService';
 import { AppError } from '../middleware/errorHandler';
 import logger from '../utils/logger';
 
@@ -12,37 +12,23 @@ export interface ProcessPaymentData {
   userId?: string;
   amount: number;
   currency?: string;
-  cardToken?: string;
   paymentMethodType?: string;
   notes?: string;
 }
 
 class PaymentService {
   async processPayment(data: ProcessPaymentData) {
-    const { organizationId, invoiceId, userId, amount, currency = 'USD', cardToken, paymentMethodType = 'card', notes } = data;
+    const { organizationId, invoiceId, userId, amount, currency = 'USD', paymentMethodType = 'cash', notes } = data;
 
     const invoice = await prisma.invoice.findFirst({
       where: { id: invoiceId, organizationId },
-      include: { contact: true },
     });
     if (!invoice) throw new AppError(404, 'Invoice not found');
     if (invoice.status === 'paid') throw new AppError(400, 'Invoice is already paid');
     if (invoice.status === 'void') throw new AppError(400, 'Cannot pay a voided invoice');
 
-    const isManual = !cardToken || MANUAL_METHODS.includes(paymentMethodType);
-
-    let helcimTransactionId: string | undefined;
-    let status = 'succeeded';
-
-    if (!isManual) {
-      const helcimTransaction = await helcimService.processPayment({
-        amount,
-        currency,
-        cardToken: cardToken!,
-        customerId: invoice.contact?.helcimToken ?? undefined,
-      });
-      helcimTransactionId = helcimTransaction.transactionId;
-      status = helcimTransaction.status || 'succeeded';
+    if (!MANUAL_METHODS.includes(paymentMethodType)) {
+      throw new AppError(400, 'Card payments must be made through the member portal');
     }
 
     const payment = await prisma.payment.create({
@@ -50,17 +36,14 @@ class PaymentService {
         organizationId,
         invoiceId,
         userId,
-        helcimTransactionId: helcimTransactionId ?? null,
         amount: new Decimal(amount),
         currency,
-        status,
+        status: 'succeeded',
         paymentMethodType,
-        cardToken: cardToken ?? null,
         notes,
       },
     });
 
-    // Update invoice paid amount
     const newAmountPaid = Number(invoice.amountPaid) + amount;
     const isPaid = newAmountPaid >= Number(invoice.amountDue);
     await prisma.invoice.update({
@@ -109,9 +92,19 @@ class PaymentService {
   async refundPayment(paymentId: string, organizationId: string, amount?: number, _reason?: string) {
     const payment = await this.getPaymentById(paymentId, organizationId);
     if (payment.status === 'refunded') throw new AppError(400, 'Payment already refunded');
-    if (!payment.helcimTransactionId) throw new AppError(400, 'Cannot refund payment without transaction ID');
 
-    await helcimService.refundTransaction(payment.helcimTransactionId, amount);
+    if (!payment.stripeChargeId) {
+      throw new AppError(400, 'Cannot refund this payment — no Stripe charge ID on record');
+    }
+
+    const org = await prisma.organization.findUnique({
+      where: { id: organizationId },
+      select: { stripeConnectAccountId: true },
+    });
+    if (!org?.stripeConnectAccountId) throw new AppError(400, 'Organization payment processing not configured');
+
+    const amountCents = amount !== undefined ? Math.round(amount * 100) : undefined;
+    await stripeConnectService.refundCharge(org.stripeConnectAccountId, payment.stripeChargeId, amountCents);
 
     await prisma.payment.update({
       where: { id: paymentId },

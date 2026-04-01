@@ -90,9 +90,18 @@ export const getMyInvoices = (page = 1) =>
 export const getMyInvoice = (id: string) =>
   apiClient.get(`/client/invoices/${id}`).then((r) => r.data.data.invoice as Invoice);
 
+export interface PaymentInitData {
+  clientSecret: string;
+  paymentIntentId: string;
+  connectAccountId: string;
+  publishableKey: string;
+  amountCents: number;
+  currency: string;
+}
+
 export const initializeInvoicePayment = (id: string) =>
   apiClient.post(`/client/invoices/${id}/initialize-payment`).then(
-    (r) => r.data.data as { secretToken: string; checkoutToken: string }
+    (r) => r.data.data as PaymentInitData
   );
 
 export const getMyPayments = (page = 1) =>
@@ -100,11 +109,3 @@ export const getMyPayments = (page = 1) =>
     (r) => r.data.data as { payments: Payment[]; total: number; page: number }
   );
 
-export const submitPayment = (invoiceId: string, cardToken: string, amount: number) =>
-  apiClient.post('/payments', {
-    invoiceId,
-    cardToken,
-    amount,
-    currency: 'USD',
-    paymentMethodType: 'card',
-  }).then((r) => r.data.data.payment as Payment);
