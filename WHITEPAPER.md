@@ -98,7 +98,7 @@ The platform is structured around three distinct user personas operating across 
 
 | Layer | Technology | Version | LTS Status |
 |-------|-----------|---------|------------|
-| Runtime | Node.js | 22.x (LTS) | Active LTS until April 2027 |
+| Runtime | Node.js | 24.x (LTS) | Active LTS (Krypton) |
 | Language | TypeScript | 5.9.3 | Current stable |
 | Framework | Express.js | 4.22.1 | Current stable (4.x) |
 | ORM | Prisma | 5.22.0 | Current stable |
