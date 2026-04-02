@@ -49,6 +49,7 @@ type EnrollmentWithRelations = Awaited<
       slug: string;
       name: string;
       stripeConnectAccountId: string | null;
+      platformFeePercent: number;
     } | null;
   };
   program: {
@@ -110,6 +111,7 @@ class BillingService {
                 slug: true,
                 name: true,
                 stripeConnectAccountId: true,
+                platformFeePercent: true,
               },
             },
           },
@@ -243,6 +245,7 @@ class BillingService {
             description: `Invoice ${invoiceNumber} — ${family.name}`,
             idempotencyKey: `billing-family-${invoice.id}`,
             metadata: { invoiceId: invoice.id, invoiceNumber },
+            feePercent: groupEnrollments[0].contact.organization?.platformFeePercent,
           });
 
           await prisma.payment.create({
@@ -396,6 +399,7 @@ class BillingService {
               description: `Invoice ${invoiceNumber} — ${enrollment.program.name}`,
               idempotencyKey: `billing-${invoice.id}`,
               metadata: { invoiceId: invoice.id, invoiceNumber },
+              feePercent: enrollment.contact.organization?.platformFeePercent,
             });
 
             await prisma.payment.create({

@@ -71,7 +71,8 @@ class StripeConnectService {
     amountCents: number,
     currency: string,
     customerId: string | null,
-    metadata: Record<string, string> = {}
+    metadata: Record<string, string> = {},
+    feePercent?: number
   ): Promise<{ clientSecret: string; paymentIntentId: string }> {
     const params: Stripe.PaymentIntentCreateParams = {
       amount: amountCents,
@@ -81,8 +82,9 @@ class StripeConnectService {
       ...(customerId && { customer: customerId }),
     };
 
-    const appFee = config.stripe.applicationFeePercent > 0
-      ? Math.round(amountCents * (config.stripe.applicationFeePercent / 100))
+    const rate = feePercent ?? config.stripe.applicationFeePercent;
+    const appFee = rate > 0
+      ? Math.round(amountCents * (rate / 100))
       : undefined;
     if (appFee) params.application_fee_amount = appFee;
 
@@ -101,11 +103,13 @@ class StripeConnectService {
     description: string;
     idempotencyKey: string;
     metadata?: Record<string, string>;
+    feePercent?: number;
   }): Promise<{ paymentIntentId: string; chargeId: string; status: string }> {
-    const { connectAccountId, customerId, paymentMethodId, amountCents, currency, description, idempotencyKey, metadata } = opts;
+    const { connectAccountId, customerId, paymentMethodId, amountCents, currency, description, idempotencyKey, metadata, feePercent } = opts;
 
-    const appFee = config.stripe.applicationFeePercent > 0
-      ? Math.round(amountCents * (config.stripe.applicationFeePercent / 100))
+    const rate = feePercent ?? config.stripe.applicationFeePercent;
+    const appFee = rate > 0
+      ? Math.round(amountCents * (rate / 100))
       : undefined;
 
     const intent = await this.client.paymentIntents.create(

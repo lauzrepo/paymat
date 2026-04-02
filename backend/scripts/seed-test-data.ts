@@ -142,11 +142,16 @@ async function main() {
     });
 
     if (opts.portalLogin !== false) {
-      await prisma.user.upsert({
-        where: { organizationId_email: { organizationId: org!.id, email: opts.email } },
-        update: { passwordHash, firstName: opts.firstName, lastName: opts.lastName, role: 'client', contactId: c.id, deletedAt: null },
-        create: { organizationId: org!.id, email: opts.email, passwordHash, firstName: opts.firstName, lastName: opts.lastName, role: 'client', contactId: c.id },
-      });
+      const existing = await prisma.user.findUnique({ where: { organizationId_email: { organizationId: org!.id, email: opts.email } } });
+      if (existing && existing.role !== 'client') {
+        console.log(`   ⚠️  Skipping portal login for ${opts.email} — existing ${existing.role} account`);
+      } else {
+        await prisma.user.upsert({
+          where: { organizationId_email: { organizationId: org!.id, email: opts.email } },
+          update: { passwordHash, firstName: opts.firstName, lastName: opts.lastName, role: 'client', contactId: c.id, deletedAt: null },
+          create: { organizationId: org!.id, email: opts.email, passwordHash, firstName: opts.firstName, lastName: opts.lastName, role: 'client', contactId: c.id },
+        });
+      }
       console.log(`   ✅  ${opts.firstName} ${opts.lastName} (${c.id}) — ${stripeCid ? 'card on file' : 'no card'} — portal login: ${opts.email} / ${PORTAL_PASSWORD}`);
     } else {
       console.log(`   ✅  ${opts.firstName} ${opts.lastName} (${c.id}) — ${stripeCid ? 'card on file' : 'no card'}`);

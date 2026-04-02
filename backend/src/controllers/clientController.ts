@@ -148,7 +148,7 @@ export const initializeInvoicePayment = asyncHandler(async (req: Request, res: R
 
   const org = await prisma.organization.findUnique({
     where: { id: req.organization!.id },
-    select: { stripeConnectAccountId: true },
+    select: { stripeConnectAccountId: true, platformFeePercent: true },
   });
   if (!org?.stripeConnectAccountId) {
     throw new AppError(503, 'Payment processing is not yet configured for this organization');
@@ -178,7 +178,8 @@ export const initializeInvoicePayment = asyncHandler(async (req: Request, res: R
     Math.round(amountDue * 100),
     invoice.currency,
     stripeCustomerId,
-    { invoiceId: invoice.id, invoiceNumber: invoice.invoiceNumber }
+    { invoiceId: invoice.id, invoiceNumber: invoice.invoiceNumber },
+    org.platformFeePercent
   );
 
   res.json({
