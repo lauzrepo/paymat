@@ -201,13 +201,13 @@ describe('POST /api/contacts/:id/card/initialize', () => {
 describe('POST /api/contacts/:id/card/token', () => {
   it('saves card token and returns 200', async () => {
     (prisma.contact.findFirst as jest.Mock).mockResolvedValue(mockContact());
-    (prisma.contact.update as jest.Mock).mockResolvedValue(mockContact({ helcimToken: 'card_tok_123' }));
+    (prisma.contact.update as jest.Mock).mockResolvedValue(mockContact({ stripeCustomerId: 'cus_test', stripeDefaultPaymentMethodId: 'pm_test' }));
 
     const res = await request(app)
       .post('/api/contacts/contact-1/card/token')
       .set('Authorization', `Bearer ${adminToken()}`)
       .set('x-organization-slug', 'test-org')
-      .send({ cardToken: 'card_tok_123' });
+      .send({ stripeCustomerId: 'cus_test', stripeDefaultPaymentMethodId: 'pm_test' });
 
     expect(res.status).toBe(200);
   });

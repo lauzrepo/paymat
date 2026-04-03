@@ -1,13 +1,17 @@
 import prisma from '../../../src/config/database';
 import paymentService from '../../../src/services/paymentService';
-import helcimService from '../../../src/services/helcimService';
+import stripeConnectService from '../../../src/services/stripeConnectService';
 
-jest.mock('../../../src/services/helcimService', () => ({
+jest.mock('../../../src/services/stripeConnectService', () => ({
   __esModule: true,
   default: {
-    processPayment: jest.fn(),
-    refundTransaction: jest.fn(),
+    refundCharge: jest.fn(),
   },
+}));
+
+jest.mock('../../../src/utils/logger', () => ({
+  __esModule: true,
+  default: { info: jest.fn(), warn: jest.fn(), error: jest.fn() },
 }));
 
 // ─── shared fixtures ────────────────────────────────────────────────────────
@@ -22,7 +26,6 @@ const baseInvoice = {
   status: 'draft',
   amountDue: 100,
   amountPaid: 0,
-  contact: { helcimToken: 'cust-tok' },
 };
 
 const basePayment = {
@@ -30,7 +33,8 @@ const basePayment = {
   organizationId: ORG_ID,
   invoiceId: INVOICE_ID,
   status: 'succeeded',
-  helcimTransactionId: 'txn-abc',
+  stripeChargeId: 'ch_test',
+  stripePaymentIntentId: 'pi_test',
   amount: 100,
 };
 
@@ -81,65 +85,15 @@ describe('paymentService.processPayment', () => {
     });
   });
 
-  // card path — happy paths
+  // card path — now rejected at the service level
   describe('card path', () => {
-    beforeEach(() => {
+    it('throws 400 for card payment attempts (must go through member portal)', async () => {
       (prisma.invoice.findFirst as jest.Mock).mockResolvedValue({ ...baseInvoice });
-      (helcimService.processPayment as jest.Mock).mockResolvedValue({
-        transactionId: 'txn-abc',
-        status: 'succeeded',
+
+      await expect(paymentService.processPayment(cardData)).rejects.toMatchObject({
+        statusCode: 400,
+        message: 'Card payments must be made through the member portal',
       });
-      (prisma.payment.create as jest.Mock).mockResolvedValue({ ...basePayment });
-      (prisma.invoice.update as jest.Mock).mockResolvedValue({});
-    });
-
-    it('calls helcimService.processPayment with amount and cardToken', async () => {
-      await paymentService.processPayment(cardData);
-
-      expect(helcimService.processPayment).toHaveBeenCalledWith(
-        expect.objectContaining({
-          amount: 100,
-          cardToken: 'tok-card',
-        }),
-      );
-    });
-
-    it('creates a payment record with the helcimTransactionId', async () => {
-      await paymentService.processPayment(cardData);
-
-      expect(prisma.payment.create).toHaveBeenCalledWith(
-        expect.objectContaining({
-          data: expect.objectContaining({
-            helcimTransactionId: 'txn-abc',
-          }),
-        }),
-      );
-    });
-
-    it('marks invoice as paid when payment fully covers amountDue', async () => {
-      // amount (100) === amountDue (100) → isPaid
-      await paymentService.processPayment(cardData);
-
-      expect(prisma.invoice.update).toHaveBeenCalledWith(
-        expect.objectContaining({
-          data: expect.objectContaining({
-            status: 'paid',
-          }),
-        }),
-      );
-    });
-
-    it('does not change invoice status on partial payment', async () => {
-      (prisma.invoice.findFirst as jest.Mock).mockResolvedValue({
-        ...baseInvoice,
-        amountDue: 200,
-        amountPaid: 0,
-      });
-
-      await paymentService.processPayment({ ...cardData, amount: 50 });
-
-      const updateCall = (prisma.invoice.update as jest.Mock).mock.calls[0][0];
-      expect(updateCall.data).not.toHaveProperty('status');
     });
   });
 
@@ -161,22 +115,39 @@ describe('paymentService.processPayment', () => {
       (prisma.invoice.update as jest.Mock).mockResolvedValue({});
     });
 
-    it('does NOT call helcimService.processPayment', async () => {
-      await paymentService.processPayment(cashData);
-
-      expect(helcimService.processPayment).not.toHaveBeenCalled();
-    });
-
-    it('creates payment with null helcimTransactionId', async () => {
+    it('creates payment with cash paymentMethodType', async () => {
       await paymentService.processPayment(cashData);
 
       expect(prisma.payment.create).toHaveBeenCalledWith(
         expect.objectContaining({
           data: expect.objectContaining({
-            helcimTransactionId: null,
+            paymentMethodType: 'cash',
           }),
         }),
       );
+    });
+
+    it('marks invoice as paid when payment fully covers amountDue', async () => {
+      await paymentService.processPayment(cashData);
+
+      expect(prisma.invoice.update).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({ status: 'paid' }),
+        }),
+      );
+    });
+
+    it('does not change invoice status on partial payment', async () => {
+      (prisma.invoice.findFirst as jest.Mock).mockResolvedValue({
+        ...baseInvoice,
+        amountDue: 200,
+        amountPaid: 0,
+      });
+
+      await paymentService.processPayment({ ...cashData, amount: 50 });
+
+      const updateCall = (prisma.invoice.update as jest.Mock).mock.calls[0][0];
+      expect(updateCall.data).not.toHaveProperty('status');
     });
 
     it('still updates invoice amountPaid', async () => {
@@ -254,9 +225,9 @@ describe('paymentService.getPaymentById', () => {
 
 describe('paymentService.refundPayment', () => {
   beforeEach(() => {
-    // getPaymentById delegates to findFirst
     (prisma.payment.findFirst as jest.Mock).mockResolvedValue({ ...basePayment });
-    (helcimService.refundTransaction as jest.Mock).mockResolvedValue(undefined);
+    (prisma.organization.findUnique as jest.Mock).mockResolvedValue({ stripeConnectAccountId: 'acct_test' });
+    (stripeConnectService.refundCharge as jest.Mock).mockResolvedValue(undefined);
     (prisma.payment.update as jest.Mock).mockResolvedValue({});
   });
 
@@ -272,22 +243,21 @@ describe('paymentService.refundPayment', () => {
     });
   });
 
-  it('throws 400 if payment has no helcimTransactionId', async () => {
+  it('throws 400 if payment has no stripeChargeId', async () => {
     (prisma.payment.findFirst as jest.Mock).mockResolvedValue({
       ...basePayment,
-      helcimTransactionId: null,
+      stripeChargeId: null,
     });
 
     await expect(paymentService.refundPayment(PAYMENT_ID, ORG_ID)).rejects.toMatchObject({
       statusCode: 400,
-      message: 'Cannot refund payment without transaction ID',
     });
   });
 
-  it('calls helcimService.refundTransaction with the transaction ID', async () => {
+  it('calls stripeConnectService.refundCharge with the charge ID', async () => {
     await paymentService.refundPayment(PAYMENT_ID, ORG_ID);
 
-    expect(helcimService.refundTransaction).toHaveBeenCalledWith('txn-abc', undefined);
+    expect(stripeConnectService.refundCharge).toHaveBeenCalledWith('acct_test', 'ch_test', undefined);
   });
 
   it('updates payment status to refunded', async () => {

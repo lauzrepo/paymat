@@ -16,11 +16,11 @@ jest.mock('../../src/services/emailService', () => ({
   sendPaymentReceived: jest.fn().mockResolvedValue(undefined),
   sendPaymentFailed: jest.fn().mockResolvedValue(undefined),
 }));
-jest.mock('../../src/services/helcimService', () => ({
+jest.mock('../../src/services/stripeConnectService', () => ({
   __esModule: true,
   default: {
-    processPayment: jest.fn().mockResolvedValue({ transactionId: 'txn-123', status: 'succeeded' }),
-    refundTransaction: jest.fn().mockResolvedValue({ transactionId: 'ref-123', status: 'succeeded' }),
+    chargeCustomer: jest.fn().mockResolvedValue({ paymentIntentId: 'pi_test', chargeId: 'ch_test', status: 'succeeded' }),
+    refundCharge: jest.fn().mockResolvedValue(undefined),
   },
 }));
 
@@ -33,9 +33,9 @@ function adminToken() {
 
 const mockPayment = (overrides = {}) => ({
   id: 'pay-1', organizationId: 'org-1', invoiceId: 'inv-1',
-  userId: 'user-1', helcimTransactionId: 'txn-123',
+  userId: 'user-1', stripeChargeId: 'ch_test', stripePaymentIntentId: 'pi_test',
   amount: new Decimal(100), currency: 'USD', status: 'succeeded',
-  paymentMethodType: 'card', cardToken: null, notes: null,
+  paymentMethodType: 'card', notes: null,
   refundedAmount: new Decimal(0), refundedAt: null,
   createdAt: new Date(), updatedAt: new Date(), ...overrides,
 });
@@ -137,6 +137,7 @@ describe('POST /api/payments', () => {
 describe('POST /api/payments/:id/refund', () => {
   it('refunds a payment and returns 200', async () => {
     (prisma.payment.findFirst as jest.Mock).mockResolvedValue(mockPayment());
+    (prisma.organization.findUnique as jest.Mock).mockResolvedValue({ ...ORG, stripeConnectAccountId: 'acct_test' });
     (prisma.payment.update as jest.Mock).mockResolvedValue(mockPayment({ status: 'refunded' }));
     (prisma.invoice.update as jest.Mock).mockResolvedValue(mockInvoice());
     (prisma.auditLog.create as jest.Mock).mockResolvedValue({});
