@@ -16,7 +16,7 @@ jest.mock('bcrypt', () => ({
 }));
 
 jest.mock('../../src/services/emailService', () => ({
-  sendPasswordResetEmail: jest.fn(),
+  sendPasswordReset: jest.fn().mockResolvedValue(undefined),
   sendWelcomeEmail: jest.fn(),
   sendInvoiceGenerated: jest.fn(),
   sendPaymentReceived: jest.fn(),

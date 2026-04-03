@@ -1,9 +1,9 @@
 import prisma from '../../../src/config/database';
 
-jest.mock('../../../src/services/helcimService', () => ({
+jest.mock('../../../src/services/stripeConnectService', () => ({
   __esModule: true,
   default: {
-    processPayment: jest.fn(),
+    chargeCustomer: jest.fn(),
   },
 }));
 
@@ -24,7 +24,7 @@ jest.mock('../../../src/utils/logger', () => ({
   default: { info: jest.fn(), warn: jest.fn(), error: jest.fn() },
 }));
 
-import helcimService from '../../../src/services/helcimService';
+import stripeConnectService from '../../../src/services/stripeConnectService';
 import { sendInvoiceGenerated, sendPaymentReceived, sendPaymentFailed } from '../../../src/services/emailService';
 
 // billingService must be imported after mocks are in place
@@ -43,9 +43,10 @@ function makeEnrollment(overrides: Record<string, unknown> = {}) {
       firstName: 'Jane',
       lastName: 'Doe',
       email: 'jane@example.com',
-      helcimToken: null,
+      stripeCustomerId: null,
+      stripeDefaultPaymentMethodId: null,
       family: null,
-      organization: { name: 'Test Org' },
+      organization: { slug: 'test-org', name: 'Test Org', stripeConnectAccountId: null, platformFeePercent: 0 },
     },
     program: {
       id: 'prog-1',
@@ -85,6 +86,7 @@ describe('BillingService.generateDueInvoices()', () => {
         invoicesCreated: 0,
         autoCharged: 0,
         errors: 0,
+        errorMessages: [],
         activeEnrollments: 3,
       });
       expect(prisma.invoice.create as jest.Mock).not.toHaveBeenCalled();
@@ -199,8 +201,8 @@ describe('BillingService.generateDueInvoices()', () => {
     });
   });
 
-  describe('auto-charge with card token', () => {
-    it('calls helcimService.processPayment, marks invoice paid, and increments autoCharged', async () => {
+  describe('auto-charge with Stripe payment method', () => {
+    it('calls stripeConnectService.chargeCustomer, marks invoice paid, and increments autoCharged', async () => {
       const enrollment = makeEnrollment({
         contact: {
           id: 'contact-1',
@@ -208,9 +210,10 @@ describe('BillingService.generateDueInvoices()', () => {
           firstName: 'Jane',
           lastName: 'Doe',
           email: 'jane@example.com',
-          helcimToken: 'tok_abc123',
+          stripeCustomerId: 'cus_test',
+          stripeDefaultPaymentMethodId: 'pm_test',
           family: null,
-          organization: { name: 'Test Org' },
+          organization: { slug: 'test-org', name: 'Test Org', stripeConnectAccountId: 'acct_test', platformFeePercent: 0 },
         },
       });
 
@@ -222,16 +225,17 @@ describe('BillingService.generateDueInvoices()', () => {
       (prisma.invoice.update as jest.Mock).mockResolvedValue({});
       (prisma.enrollment.update as jest.Mock).mockResolvedValue({});
       (prisma.invoice.updateMany as jest.Mock).mockResolvedValue({ count: 0 });
-      (helcimService.processPayment as jest.Mock).mockResolvedValue({
-        transactionId: 'tx-123',
+      (stripeConnectService.chargeCustomer as jest.Mock).mockResolvedValue({
+        paymentIntentId: 'pi_test',
+        chargeId: 'ch_test',
         status: 'succeeded',
       });
 
       const result = await billingService.generateDueInvoices();
 
       expect(result.autoCharged).toBe(1);
-      expect(helcimService.processPayment as jest.Mock).toHaveBeenCalledWith(
-        expect.objectContaining({ cardToken: 'tok_abc123', amount: 100 }),
+      expect(stripeConnectService.chargeCustomer as jest.Mock).toHaveBeenCalledWith(
+        expect.objectContaining({ customerId: 'cus_test', paymentMethodId: 'pm_test', amountCents: 10000 }),
       );
       expect(prisma.invoice.update as jest.Mock).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -242,9 +246,8 @@ describe('BillingService.generateDueInvoices()', () => {
       expect(prisma.payment.create as jest.Mock).toHaveBeenCalledTimes(1);
     });
 
-    it('does NOT auto-charge the contact card when the contact has no card on file', async () => {
-      // contact.helcimToken = null, family = null → individual invoice, no charge attempt
-      const enrollment = makeEnrollment(); // helcimToken: null, family: null
+    it('does NOT auto-charge when contact has no Stripe payment method', async () => {
+      const enrollment = makeEnrollment(); // stripeCustomerId: null, family: null
 
       (prisma.enrollment.count as jest.Mock).mockResolvedValue(1);
       (prisma.enrollment.findMany as jest.Mock).mockResolvedValue([enrollment]);
@@ -256,7 +259,7 @@ describe('BillingService.generateDueInvoices()', () => {
       const result = await billingService.generateDueInvoices();
 
       expect(result.autoCharged).toBe(0);
-      expect(helcimService.processPayment as jest.Mock).not.toHaveBeenCalled();
+      expect(stripeConnectService.chargeCustomer as jest.Mock).not.toHaveBeenCalled();
     });
   });
 
@@ -272,15 +275,17 @@ describe('BillingService.generateDueInvoices()', () => {
           firstName: 'Emma',
           lastName: 'Johnson',
           email: 'emma@example.com',
-          helcimToken: null,
+          stripeCustomerId: null,
+          stripeDefaultPaymentMethodId: null,
           familyId: 'family-1',
           family: {
             id: 'family-1',
             name: 'Johnson Family',
-            helcimToken: 'tok_family_card',
+            stripeCustomerId: 'cus_fam_test',
+            stripeDefaultPaymentMethodId: 'pm_fam_test',
             billingEmail: 'johnson.family@example.com',
           },
-          organization: { name: 'Test Org' },
+          organization: { slug: 'test-org', name: 'Test Org', stripeConnectAccountId: 'acct_test', platformFeePercent: 0 },
         },
         program: {
           id: 'prog-1',
@@ -304,15 +309,17 @@ describe('BillingService.generateDueInvoices()', () => {
           firstName: 'Liam',
           lastName: 'Johnson',
           email: 'liam@example.com',
-          helcimToken: null,
+          stripeCustomerId: null,
+          stripeDefaultPaymentMethodId: null,
           familyId: 'family-1',
           family: {
             id: 'family-1',
             name: 'Johnson Family',
-            helcimToken: 'tok_family_card',
+            stripeCustomerId: 'cus_fam_test',
+            stripeDefaultPaymentMethodId: 'pm_fam_test',
             billingEmail: 'johnson.family@example.com',
           },
-          organization: { name: 'Test Org' },
+          organization: { slug: 'test-org', name: 'Test Org', stripeConnectAccountId: 'acct_test', platformFeePercent: 0 },
         },
         program: {
           id: 'prog-2',
@@ -331,8 +338,9 @@ describe('BillingService.generateDueInvoices()', () => {
       (prisma.invoice.update as jest.Mock).mockResolvedValue({});
       (prisma.enrollment.update as jest.Mock).mockResolvedValue({});
       (prisma.invoice.updateMany as jest.Mock).mockResolvedValue({ count: 0 });
-      (helcimService.processPayment as jest.Mock).mockResolvedValue({
-        transactionId: 'tx-fam',
+      (stripeConnectService.chargeCustomer as jest.Mock).mockResolvedValue({
+        paymentIntentId: 'pi_fam',
+        chargeId: 'ch_fam',
         status: 'succeeded',
       });
 
@@ -358,8 +366,9 @@ describe('BillingService.generateDueInvoices()', () => {
       (prisma.invoice.update as jest.Mock).mockResolvedValue({});
       (prisma.enrollment.update as jest.Mock).mockResolvedValue({});
       (prisma.invoice.updateMany as jest.Mock).mockResolvedValue({ count: 0 });
-      (helcimService.processPayment as jest.Mock).mockResolvedValue({
-        transactionId: 'tx-fam',
+      (stripeConnectService.chargeCustomer as jest.Mock).mockResolvedValue({
+        paymentIntentId: 'pi_fam',
+        chargeId: 'ch_fam',
         status: 'succeeded',
       });
 
@@ -383,15 +392,17 @@ describe('BillingService.generateDueInvoices()', () => {
           firstName: 'Liam',
           lastName: 'Johnson',
           email: 'liam@example.com',
-          helcimToken: null,
+          stripeCustomerId: null,
+          stripeDefaultPaymentMethodId: null,
           familyId: 'family-1',
           family: {
             id: 'family-1',
             name: 'Johnson Family',
-            helcimToken: 'tok_family_card',
+            stripeCustomerId: 'cus_fam_test',
+            stripeDefaultPaymentMethodId: 'pm_fam_test',
             billingEmail: null,
           },
-          organization: { name: 'Test Org' },
+          organization: { slug: 'test-org', name: 'Test Org', stripeConnectAccountId: 'acct_test', platformFeePercent: 0 },
         },
         program: {
           id: 'prog-2',
@@ -410,16 +421,17 @@ describe('BillingService.generateDueInvoices()', () => {
       (prisma.invoice.update as jest.Mock).mockResolvedValue({});
       (prisma.enrollment.update as jest.Mock).mockResolvedValue({});
       (prisma.invoice.updateMany as jest.Mock).mockResolvedValue({ count: 0 });
-      (helcimService.processPayment as jest.Mock).mockResolvedValue({
-        transactionId: 'tx-fam',
+      (stripeConnectService.chargeCustomer as jest.Mock).mockResolvedValue({
+        paymentIntentId: 'pi_fam',
+        chargeId: 'ch_fam',
         status: 'succeeded',
       });
 
       const result = await billingService.generateDueInvoices();
 
       expect(result.autoCharged).toBe(1);
-      expect(helcimService.processPayment as jest.Mock).toHaveBeenCalledWith(
-        expect.objectContaining({ cardToken: 'tok_family_card', amount: 270 }),
+      expect(stripeConnectService.chargeCustomer as jest.Mock).toHaveBeenCalledWith(
+        expect.objectContaining({ customerId: 'cus_fam_test', amountCents: 27000 }),
       );
     });
 
@@ -434,8 +446,9 @@ describe('BillingService.generateDueInvoices()', () => {
       (prisma.invoice.update as jest.Mock).mockResolvedValue({});
       (prisma.enrollment.update as jest.Mock).mockResolvedValue({});
       (prisma.invoice.updateMany as jest.Mock).mockResolvedValue({ count: 0 });
-      (helcimService.processPayment as jest.Mock).mockResolvedValue({
-        transactionId: 'tx-fam',
+      (stripeConnectService.chargeCustomer as jest.Mock).mockResolvedValue({
+        paymentIntentId: 'pi_fam',
+        chargeId: 'ch_fam',
         status: 'succeeded',
       });
 
@@ -448,8 +461,8 @@ describe('BillingService.generateDueInvoices()', () => {
       );
     });
 
-    it('falls through to individual billing when family has no card on file', async () => {
-      // Family exists but helcimToken is null → treated as individual
+    it('falls through to individual billing when family has no Stripe payment method', async () => {
+      // Family exists but no Stripe IDs → treated as individual
       const enrollment = makeEnrollment({
         contact: {
           id: 'contact-1',
@@ -457,15 +470,17 @@ describe('BillingService.generateDueInvoices()', () => {
           firstName: 'Jane',
           lastName: 'Doe',
           email: 'jane@example.com',
-          helcimToken: null,
+          stripeCustomerId: null,
+          stripeDefaultPaymentMethodId: null,
           familyId: 'family-1',
           family: {
             id: 'family-1',
             name: 'Doe Family',
-            helcimToken: null, // no card on file
+            stripeCustomerId: null,
+            stripeDefaultPaymentMethodId: null,
             billingEmail: null,
           },
-          organization: { name: 'Test Org' },
+          organization: { slug: 'test-org', name: 'Test Org', stripeConnectAccountId: null, platformFeePercent: 0 },
         },
       });
 
@@ -496,9 +511,10 @@ describe('BillingService.generateDueInvoices()', () => {
           firstName: 'Jane',
           lastName: 'Doe',
           email: 'jane@example.com',
-          helcimToken: 'tok_bad',
+          stripeCustomerId: 'cus_bad',
+          stripeDefaultPaymentMethodId: 'pm_bad',
           family: null,
-          organization: { name: 'Test Org' },
+          organization: { slug: 'test-org', name: 'Test Org', stripeConnectAccountId: 'acct_test', platformFeePercent: 0 },
         },
       });
 
@@ -508,7 +524,7 @@ describe('BillingService.generateDueInvoices()', () => {
       (prisma.invoice.create as jest.Mock).mockResolvedValue(makeInvoice({ id: 'invoice-1' }));
       (prisma.enrollment.update as jest.Mock).mockResolvedValue({});
       (prisma.invoice.updateMany as jest.Mock).mockResolvedValue({ count: 0 });
-      (helcimService.processPayment as jest.Mock).mockRejectedValue(new Error('Card declined'));
+      (stripeConnectService.chargeCustomer as jest.Mock).mockRejectedValue(new Error('Card declined'));
 
       const result = await billingService.generateDueInvoices();
 
@@ -629,9 +645,10 @@ describe('BillingService.generateDueInvoices()', () => {
           firstName: 'Jane',
           lastName: 'Doe',
           email: 'jane@example.com',
-          helcimToken: 'tok_abc',
+          stripeCustomerId: 'cus_test',
+          stripeDefaultPaymentMethodId: 'pm_test',
           family: null,
-          organization: { name: 'Test Org' },
+          organization: { slug: 'test-org', name: 'Test Org', stripeConnectAccountId: 'acct_test', platformFeePercent: 0 },
         },
       });
 
@@ -643,8 +660,9 @@ describe('BillingService.generateDueInvoices()', () => {
       (prisma.invoice.update as jest.Mock).mockResolvedValue({});
       (prisma.enrollment.update as jest.Mock).mockResolvedValue({});
       (prisma.invoice.updateMany as jest.Mock).mockResolvedValue({ count: 0 });
-      (helcimService.processPayment as jest.Mock).mockResolvedValue({
-        transactionId: 'tx-789',
+      (stripeConnectService.chargeCustomer as jest.Mock).mockResolvedValue({
+        paymentIntentId: 'pi_test',
+        chargeId: 'ch_test',
         status: 'succeeded',
       });
 

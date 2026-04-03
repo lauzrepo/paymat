@@ -12,3 +12,4 @@ process.env.RESEND_API_KEY = 're_test_key';
 process.env.SUPER_ADMIN_EMAIL = 'admin@test.com';
 process.env.APP_URL = 'https://app.cliqpaymat.app';
 process.env.BILLING_SECRET = 'test-billing-secret';
+process.env.STRIPE_SECRET_KEY = 'sk_test_placeholder';

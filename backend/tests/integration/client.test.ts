@@ -14,10 +14,11 @@ jest.mock('../../src/services/emailService', () => ({
   sendFeedbackNotification: jest.fn().mockResolvedValue(undefined),
   sendInvoiceGenerated: jest.fn().mockResolvedValue(undefined),
 }));
-jest.mock('../../src/services/helcimService', () => ({
+jest.mock('../../src/services/stripeConnectService', () => ({
   __esModule: true,
   default: {
-    initializeCheckout: jest.fn().mockResolvedValue({ checkoutToken: 'tok_test', secretToken: 'sec_test' }),
+    createCustomer: jest.fn().mockResolvedValue('cus_test'),
+    createPaymentIntent: jest.fn().mockResolvedValue({ clientSecret: 'pi_test_secret', paymentIntentId: 'pi_test' }),
   },
 }));
 
@@ -168,11 +169,14 @@ describe('GET /api/client/invoices/:id', () => {
 });
 
 describe('POST /api/client/invoices/:id/initialize-payment', () => {
-  it('returns 200 with checkout token for payable invoice', async () => {
+  it('returns 200 with clientSecret for payable invoice', async () => {
     (prisma.user.findUnique as jest.Mock).mockResolvedValue(mockUser());
     (prisma.invoice.findFirst as jest.Mock).mockResolvedValue({
       id: 'inv-1', status: 'sent', amountDue: new Decimal(100), amountPaid: new Decimal(0), currency: 'USD',
+      invoiceNumber: 'INV-00001',
     });
+    (prisma.organization.findUnique as jest.Mock).mockResolvedValue({ ...ORG, stripeConnectAccountId: 'acct_test', platformFeePercent: 0 });
+    (prisma.contact.findUnique as jest.Mock).mockResolvedValue({ stripeCustomerId: 'cus_test', email: 'jane@test.com', firstName: 'Jane', lastName: 'Doe' });
 
     const res = await request(app)
       .post('/api/client/invoices/inv-1/initialize-payment')
@@ -180,7 +184,7 @@ describe('POST /api/client/invoices/:id/initialize-payment', () => {
       .set('x-organization-slug', 'test-org');
 
     expect(res.status).toBe(200);
-    expect(res.body.data.checkoutToken).toBe('tok_test');
+    expect(res.body.data.clientSecret).toBe('pi_test_secret');
   });
 
   it('returns 404 for non-payable invoice', async () => {

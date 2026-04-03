@@ -176,13 +176,13 @@ describe('POST /api/families/:id/card/initialize', () => {
 describe('POST /api/families/:id/card/token', () => {
   it('saves card token and returns 200', async () => {
     (prisma.family.findFirst as jest.Mock).mockResolvedValue(mockFamily());
-    (prisma.family.update as jest.Mock).mockResolvedValue(mockFamily({ helcimToken: 'fam_tok_123' }));
+    (prisma.family.update as jest.Mock).mockResolvedValue(mockFamily({ stripeCustomerId: 'cus_fam_test', stripeDefaultPaymentMethodId: 'pm_fam_test' }));
 
     const res = await request(app)
       .post('/api/families/fam-1/card/token')
       .set('Authorization', `Bearer ${adminToken()}`)
       .set('x-organization-slug', 'test-org')
-      .send({ cardToken: 'fam_tok_123' });
+      .send({ stripeCustomerId: 'cus_fam_test', stripeDefaultPaymentMethodId: 'pm_fam_test' });
 
     expect(res.status).toBe(200);
   });
