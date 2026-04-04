@@ -10,6 +10,7 @@ import { apiLimiter } from './middleware/rateLimiter';
 import { resolveTenant } from './middleware/tenant';
 
 import superAdminRoutes from './routes/superAdmin';
+import waitlistRoutes from './routes/waitlist';
 import authRoutes from './routes/auth';
 import organizationRoutes from './routes/tenant';
 import contactRoutes from './routes/contacts';
@@ -71,6 +72,7 @@ app.use('/api/billing', billingRoutes);
 app.use('/api/feedback', feedbackRoutes);
 app.use('/webhooks', webhookRoutes);
 app.use('/api/client', clientRoutes);
+app.use('/api/waitlist', waitlistRoutes);
 
 app.use(notFoundHandler);
 app.use(errorHandler);
