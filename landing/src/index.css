@@ -15,11 +15,11 @@
 }
 
 :root.light {
-  --color-bg: #fafafa;
-  --color-surface: #ffffff;
-  --color-border: #e4e4e7;
-  --color-text: #09090b;
-  --color-muted: #71717a;
+  --color-bg: #f5f0eb;
+  --color-surface: #fdf8f3;
+  --color-border: #e8e0d8;
+  --color-text: #1c1917;
+  --color-muted: #78716c;
   --color-primary: #6366f1;
   --color-primary-hover: #4f46e5;
 }

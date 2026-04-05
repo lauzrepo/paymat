@@ -8,7 +8,7 @@ export default function Nav({ onToggleTheme, isLight }: NavProps) {
     <header
       className="fixed top-0 left-0 right-0 z-50 border-b"
       style={{
-        backgroundColor: isLight ? 'rgba(250, 250, 250, 0.85)' : 'rgba(15, 15, 19, 0.85)',
+        backgroundColor: isLight ? 'rgba(245, 240, 235, 0.85)' : 'rgba(15, 15, 19, 0.85)',
         backdropFilter: 'blur(12px)',
         borderColor: 'var(--color-border)',
       }}
