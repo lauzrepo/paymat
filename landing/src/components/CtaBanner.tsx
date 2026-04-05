@@ -4,7 +4,7 @@ export default function CtaBanner() {
   return (
     <section className="py-24 px-6">
       <div
-        className="max-w-3xl mx-auto rounded-3xl border p-12 text-center"
+        className="max-w-3xl mx-auto rounded-3xl border p-8 sm:p-12 text-center"
         style={{
           backgroundColor: 'var(--color-surface)',
           borderColor: 'var(--color-border)',

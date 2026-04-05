@@ -2,7 +2,7 @@ import WaitlistForm from './WaitlistForm';
 
 export default function Hero() {
   return (
-    <section className="pt-40 pb-28 px-6">
+    <section className="pt-24 sm:pt-40 pb-16 sm:pb-28 px-6">
       <div className="max-w-3xl mx-auto text-center">
         <div
           className="inline-flex items-center gap-2 text-xs font-medium px-3 py-1.5 rounded-full border mb-8"
@@ -17,7 +17,7 @@ export default function Hero() {
         </div>
 
         <h1
-          className="text-5xl sm:text-6xl font-bold tracking-tight leading-tight mb-6"
+          className="text-4xl sm:text-5xl lg:text-6xl font-bold tracking-tight leading-tight mb-6"
           style={{ color: 'var(--color-text)' }}
         >
           Billing and payments for{' '}
