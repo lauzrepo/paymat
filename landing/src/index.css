@@ -14,6 +14,16 @@
   --color-primary-hover: #4f46e5;
 }
 
+:root.light {
+  --color-bg: #fafafa;
+  --color-surface: #ffffff;
+  --color-border: #e4e4e7;
+  --color-text: #09090b;
+  --color-muted: #71717a;
+  --color-primary: #6366f1;
+  --color-primary-hover: #4f46e5;
+}
+
 html {
   scroll-behavior: smooth;
 }
