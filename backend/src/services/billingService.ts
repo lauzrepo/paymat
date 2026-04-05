@@ -1,4 +1,6 @@
-import { Decimal } from '@prisma/client/runtime/library';
+import { Prisma } from '@prisma/client';
+const Decimal = Prisma.Decimal;
+type Decimal = Prisma.Decimal;
 import prisma from '../config/database';
 import stripeConnectService from './stripeConnectService';
 import { sendInvoiceGenerated, sendPaymentReceived, sendPaymentFailed } from './emailService';
