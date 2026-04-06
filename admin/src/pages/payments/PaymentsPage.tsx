@@ -45,32 +45,51 @@ export function PaymentsPage() {
           ) : !payments.data?.items.length ? (
             <p className="px-6 py-10 text-center text-sm text-gray-500">No payments found.</p>
           ) : (
-            <table className="w-full text-sm">
-              <thead className="bg-gray-50 text-xs text-gray-500 uppercase">
-                <tr>
-                  <th className="px-6 py-3 text-left">Invoice</th>
-                  <th className="px-6 py-3 text-left">Amount</th>
-                  <th className="px-6 py-3 text-left">Method</th>
-                  <th className="px-6 py-3 text-left">Status</th>
-                  <th className="px-6 py-3 text-left">Date</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-100">
+            <>
+              {/* Mobile cards */}
+              <div className="md:hidden divide-y divide-gray-100">
                 {payments.data.items.map((p) => (
-                  <tr key={p.id} className="hover:bg-gray-50">
-                    <td className="px-6 py-3 font-medium text-gray-700">
-                      {p.invoice?.invoiceNumber ?? '—'}
-                    </td>
-                    <td className="px-6 py-3 font-medium">{formatCurrency(p.amount, p.currency)}</td>
-                    <td className="px-6 py-3 text-gray-600 capitalize">{p.paymentMethodType}</td>
-                    <td className="px-6 py-3">
-                      <Badge variant={STATUS_VARIANT[p.status] ?? 'gray'}>{p.status}</Badge>
-                    </td>
-                    <td className="px-6 py-3 text-gray-500">{formatDate(p.createdAt)}</td>
-                  </tr>
+                  <div key={p.id} className="px-4 py-3 flex items-center justify-between gap-3">
+                    <div className="min-w-0">
+                      <p className="text-sm font-semibold text-gray-900">{formatCurrency(p.amount, p.currency)}</p>
+                      <p className="text-xs text-gray-500 mt-0.5">
+                        {p.invoice?.invoiceNumber ?? '—'} · <span className="capitalize">{p.paymentMethodType}</span>
+                      </p>
+                      <p className="text-xs text-gray-400">{formatDate(p.createdAt)}</p>
+                    </div>
+                    <Badge variant={STATUS_VARIANT[p.status] ?? 'gray'}>{p.status}</Badge>
+                  </div>
                 ))}
-              </tbody>
-            </table>
+              </div>
+
+              {/* Desktop table */}
+              <div className="hidden md:block">
+                <table className="w-full text-sm">
+                  <thead className="bg-gray-50 text-xs text-gray-500 uppercase">
+                    <tr>
+                      <th className="px-6 py-3 text-left">Invoice</th>
+                      <th className="px-6 py-3 text-left">Amount</th>
+                      <th className="px-6 py-3 text-left">Method</th>
+                      <th className="px-6 py-3 text-left">Status</th>
+                      <th className="px-6 py-3 text-left">Date</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-gray-100">
+                    {payments.data.items.map((p) => (
+                      <tr key={p.id} className="hover:bg-gray-50">
+                        <td className="px-6 py-3 font-medium text-gray-700">{p.invoice?.invoiceNumber ?? '—'}</td>
+                        <td className="px-6 py-3 font-medium">{formatCurrency(p.amount, p.currency)}</td>
+                        <td className="px-6 py-3 text-gray-600 capitalize">{p.paymentMethodType}</td>
+                        <td className="px-6 py-3">
+                          <Badge variant={STATUS_VARIANT[p.status] ?? 'gray'}>{p.status}</Badge>
+                        </td>
+                        <td className="px-6 py-3 text-gray-500">{formatDate(p.createdAt)}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </>
           )}
         </CardBody>
       </Card>

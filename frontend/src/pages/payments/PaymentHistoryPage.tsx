@@ -27,7 +27,28 @@ export function PaymentHistoryPage() {
 
       {!!data?.payments.length && (
         <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
-          <table className="w-full text-sm">
+          {/* Mobile cards */}
+          <div className="sm:hidden divide-y divide-gray-100">
+            {data.payments.map((payment) => (
+              <div key={payment.id} className="px-4 py-3 flex items-center justify-between gap-3">
+                <div className="min-w-0">
+                  <p className="text-sm font-semibold text-gray-900">
+                    ${Number(payment.amount).toFixed(2)} {payment.currency}
+                  </p>
+                  <p className="text-xs text-gray-500 mt-0.5">
+                    {payment.invoice?.invoiceNumber ?? '—'} · <span className="capitalize">{payment.paymentMethodType.replace(/_/g, ' ')}</span>
+                  </p>
+                  <p className="text-xs text-gray-400">{new Date(payment.createdAt).toLocaleDateString()}</p>
+                </div>
+                <span className={`text-xs px-2 py-0.5 rounded-full font-medium flex-shrink-0 ${STATUS_COLORS[payment.status] ?? 'bg-gray-100 text-gray-500'}`}>
+                  {payment.status.charAt(0).toUpperCase() + payment.status.slice(1)}
+                </span>
+              </div>
+            ))}
+          </div>
+
+          {/* Desktop table */}
+          <table className="hidden sm:table w-full text-sm">
             <thead>
               <tr className="border-b border-gray-100">
                 <th className="text-left px-5 py-3 text-xs font-medium text-gray-500 uppercase tracking-wide">Invoice</th>

@@ -36,7 +36,7 @@ export function ContactsPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between gap-2 flex-wrap">
         <h1 className="text-2xl font-bold text-gray-900">Contacts</h1>
         <Button onClick={() => setShowForm(true)}>
           <Plus className="h-4 w-4 mr-1" /> Add Contact
@@ -49,7 +49,7 @@ export function ContactsPage() {
             <h2 className="text-base font-semibold text-gray-900">New Contact</h2>
           </CardHeader>
           <CardBody>
-            <form onSubmit={handleCreate} className="grid grid-cols-2 gap-4">
+            <form onSubmit={handleCreate} className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <Input label="First name" id="firstName" value={form.firstName} onChange={(e) => setForm({ ...form, firstName: e.target.value })} required />
               <Input label="Last name" id="lastName" value={form.lastName} onChange={(e) => setForm({ ...form, lastName: e.target.value })} required />
               <Input label="Email" id="email" type="email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} />
@@ -67,11 +67,11 @@ export function ContactsPage() {
                   ))}
                 </select>
               </div>
-              <div className="col-span-2 flex items-center gap-2">
+              <div className="sm:col-span-2 flex items-center gap-2">
                 <input id="addCard" type="checkbox" checked={addCard} onChange={(e) => setAddCard(e.target.checked)} className="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500" />
                 <label htmlFor="addCard" className="text-sm text-gray-700">Add card on file after saving</label>
               </div>
-              <div className="col-span-2 flex gap-3 justify-end">
+              <div className="sm:col-span-2 flex gap-3 justify-end">
                 <Button type="button" variant="secondary" onClick={() => setShowForm(false)}>Cancel</Button>
                 <Button type="submit" loading={create.isPending}>Save</Button>
               </div>
@@ -82,8 +82,8 @@ export function ContactsPage() {
 
       <Card>
         <CardHeader>
-          <div className="flex items-center gap-3">
-            <div className="relative flex-1 max-w-xs">
+          <div className="flex flex-wrap items-center gap-3">
+            <div className="relative flex-1 min-w-0 max-w-xs">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
               <input
                 type="text"
@@ -111,50 +111,87 @@ export function ContactsPage() {
           ) : !contacts.data?.items.length ? (
             <p className="px-6 py-10 text-center text-sm text-gray-500">No contacts found.</p>
           ) : (
-            <table className="w-full text-sm">
-              <thead className="bg-gray-50 text-xs text-gray-500 uppercase">
-                <tr>
-                  <th className="px-6 py-3 text-left">Name</th>
-                  <th className="px-6 py-3 text-left">Email</th>
-                  <th className="px-6 py-3 text-left">Family</th>
-                  <th className="px-6 py-3 text-left">Status</th>
-                  <th className="px-6 py-3 text-left">Added</th>
-                  <th className="px-6 py-3 text-left"></th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-100">
+            <>
+              {/* Mobile cards */}
+              <div className="md:hidden divide-y divide-gray-100">
                 {contacts.data.items.map((c) => (
-                  <tr key={c.id} className="hover:bg-gray-50">
-                    <td className="px-6 py-3 font-medium">
-                      <Link to={`/contacts/${c.id}`} className="text-indigo-600 hover:underline">
+                  <div key={c.id} className="px-4 py-3 space-y-2">
+                    <div className="flex items-center justify-between gap-2">
+                      <Link to={`/contacts/${c.id}`} className="text-sm font-semibold text-indigo-600">
                         {c.firstName} {c.lastName}
                       </Link>
-                    </td>
-                    <td className="px-6 py-3 text-gray-600">{c.email ?? '—'}</td>
-                    <td className="px-6 py-3 text-gray-600">{c.family?.name ?? '—'}</td>
-                    <td className="px-6 py-3">
                       <Badge variant={c.status === 'active' ? 'green' : 'gray'}>{c.status}</Badge>
-                    </td>
-                    <td className="px-6 py-3 text-gray-500">{formatDate(c.createdAt)}</td>
-                    <td className="px-6 py-3">
-                      <div className="flex gap-1">
-                        {c.status === 'active' ? (
-                          <Button variant="ghost" size="sm" onClick={() => deactivate.mutate(c.id)}>Deactivate</Button>
-                        ) : (
-                          <Button variant="ghost" size="sm" onClick={() => reactivate.mutate(c.id)}>Reactivate</Button>
-                        )}
-                        <Button variant="ghost" size="sm" className="text-red-500 hover:text-red-700" onClick={async () => {
-                          if (!window.confirm(`Delete ${c.firstName} ${c.lastName} permanently?`)) return;
-                          try { await remove.mutateAsync(c.id); } catch (err: unknown) {
-                            alert((err as { response?: { data?: { message?: string } } })?.response?.data?.message ?? 'Delete failed.');
-                          }
-                        }}>Delete</Button>
-                      </div>
-                    </td>
-                  </tr>
+                    </div>
+                    <div className="text-xs text-gray-500 space-y-0.5">
+                      {c.email && <p>{c.email}</p>}
+                      {c.family?.name && <p>Family: {c.family.name}</p>}
+                      <p>Added {formatDate(c.createdAt)}</p>
+                    </div>
+                    <div className="flex gap-2 pt-1">
+                      {c.status === 'active' ? (
+                        <Button variant="ghost" size="sm" onClick={() => deactivate.mutate(c.id)}>Deactivate</Button>
+                      ) : (
+                        <Button variant="ghost" size="sm" onClick={() => reactivate.mutate(c.id)}>Reactivate</Button>
+                      )}
+                      <Button variant="ghost" size="sm" className="text-red-500 hover:text-red-700" onClick={async () => {
+                        if (!window.confirm(`Delete ${c.firstName} ${c.lastName} permanently?`)) return;
+                        try { await remove.mutateAsync(c.id); } catch (err: unknown) {
+                          alert((err as { response?: { data?: { message?: string } } })?.response?.data?.message ?? 'Delete failed.');
+                        }
+                      }}>Delete</Button>
+                    </div>
+                  </div>
                 ))}
-              </tbody>
-            </table>
+              </div>
+
+              {/* Desktop table */}
+              <div className="hidden md:block">
+                <table className="w-full text-sm">
+                  <thead className="bg-gray-50 text-xs text-gray-500 uppercase">
+                    <tr>
+                      <th className="px-6 py-3 text-left">Name</th>
+                      <th className="px-6 py-3 text-left">Email</th>
+                      <th className="px-6 py-3 text-left">Family</th>
+                      <th className="px-6 py-3 text-left">Status</th>
+                      <th className="px-6 py-3 text-left">Added</th>
+                      <th className="px-6 py-3 text-left"></th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-gray-100">
+                    {contacts.data.items.map((c) => (
+                      <tr key={c.id} className="hover:bg-gray-50">
+                        <td className="px-6 py-3 font-medium">
+                          <Link to={`/contacts/${c.id}`} className="text-indigo-600 hover:underline">
+                            {c.firstName} {c.lastName}
+                          </Link>
+                        </td>
+                        <td className="px-6 py-3 text-gray-600">{c.email ?? '—'}</td>
+                        <td className="px-6 py-3 text-gray-600">{c.family?.name ?? '—'}</td>
+                        <td className="px-6 py-3">
+                          <Badge variant={c.status === 'active' ? 'green' : 'gray'}>{c.status}</Badge>
+                        </td>
+                        <td className="px-6 py-3 text-gray-500">{formatDate(c.createdAt)}</td>
+                        <td className="px-6 py-3">
+                          <div className="flex gap-1">
+                            {c.status === 'active' ? (
+                              <Button variant="ghost" size="sm" onClick={() => deactivate.mutate(c.id)}>Deactivate</Button>
+                            ) : (
+                              <Button variant="ghost" size="sm" onClick={() => reactivate.mutate(c.id)}>Reactivate</Button>
+                            )}
+                            <Button variant="ghost" size="sm" className="text-red-500 hover:text-red-700" onClick={async () => {
+                              if (!window.confirm(`Delete ${c.firstName} ${c.lastName} permanently?`)) return;
+                              try { await remove.mutateAsync(c.id); } catch (err: unknown) {
+                                alert((err as { response?: { data?: { message?: string } } })?.response?.data?.message ?? 'Delete failed.');
+                              }
+                            }}>Delete</Button>
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </>
           )}
         </CardBody>
       </Card>

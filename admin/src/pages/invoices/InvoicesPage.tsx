@@ -71,7 +71,7 @@ export function InvoicesPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between gap-2 flex-wrap">
         <h1 className="text-2xl font-bold text-gray-900">Invoices</h1>
         <Button onClick={() => setShowForm(true)}>
           <Plus className="h-4 w-4 mr-1" /> Create Invoice
@@ -94,7 +94,7 @@ export function InvoicesPage() {
           <CardHeader><h2 className="text-base font-semibold text-gray-900">New Invoice</h2></CardHeader>
           <CardBody>
             <form onSubmit={handleCreate} className="space-y-4">
-              <div className="grid grid-cols-3 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Bill to</label>
                   <select
@@ -241,49 +241,78 @@ export function InvoicesPage() {
           ) : !invoices.data?.items.length ? (
             <p className="px-6 py-10 text-center text-sm text-gray-500">No invoices found.</p>
           ) : (
-            <table className="w-full text-sm">
-              <thead className="bg-gray-50 text-xs text-gray-500 uppercase">
-                <tr>
-                  <th className="px-6 py-3 text-left">Invoice</th>
-                  <th className="px-6 py-3 text-left">Billed to</th>
-                  <th className="px-6 py-3 text-left">Amount</th>
-                  <th className="px-6 py-3 text-left">Status</th>
-                  <th className="px-6 py-3 text-left">Due</th>
-                  <th className="px-6 py-3 text-left"></th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-100">
+            <>
+              {/* Mobile cards */}
+              <div className="md:hidden divide-y divide-gray-100">
                 {invoices.data.items.map((inv) => (
-                  <tr key={inv.id} className="hover:bg-gray-50">
-                    <td className="px-6 py-3 font-medium">
-                      <Link to={`/invoices/${inv.id}`} className="text-indigo-600 hover:underline">{inv.invoiceNumber}</Link>
-                    </td>
-                    <td className="px-6 py-3 text-gray-700">
-                      {inv.contact ? `${inv.contact.firstName} ${inv.contact.lastName}` : inv.family?.name ?? '—'}
-                    </td>
-                    <td className="px-6 py-3 font-medium">{formatCurrency(inv.amountDue)}</td>
-                    <td className="px-6 py-3"><Badge variant={STATUS_VARIANT[inv.status] ?? 'gray'}>{inv.status}</Badge></td>
-                    <td className="px-6 py-3 text-gray-500">{formatDate(inv.dueDate)}</td>
-                    <td className="px-6 py-3">
-                      <div className="flex gap-1">
-                        {inv.status !== 'paid' && inv.status !== 'void' && (
-                          <>
-                            <Button variant="ghost" size="sm" onClick={() => openPaymentModal(inv)}>Record payment</Button>
-                            <Button variant="ghost" size="sm" onClick={() => voidInv.mutate(inv.id)}>Void</Button>
-                          </>
-                        )}
+                  <div key={inv.id} className="px-4 py-3 space-y-2">
+                    <div className="flex items-center justify-between gap-2">
+                      <Link to={`/invoices/${inv.id}`} className="text-sm font-semibold text-indigo-600">
+                        {inv.invoiceNumber}
+                      </Link>
+                      <Badge variant={STATUS_VARIANT[inv.status] ?? 'gray'}>{inv.status}</Badge>
+                    </div>
+                    <div className="text-xs text-gray-500 space-y-0.5">
+                      <p>{inv.contact ? `${inv.contact.firstName} ${inv.contact.lastName}` : inv.family?.name ?? '—'}</p>
+                      <p>{formatCurrency(inv.amountDue)} · Due {formatDate(inv.dueDate)}</p>
+                    </div>
+                    {inv.status !== 'paid' && inv.status !== 'void' && (
+                      <div className="flex gap-2 pt-1">
+                        <Button variant="ghost" size="sm" onClick={() => openPaymentModal(inv)}>Record payment</Button>
+                        <Button variant="ghost" size="sm" onClick={() => voidInv.mutate(inv.id)}>Void</Button>
                       </div>
-                    </td>
-                  </tr>
+                    )}
+                  </div>
                 ))}
-              </tbody>
-            </table>
+              </div>
+
+              {/* Desktop table */}
+              <div className="hidden md:block">
+                <table className="w-full text-sm">
+                  <thead className="bg-gray-50 text-xs text-gray-500 uppercase">
+                    <tr>
+                      <th className="px-6 py-3 text-left">Invoice</th>
+                      <th className="px-6 py-3 text-left">Billed to</th>
+                      <th className="px-6 py-3 text-left">Amount</th>
+                      <th className="px-6 py-3 text-left">Status</th>
+                      <th className="px-6 py-3 text-left">Due</th>
+                      <th className="px-6 py-3 text-left"></th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-gray-100">
+                    {invoices.data.items.map((inv) => (
+                      <tr key={inv.id} className="hover:bg-gray-50">
+                        <td className="px-6 py-3 font-medium">
+                          <Link to={`/invoices/${inv.id}`} className="text-indigo-600 hover:underline">{inv.invoiceNumber}</Link>
+                        </td>
+                        <td className="px-6 py-3 text-gray-700">
+                          {inv.contact ? `${inv.contact.firstName} ${inv.contact.lastName}` : inv.family?.name ?? '—'}
+                        </td>
+                        <td className="px-6 py-3 font-medium">{formatCurrency(inv.amountDue)}</td>
+                        <td className="px-6 py-3"><Badge variant={STATUS_VARIANT[inv.status] ?? 'gray'}>{inv.status}</Badge></td>
+                        <td className="px-6 py-3 text-gray-500">{formatDate(inv.dueDate)}</td>
+                        <td className="px-6 py-3">
+                          <div className="flex gap-1">
+                            {inv.status !== 'paid' && inv.status !== 'void' && (
+                              <>
+                                <Button variant="ghost" size="sm" onClick={() => openPaymentModal(inv)}>Record payment</Button>
+                                <Button variant="ghost" size="sm" onClick={() => voidInv.mutate(inv.id)}>Void</Button>
+                              </>
+                            )}
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </>
           )}
         </CardBody>
       </Card>
       {paymentModal && (
-        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
-          <div className="bg-white rounded-xl shadow-xl w-full max-w-md p-6">
+        <div className="fixed inset-0 bg-black/40 flex items-end sm:items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-xl shadow-xl w-full max-w-md p-6 max-h-[90vh] overflow-y-auto">
             <h2 className="text-base font-semibold text-gray-900 mb-4">Record Payment — {paymentModal.invoiceNumber}</h2>
             <form onSubmit={handleRecordPayment} className="space-y-4">
               <div>
