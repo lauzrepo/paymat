@@ -202,32 +202,34 @@ export function ContactDetailPage() {
               {!contact.enrollments?.length ? (
                 <p className="px-6 py-6 text-sm text-gray-500">No enrollments.</p>
               ) : (
-                <table className="w-full text-sm">
-                  <thead className="bg-gray-50 text-xs text-gray-500 uppercase">
-                    <tr>
-                      <th className="px-6 py-3 text-left">Program</th>
-                      <th className="px-6 py-3 text-left">Price</th>
-                      <th className="px-6 py-3 text-left">Status</th>
-                      <th className="px-6 py-3 text-left">Since</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-gray-100">
-                    {contact.enrollments.map((e) => (
-                      <tr key={e.id}>
-                        <td className="px-6 py-3 font-medium">{e.program.name}</td>
-                        <td className="px-6 py-3">
-                          {formatCurrency(e.program.price)}{BILLING_FREQ_LABEL[e.program.billingFrequency] ?? ''}
-                        </td>
-                        <td className="px-6 py-3">
-                          <Badge variant={e.status === 'active' ? 'green' : e.status === 'paused' ? 'yellow' : 'gray'}>
-                            {e.status}
-                          </Badge>
-                        </td>
-                        <td className="px-6 py-3 text-gray-500">{formatDate(e.startDate)}</td>
+                <div className="overflow-x-auto">
+                  <table className="w-full text-sm">
+                    <thead className="bg-gray-50 text-xs text-gray-500 uppercase">
+                      <tr>
+                        <th className="px-4 py-3 text-left whitespace-nowrap">Program</th>
+                        <th className="px-4 py-3 text-left whitespace-nowrap">Price</th>
+                        <th className="px-4 py-3 text-left whitespace-nowrap">Status</th>
+                        <th className="px-4 py-3 text-left whitespace-nowrap">Since</th>
                       </tr>
-                    ))}
-                  </tbody>
-                </table>
+                    </thead>
+                    <tbody className="divide-y divide-gray-100">
+                      {contact.enrollments.map((e) => (
+                        <tr key={e.id}>
+                          <td className="px-4 py-3 font-medium">{e.program.name}</td>
+                          <td className="px-4 py-3 whitespace-nowrap">
+                            {formatCurrency(e.program.price)}{BILLING_FREQ_LABEL[e.program.billingFrequency] ?? ''}
+                          </td>
+                          <td className="px-4 py-3">
+                            <Badge variant={e.status === 'active' ? 'green' : e.status === 'paused' ? 'yellow' : 'gray'}>
+                              {e.status}
+                            </Badge>
+                          </td>
+                          <td className="px-4 py-3 text-gray-500 whitespace-nowrap">{formatDate(e.startDate)}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
               )}
             </CardBody>
           </Card>
@@ -243,32 +245,34 @@ export function ContactDetailPage() {
               {!contact.invoices?.length ? (
                 <p className="px-6 py-6 text-sm text-gray-500">No invoices.</p>
               ) : (
-                <table className="w-full text-sm">
-                  <thead className="bg-gray-50 text-xs text-gray-500 uppercase">
-                    <tr>
-                      <th className="px-6 py-3 text-left">Invoice</th>
-                      <th className="px-6 py-3 text-left">Amount</th>
-                      <th className="px-6 py-3 text-left">Status</th>
-                      <th className="px-6 py-3 text-left">Due</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-gray-100">
-                    {contact.invoices.map((inv) => (
-                      <tr key={inv.id}>
-                        <td className="px-6 py-3">
-                          <Link to={`/invoices/${inv.id}`} className="text-indigo-600 hover:underline font-medium">
-                            {inv.invoiceNumber}
-                          </Link>
-                        </td>
-                        <td className="px-6 py-3 font-medium">{formatCurrency(inv.amountDue)}</td>
-                        <td className="px-6 py-3">
-                          <InvoiceStatusBadge status={inv.status} />
-                        </td>
-                        <td className="px-6 py-3 text-gray-500">{formatDate(inv.dueDate)}</td>
+                <div className="overflow-x-auto">
+                  <table className="w-full text-sm">
+                    <thead className="bg-gray-50 text-xs text-gray-500 uppercase">
+                      <tr>
+                        <th className="px-4 py-3 text-left whitespace-nowrap">Invoice</th>
+                        <th className="px-4 py-3 text-left whitespace-nowrap">Amount</th>
+                        <th className="px-4 py-3 text-left whitespace-nowrap">Status</th>
+                        <th className="px-4 py-3 text-left whitespace-nowrap">Due</th>
                       </tr>
-                    ))}
-                  </tbody>
-                </table>
+                    </thead>
+                    <tbody className="divide-y divide-gray-100">
+                      {contact.invoices.map((inv) => (
+                        <tr key={inv.id}>
+                          <td className="px-4 py-3 whitespace-nowrap">
+                            <Link to={`/invoices/${inv.id}`} className="text-indigo-600 hover:underline font-medium">
+                              {inv.invoiceNumber}
+                            </Link>
+                          </td>
+                          <td className="px-4 py-3 font-medium whitespace-nowrap">{formatCurrency(inv.amountDue)}</td>
+                          <td className="px-4 py-3">
+                            <InvoiceStatusBadge status={inv.status} />
+                          </td>
+                          <td className="px-4 py-3 text-gray-500 whitespace-nowrap">{formatDate(inv.dueDate)}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
               )}
             </CardBody>
           </Card>
