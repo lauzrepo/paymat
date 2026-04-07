@@ -168,28 +168,30 @@ export function FamilyDetailPage() {
           {!family.contacts?.length ? (
             <p className="px-6 py-8 text-center text-sm text-gray-500">No members yet.</p>
           ) : (
-            <table className="w-full text-sm">
-              <thead className="bg-gray-50 text-xs text-gray-500 uppercase">
-                <tr>
-                  <th className="px-6 py-3 text-left">Name</th>
-                  <th className="px-6 py-3 text-left">Status</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-100">
-                {family.contacts.map((c) => (
-                  <tr key={c.id} className="hover:bg-gray-50">
-                    <td className="px-6 py-3 font-medium">
-                      <Link to={`/contacts/${c.id}`} className="text-indigo-600 hover:underline">
-                        {c.firstName} {c.lastName}
-                      </Link>
-                    </td>
-                    <td className="px-6 py-3">
-                      <Badge variant={c.status === 'active' ? 'green' : 'gray'}>{c.status}</Badge>
-                    </td>
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead className="bg-gray-50 text-xs text-gray-500 uppercase">
+                  <tr>
+                    <th className="px-4 py-3 text-left whitespace-nowrap">Name</th>
+                    <th className="px-4 py-3 text-left whitespace-nowrap">Status</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                </thead>
+                <tbody className="divide-y divide-gray-100">
+                  {family.contacts.map((c) => (
+                    <tr key={c.id} className="hover:bg-gray-50">
+                      <td className="px-4 py-3 font-medium">
+                        <Link to={`/contacts/${c.id}`} className="text-indigo-600 hover:underline">
+                          {c.firstName} {c.lastName}
+                        </Link>
+                      </td>
+                      <td className="px-4 py-3">
+                        <Badge variant={c.status === 'active' ? 'green' : 'gray'}>{c.status}</Badge>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           )}
         </CardBody>
       </Card>

@@ -136,66 +136,68 @@ export function ProgramsPage() {
           ) : !programs.data?.items.length ? (
             <p className="px-6 py-10 text-center text-sm text-gray-500">No programs yet.</p>
           ) : (
-            <table className="w-full text-sm">
-              <thead className="bg-gray-50 text-xs text-gray-500 uppercase">
-                <tr>
-                  <th className="px-6 py-3 text-left">Name</th>
-                  <th className="px-6 py-3 text-left">Price</th>
-                  <th className="px-6 py-3 text-left">Frequency</th>
-                  <th className="px-6 py-3 text-left">Enrolled</th>
-                  <th className="px-6 py-3 text-left">Payments</th>
-                  <th className="px-6 py-3 text-left">Status</th>
-                  <th className="px-6 py-3 text-left"></th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-100">
-                {programs.data.items.map((p) =>
-                  editingId === p.id ? (
-                    <tr key={p.id}>
-                      <td colSpan={6} className="px-6 py-4">
-                        <EditRow program={p} onDone={() => setEditingId(null)} />
-                      </td>
-                    </tr>
-                  ) : (
-                    <tr key={p.id} className="hover:bg-gray-50">
-                      <td className="px-6 py-3 font-medium">
-                        <div>{p.name}</div>
-                        {p.description && <div className="text-xs text-gray-400 truncate max-w-xs">{p.description}</div>}
-                      </td>
-                      <td className="px-6 py-3">{formatCurrency(p.price)}</td>
-                      <td className="px-6 py-3 text-gray-600">{FREQ_LABELS[p.billingFrequency] ?? p.billingFrequency}</td>
-                      <td className="px-6 py-3 text-gray-600">
-                        {p._count?.enrollments ?? 0}{p.capacity ? ` / ${p.capacity}` : ''}
-                      </td>
-                      <td className="px-6 py-3 text-gray-600">
-                        {p.maxBillingCycles ? p.maxBillingCycles : <span className="text-gray-400">Ongoing</span>}
-                      </td>
-                      <td className="px-6 py-3">
-                        <Badge variant={p.isActive ? 'green' : 'gray'}>{p.isActive ? 'Active' : 'Inactive'}</Badge>
-                      </td>
-                      <td className="px-6 py-3">
-                        <div className="flex gap-1">
-                          <Button variant="ghost" size="sm" onClick={() => setEditingId(p.id)}>Edit</Button>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            className="text-red-500 hover:text-red-700"
-                            loading={deleteProgram.isPending}
-                            onClick={() => {
-                              if (window.confirm(`Delete "${p.name}"? This cannot be undone.`)) {
-                                deleteProgram.mutate(p.id);
-                              }
-                            }}
-                          >
-                            Delete
-                          </Button>
-                        </div>
-                      </td>
-                    </tr>
-                  )
-                )}
-              </tbody>
-            </table>
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead className="bg-gray-50 text-xs text-gray-500 uppercase">
+                  <tr>
+                    <th className="px-4 py-3 text-left whitespace-nowrap">Name</th>
+                    <th className="px-4 py-3 text-left whitespace-nowrap">Price</th>
+                    <th className="px-4 py-3 text-left whitespace-nowrap">Frequency</th>
+                    <th className="px-4 py-3 text-left whitespace-nowrap">Enrolled</th>
+                    <th className="px-4 py-3 text-left whitespace-nowrap">Payments</th>
+                    <th className="px-4 py-3 text-left whitespace-nowrap">Status</th>
+                    <th className="px-4 py-3 text-left"></th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-100">
+                  {programs.data.items.map((p) =>
+                    editingId === p.id ? (
+                      <tr key={p.id}>
+                        <td colSpan={6} className="px-4 py-4">
+                          <EditRow program={p} onDone={() => setEditingId(null)} />
+                        </td>
+                      </tr>
+                    ) : (
+                      <tr key={p.id} className="hover:bg-gray-50">
+                        <td className="px-4 py-3 font-medium">
+                          <div>{p.name}</div>
+                          {p.description && <div className="text-xs text-gray-400 truncate max-w-xs">{p.description}</div>}
+                        </td>
+                        <td className="px-4 py-3 whitespace-nowrap">{formatCurrency(p.price)}</td>
+                        <td className="px-4 py-3 text-gray-600 whitespace-nowrap">{FREQ_LABELS[p.billingFrequency] ?? p.billingFrequency}</td>
+                        <td className="px-4 py-3 text-gray-600 whitespace-nowrap">
+                          {p._count?.enrollments ?? 0}{p.capacity ? ` / ${p.capacity}` : ''}
+                        </td>
+                        <td className="px-4 py-3 text-gray-600 whitespace-nowrap">
+                          {p.maxBillingCycles ? p.maxBillingCycles : <span className="text-gray-400">Ongoing</span>}
+                        </td>
+                        <td className="px-4 py-3">
+                          <Badge variant={p.isActive ? 'green' : 'gray'}>{p.isActive ? 'Active' : 'Inactive'}</Badge>
+                        </td>
+                        <td className="px-4 py-3">
+                          <div className="flex gap-1">
+                            <Button variant="ghost" size="sm" onClick={() => setEditingId(p.id)}>Edit</Button>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="text-red-500 hover:text-red-700"
+                              loading={deleteProgram.isPending}
+                              onClick={() => {
+                                if (window.confirm(`Delete "${p.name}"? This cannot be undone.`)) {
+                                  deleteProgram.mutate(p.id);
+                                }
+                              }}
+                            >
+                              Delete
+                            </Button>
+                          </div>
+                        </td>
+                      </tr>
+                    )
+                  )}
+                </tbody>
+              </table>
+            </div>
           )}
         </CardBody>
       </Card>

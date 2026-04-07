@@ -140,32 +140,34 @@ export function InvoiceDetailPage() {
               {!invoice.lineItems?.length ? (
                 <p className="px-6 py-6 text-sm text-gray-500">No line items.</p>
               ) : (
-                <table className="w-full text-sm">
-                  <thead className="bg-gray-50 text-xs text-gray-500 uppercase">
-                    <tr>
-                      <th className="px-6 py-3 text-left">Description</th>
-                      <th className="px-6 py-3 text-right">Qty</th>
-                      <th className="px-6 py-3 text-right">Unit price</th>
-                      <th className="px-6 py-3 text-right">Total</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-gray-100">
-                    {invoice.lineItems.map((li) => (
-                      <tr key={li.id}>
-                        <td className="px-6 py-3">{li.description}</td>
-                        <td className="px-6 py-3 text-right text-gray-500">{li.quantity}</td>
-                        <td className="px-6 py-3 text-right text-gray-500">{formatCurrency(li.unitPrice)}</td>
-                        <td className="px-6 py-3 text-right font-medium">{formatCurrency(li.total)}</td>
+                <div className="overflow-x-auto">
+                  <table className="w-full text-sm">
+                    <thead className="bg-gray-50 text-xs text-gray-500 uppercase">
+                      <tr>
+                        <th className="px-4 py-3 text-left whitespace-nowrap">Description</th>
+                        <th className="px-4 py-3 text-right whitespace-nowrap">Qty</th>
+                        <th className="px-4 py-3 text-right whitespace-nowrap">Unit price</th>
+                        <th className="px-4 py-3 text-right whitespace-nowrap">Total</th>
                       </tr>
-                    ))}
-                  </tbody>
-                  <tfoot>
-                    <tr className="border-t border-gray-200">
-                      <td colSpan={3} className="px-6 py-3 text-right text-sm font-semibold text-gray-700">Total</td>
-                      <td className="px-6 py-3 text-right text-sm font-bold text-gray-900">{formatCurrency(invoice.amountDue)}</td>
-                    </tr>
-                  </tfoot>
-                </table>
+                    </thead>
+                    <tbody className="divide-y divide-gray-100">
+                      {invoice.lineItems.map((li) => (
+                        <tr key={li.id}>
+                          <td className="px-4 py-3">{li.description}</td>
+                          <td className="px-4 py-3 text-right text-gray-500">{li.quantity}</td>
+                          <td className="px-4 py-3 text-right text-gray-500 whitespace-nowrap">{formatCurrency(li.unitPrice)}</td>
+                          <td className="px-4 py-3 text-right font-medium whitespace-nowrap">{formatCurrency(li.total)}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                    <tfoot>
+                      <tr className="border-t border-gray-200">
+                        <td colSpan={3} className="px-4 py-3 text-right text-sm font-semibold text-gray-700">Total</td>
+                        <td className="px-4 py-3 text-right text-sm font-bold text-gray-900 whitespace-nowrap">{formatCurrency(invoice.amountDue)}</td>
+                      </tr>
+                    </tfoot>
+                  </table>
+                </div>
               )}
             </CardBody>
           </Card>
@@ -178,40 +180,42 @@ export function InvoiceDetailPage() {
               ) : !payments.data?.items.length ? (
                 <p className="px-6 py-6 text-sm text-gray-500">No payments recorded.</p>
               ) : (
-                <table className="w-full text-sm">
-                  <thead className="bg-gray-50 text-xs text-gray-500 uppercase">
-                    <tr>
-                      <th className="px-6 py-3 text-left">Date</th>
-                      <th className="px-6 py-3 text-left">Method</th>
-                      <th className="px-6 py-3 text-left">Amount</th>
-                      <th className="px-6 py-3 text-left">Status</th>
-                      <th className="px-6 py-3 text-left"></th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-gray-100">
-                    {payments.data.items.map((p) => (
-                      <tr key={p.id}>
-                        <td className="px-6 py-3 text-gray-500">{formatDate(p.createdAt)}</td>
-                        <td className="px-6 py-3 text-gray-700 capitalize">{p.paymentMethodType?.replace('_', ' ') ?? '—'}</td>
-                        <td className="px-6 py-3 font-medium">{formatCurrency(p.amount)}</td>
-                        <td className="px-6 py-3">
-                          <Badge variant={PAYMENT_VARIANT[p.status] ?? 'gray'}>{p.status}</Badge>
-                        </td>
-                        <td className="px-6 py-3">
-                          {p.status === 'succeeded' && (
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => { setRefundModal({ id: p.id, amount: p.amount }); setRefundAmount(String(p.amount)); }}
-                            >
-                              Refund
-                            </Button>
-                          )}
-                        </td>
+                <div className="overflow-x-auto">
+                  <table className="w-full text-sm">
+                    <thead className="bg-gray-50 text-xs text-gray-500 uppercase">
+                      <tr>
+                        <th className="px-4 py-3 text-left whitespace-nowrap">Date</th>
+                        <th className="px-4 py-3 text-left whitespace-nowrap">Method</th>
+                        <th className="px-4 py-3 text-left whitespace-nowrap">Amount</th>
+                        <th className="px-4 py-3 text-left whitespace-nowrap">Status</th>
+                        <th className="px-4 py-3 text-left"></th>
                       </tr>
-                    ))}
-                  </tbody>
-                </table>
+                    </thead>
+                    <tbody className="divide-y divide-gray-100">
+                      {payments.data.items.map((p) => (
+                        <tr key={p.id}>
+                          <td className="px-4 py-3 text-gray-500 whitespace-nowrap">{formatDate(p.createdAt)}</td>
+                          <td className="px-4 py-3 text-gray-700 capitalize whitespace-nowrap">{p.paymentMethodType?.replace('_', ' ') ?? '—'}</td>
+                          <td className="px-4 py-3 font-medium whitespace-nowrap">{formatCurrency(p.amount)}</td>
+                          <td className="px-4 py-3">
+                            <Badge variant={PAYMENT_VARIANT[p.status] ?? 'gray'}>{p.status}</Badge>
+                          </td>
+                          <td className="px-4 py-3">
+                            {p.status === 'succeeded' && (
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => { setRefundModal({ id: p.id, amount: p.amount }); setRefundAmount(String(p.amount)); }}
+                              >
+                                Refund
+                              </Button>
+                            )}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
               )}
             </CardBody>
           </Card>

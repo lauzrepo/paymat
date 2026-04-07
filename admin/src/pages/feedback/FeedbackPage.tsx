@@ -158,40 +158,42 @@ export function FeedbackPage() {
               <p className="text-sm">No submissions yet.</p>
             </div>
           ) : (
-            <table className="w-full text-sm">
-              <thead className="bg-gray-50 text-xs text-gray-500 uppercase">
-                <tr>
-                  <th className="px-6 py-3 text-left">Subject</th>
-                  <th className="px-6 py-3 text-left">From</th>
-                  <th className="px-6 py-3 text-left">Type</th>
-                  <th className="px-6 py-3 text-left">Status</th>
-                  <th className="px-6 py-3 text-left">Submitted</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-100">
-                {list.data.items.map((s) => (
-                  <tr key={s.id} className="hover:bg-gray-50">
-                    <td className="px-6 py-3 font-medium">
-                      <Link to={`/feedback/${s.id}`} className="text-indigo-600 hover:underline">
-                        {s.subject}
-                      </Link>
-                    </td>
-                    <td className="px-6 py-3 text-gray-600">
-                      {s.contact
-                        ? <Link to={`/contacts/${s.contact.id}`} className="hover:underline">{s.contact.firstName} {s.contact.lastName}</Link>
-                        : s.name}
-                    </td>
-                    <td className="px-6 py-3 text-gray-600">{TYPE_LABELS[s.type]}</td>
-                    <td className="px-6 py-3">
-                      <Badge variant={STATUS_VARIANTS[s.status] ?? 'gray'}>
-                        {s.status.replace('_', ' ')}
-                      </Badge>
-                    </td>
-                    <td className="px-6 py-3 text-gray-500">{formatDate(s.createdAt)}</td>
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead className="bg-gray-50 text-xs text-gray-500 uppercase">
+                  <tr>
+                    <th className="px-4 py-3 text-left whitespace-nowrap">Subject</th>
+                    <th className="px-4 py-3 text-left whitespace-nowrap">From</th>
+                    <th className="px-4 py-3 text-left whitespace-nowrap">Type</th>
+                    <th className="px-4 py-3 text-left whitespace-nowrap">Status</th>
+                    <th className="px-4 py-3 text-left whitespace-nowrap">Submitted</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                </thead>
+                <tbody className="divide-y divide-gray-100">
+                  {list.data.items.map((s) => (
+                    <tr key={s.id} className="hover:bg-gray-50">
+                      <td className="px-4 py-3 font-medium">
+                        <Link to={`/feedback/${s.id}`} className="text-indigo-600 hover:underline">
+                          {s.subject}
+                        </Link>
+                      </td>
+                      <td className="px-4 py-3 text-gray-600 whitespace-nowrap">
+                        {s.contact
+                          ? <Link to={`/contacts/${s.contact.id}`} className="hover:underline">{s.contact.firstName} {s.contact.lastName}</Link>
+                          : s.name}
+                      </td>
+                      <td className="px-4 py-3 text-gray-600 whitespace-nowrap">{TYPE_LABELS[s.type]}</td>
+                      <td className="px-4 py-3">
+                        <Badge variant={STATUS_VARIANTS[s.status] ?? 'gray'}>
+                          {s.status.replace('_', ' ')}
+                        </Badge>
+                      </td>
+                      <td className="px-4 py-3 text-gray-500 whitespace-nowrap">{formatDate(s.createdAt)}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           )}
         </CardBody>
       </Card>
