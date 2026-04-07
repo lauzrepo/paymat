@@ -58,7 +58,7 @@ export function FamilyDetailPage() {
       try {
         data = typeof event.data === 'string' ? JSON.parse(event.data) : event.data;
       } catch {
-        return; // not a relevant message
+        return;
       }
       if (data.eventType === 'HELCIM_PAY_JS_SUCCESS') {
         const msg = data.eventMessage as Record<string, unknown> | undefined;
@@ -114,19 +114,14 @@ export function FamilyDetailPage() {
 
       <Card>
         <CardHeader>
-          <div className="flex items-center justify-between">
+          <div className="flex flex-wrap items-center justify-between gap-2">
             <h2 className="text-base font-semibold text-gray-900">Family info</h2>
             <div className="flex gap-2">
               <Button variant="secondary" size="sm" onClick={openCardForm} loading={cardStatus === 'loading'}>
                 <CreditCard className="h-4 w-4 mr-1" />
                 {family.helcimToken ? 'Replace card' : 'Save card on file'}
               </Button>
-              <Button
-                variant="danger"
-                size="sm"
-                loading={deleteFamily.isPending}
-                onClick={handleDelete}
-              >
+              <Button variant="danger" size="sm" loading={deleteFamily.isPending} onClick={handleDelete}>
                 Delete
               </Button>
             </div>
@@ -151,12 +146,8 @@ export function FamilyDetailPage() {
             <span className="text-gray-500">Added</span>
             <span className="text-gray-800">{formatDate(family.createdAt)}</span>
           </div>
-          {cardStatus === 'success' && (
-            <p className="text-sm text-green-600 font-medium">{cardMessage}</p>
-          )}
-          {cardStatus === 'error' && (
-            <p className="text-sm text-red-600">{cardMessage}</p>
-          )}
+          {cardStatus === 'success' && <p className="text-sm text-green-600 font-medium">{cardMessage}</p>}
+          {cardStatus === 'error' && <p className="text-sm text-red-600">{cardMessage}</p>}
         </CardBody>
       </Card>
 
@@ -168,28 +159,45 @@ export function FamilyDetailPage() {
           {!family.contacts?.length ? (
             <p className="px-6 py-8 text-center text-sm text-gray-500">No members yet.</p>
           ) : (
-            <table className="w-full text-sm">
-              <thead className="bg-gray-50 text-xs text-gray-500 uppercase">
-                <tr>
-                  <th className="px-6 py-3 text-left">Name</th>
-                  <th className="px-6 py-3 text-left">Status</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-100">
+            <>
+              {/* Mobile cards */}
+              <div className="md:hidden divide-y divide-gray-100">
                 {family.contacts.map((c) => (
-                  <tr key={c.id} className="hover:bg-gray-50">
-                    <td className="px-6 py-3 font-medium">
-                      <Link to={`/contacts/${c.id}`} className="text-indigo-600 hover:underline">
-                        {c.firstName} {c.lastName}
-                      </Link>
-                    </td>
-                    <td className="px-6 py-3">
-                      <Badge variant={c.status === 'active' ? 'green' : 'gray'}>{c.status}</Badge>
-                    </td>
-                  </tr>
+                  <div key={c.id} className="px-4 py-3 flex items-center justify-between gap-3">
+                    <Link to={`/contacts/${c.id}`} className="text-sm font-semibold text-indigo-600">
+                      {c.firstName} {c.lastName}
+                    </Link>
+                    <Badge variant={c.status === 'active' ? 'green' : 'gray'}>{c.status}</Badge>
+                  </div>
                 ))}
-              </tbody>
-            </table>
+              </div>
+
+              {/* Desktop table */}
+              <div className="hidden md:block">
+                <table className="w-full text-sm">
+                  <thead className="bg-gray-50 text-xs text-gray-500 uppercase">
+                    <tr>
+                      <th className="px-6 py-3 text-left">Name</th>
+                      <th className="px-6 py-3 text-left">Status</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-gray-100">
+                    {family.contacts.map((c) => (
+                      <tr key={c.id} className="hover:bg-gray-50">
+                        <td className="px-6 py-3 font-medium">
+                          <Link to={`/contacts/${c.id}`} className="text-indigo-600 hover:underline">
+                            {c.firstName} {c.lastName}
+                          </Link>
+                        </td>
+                        <td className="px-6 py-3">
+                          <Badge variant={c.status === 'active' ? 'green' : 'gray'}>{c.status}</Badge>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </>
           )}
         </CardBody>
       </Card>

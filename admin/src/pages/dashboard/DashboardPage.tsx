@@ -29,26 +29,10 @@ export function DashboardPage() {
       <h1 className="text-2xl font-bold text-gray-900">Dashboard</h1>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <StatCard
-          label="Active Members"
-          value={contacts.data?.total ?? '—'}
-          icon={<Users className="h-5 w-5" />}
-        />
-        <StatCard
-          label="Revenue This Month"
-          value={formatCurrency(paymentStats.data?.totalAmount ?? 0)}
-          icon={<DollarSign className="h-5 w-5" />}
-        />
-        <StatCard
-          label="Overdue Invoices"
-          value={invoiceStats.data?.overdue ?? '—'}
-          icon={<AlertCircle className="h-5 w-5" />}
-        />
-        <StatCard
-          label="Total Collected"
-          value={formatCurrency(invoiceStats.data?.totalAmountPaid ?? 0)}
-          icon={<TrendingUp className="h-5 w-5" />}
-        />
+        <StatCard label="Active Members" value={contacts.data?.total ?? '—'} icon={<Users className="h-5 w-5" />} />
+        <StatCard label="Revenue This Month" value={formatCurrency(paymentStats.data?.totalAmount ?? 0)} icon={<DollarSign className="h-5 w-5" />} />
+        <StatCard label="Overdue Invoices" value={invoiceStats.data?.overdue ?? '—'} icon={<AlertCircle className="h-5 w-5" />} />
+        <StatCard label="Total Collected" value={formatCurrency(invoiceStats.data?.totalAmountPaid ?? 0)} icon={<TrendingUp className="h-5 w-5" />} />
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -56,9 +40,7 @@ export function DashboardPage() {
           <Card>
             <CardHeader className="flex items-center justify-between">
               <h2 className="text-base font-semibold text-gray-900">Overdue Invoices</h2>
-              <Link to="/invoices?status=overdue" className="text-sm text-indigo-600 hover:text-indigo-500">
-                View all
-              </Link>
+              <Link to="/invoices?status=overdue" className="text-sm text-indigo-600 hover:text-indigo-500">View all</Link>
             </CardHeader>
             <CardBody className="p-0">
               {overdueInvoices.isLoading ? (
@@ -66,34 +48,55 @@ export function DashboardPage() {
               ) : !overdueInvoices.data?.items.length ? (
                 <p className="px-6 py-8 text-center text-sm text-gray-500">No overdue invoices.</p>
               ) : (
-                <table className="w-full text-sm">
-                  <thead className="bg-gray-50 text-xs text-gray-500 uppercase">
-                    <tr>
-                      <th className="px-6 py-3 text-left">Invoice</th>
-                      <th className="px-6 py-3 text-left">Billed to</th>
-                      <th className="px-6 py-3 text-left">Amount</th>
-                      <th className="px-6 py-3 text-left">Due</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-gray-100">
+                <>
+                  {/* Mobile cards */}
+                  <div className="md:hidden divide-y divide-gray-100">
                     {overdueInvoices.data.items.map((inv) => (
-                      <tr key={inv.id}>
-                        <td className="px-6 py-3">
-                          <Link to={`/invoices/${inv.id}`} className="text-indigo-600 hover:underline font-medium">
+                      <div key={inv.id} className="px-4 py-3 flex items-center justify-between gap-3">
+                        <div className="min-w-0">
+                          <Link to={`/invoices/${inv.id}`} className="text-sm font-semibold text-indigo-600">
                             {inv.invoiceNumber}
                           </Link>
-                        </td>
-                        <td className="px-6 py-3 text-gray-700">
-                          {inv.contact
-                            ? `${inv.contact.firstName} ${inv.contact.lastName}`
-                            : inv.family?.name ?? '—'}
-                        </td>
-                        <td className="px-6 py-3 font-medium">{formatCurrency(inv.amountDue)}</td>
-                        <td className="px-6 py-3 text-red-600">{formatDate(inv.dueDate)}</td>
-                      </tr>
+                          <p className="text-xs text-gray-500 mt-0.5">
+                            {inv.contact ? `${inv.contact.firstName} ${inv.contact.lastName}` : inv.family?.name ?? '—'}
+                          </p>
+                        </div>
+                        <div className="text-right flex-shrink-0">
+                          <p className="text-sm font-medium text-gray-900">{formatCurrency(inv.amountDue)}</p>
+                          <p className="text-xs text-red-600">{formatDate(inv.dueDate)}</p>
+                        </div>
+                      </div>
                     ))}
-                  </tbody>
-                </table>
+                  </div>
+
+                  {/* Desktop table */}
+                  <div className="hidden md:block">
+                    <table className="w-full text-sm">
+                      <thead className="bg-gray-50 text-xs text-gray-500 uppercase">
+                        <tr>
+                          <th className="px-6 py-3 text-left">Invoice</th>
+                          <th className="px-6 py-3 text-left">Billed to</th>
+                          <th className="px-6 py-3 text-left">Amount</th>
+                          <th className="px-6 py-3 text-left">Due</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-gray-100">
+                        {overdueInvoices.data.items.map((inv) => (
+                          <tr key={inv.id}>
+                            <td className="px-6 py-3">
+                              <Link to={`/invoices/${inv.id}`} className="text-indigo-600 hover:underline font-medium">{inv.invoiceNumber}</Link>
+                            </td>
+                            <td className="px-6 py-3 text-gray-700">
+                              {inv.contact ? `${inv.contact.firstName} ${inv.contact.lastName}` : inv.family?.name ?? '—'}
+                            </td>
+                            <td className="px-6 py-3 font-medium">{formatCurrency(inv.amountDue)}</td>
+                            <td className="px-6 py-3 text-red-600">{formatDate(inv.dueDate)}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </>
               )}
             </CardBody>
           </Card>
@@ -117,9 +120,7 @@ export function DashboardPage() {
                   <div key={label} className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
                       {status && (
-                        <Badge variant={STATUS_COLORS[status] as 'green' | 'red' | 'gray' | 'blue' || 'gray'}>
-                          {label}
-                        </Badge>
+                        <Badge variant={STATUS_COLORS[status] as 'green' | 'red' | 'gray' | 'blue' || 'gray'}>{label}</Badge>
                       )}
                       {!status && <span className="text-sm font-medium text-gray-700">{label}</span>}
                     </div>

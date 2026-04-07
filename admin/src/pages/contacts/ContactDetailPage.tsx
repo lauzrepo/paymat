@@ -11,10 +11,11 @@ import { Spinner } from '../../components/ui/Spinner';
 import { formatCurrency, formatDate } from '../../lib/utils';
 
 const BILLING_FREQ_LABEL: Record<string, string> = {
-  monthly: '/mo',
-  weekly: '/wk',
-  yearly: '/yr',
-  one_time: ' one-time',
+  monthly: '/mo', weekly: '/wk', yearly: '/yr', one_time: ' one-time',
+};
+
+const INVOICE_STATUS_VARIANT: Record<string, 'green' | 'red' | 'gray' | 'blue' | 'yellow'> = {
+  paid: 'green', overdue: 'red', draft: 'gray', sent: 'blue', void: 'gray',
 };
 
 export function ContactDetailPage() {
@@ -67,7 +68,7 @@ export function ContactDetailPage() {
       try {
         data = typeof event.data === 'string' ? JSON.parse(event.data) : event.data;
       } catch {
-        return; // not a relevant message
+        return;
       }
       if (data.eventType === 'HELCIM_PAY_JS_SUCCESS') {
         const msg = data.eventMessage as Record<string, unknown> | undefined;
@@ -114,7 +115,7 @@ export function ContactDetailPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center gap-3">
+      <div className="flex items-center gap-3 flex-wrap">
         <Link to="/contacts" className="text-gray-400 hover:text-gray-600">
           <ChevronLeft className="h-5 w-5" />
         </Link>
@@ -147,12 +148,8 @@ export function ContactDetailPage() {
                   <span className="text-gray-400 text-xs">None</span>
                 )}
               </div>
-              {cardStatus === 'success' && (
-                <p className="text-sm text-green-600 font-medium">{cardMessage}</p>
-              )}
-              {cardStatus === 'error' && (
-                <p className="text-sm text-red-600">{cardMessage}</p>
-              )}
+              {cardStatus === 'success' && <p className="text-sm text-green-600 font-medium">{cardMessage}</p>}
+              {cardStatus === 'error' && <p className="text-sm text-red-600">{cardMessage}</p>}
             </CardBody>
           </Card>
 
@@ -161,39 +158,23 @@ export function ContactDetailPage() {
               <CreditCard className="h-4 w-4 mr-1" />
               {contact.helcimToken ? 'Replace card' : 'Save card on file'}
             </Button>
-
             {contact.status === 'active' ? (
-              <Button
-                variant="danger"
-                size="sm"
-                loading={deactivate.isPending}
-                onClick={() => deactivate.mutate(contact.id)}
-              >
+              <Button variant="danger" size="sm" loading={deactivate.isPending} onClick={() => deactivate.mutate(contact.id)}>
                 Deactivate contact
               </Button>
             ) : (
-              <Button
-                variant="secondary"
-                size="sm"
-                loading={reactivate.isPending}
-                onClick={() => reactivate.mutate(contact.id)}
-              >
+              <Button variant="secondary" size="sm" loading={reactivate.isPending} onClick={() => reactivate.mutate(contact.id)}>
                 Reactivate contact
               </Button>
             )}
-            <Button
-              variant="ghost"
-              size="sm"
-              loading={remove.isPending}
-              onClick={handleDelete}
-              className="text-red-500 hover:text-red-700"
-            >
+            <Button variant="ghost" size="sm" loading={remove.isPending} onClick={handleDelete} className="text-red-500 hover:text-red-700">
               Delete permanently
             </Button>
           </div>
         </div>
 
         <div className="lg:col-span-2 space-y-6">
+          {/* Enrollments */}
           <Card>
             <CardHeader>
               <h2 className="text-base font-semibold text-gray-900">Enrollments</h2>
@@ -202,36 +183,59 @@ export function ContactDetailPage() {
               {!contact.enrollments?.length ? (
                 <p className="px-6 py-6 text-sm text-gray-500">No enrollments.</p>
               ) : (
-                <table className="w-full text-sm">
-                  <thead className="bg-gray-50 text-xs text-gray-500 uppercase">
-                    <tr>
-                      <th className="px-6 py-3 text-left">Program</th>
-                      <th className="px-6 py-3 text-left">Price</th>
-                      <th className="px-6 py-3 text-left">Status</th>
-                      <th className="px-6 py-3 text-left">Since</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-gray-100">
+                <>
+                  {/* Mobile cards */}
+                  <div className="md:hidden divide-y divide-gray-100">
                     {contact.enrollments.map((e) => (
-                      <tr key={e.id}>
-                        <td className="px-6 py-3 font-medium">{e.program.name}</td>
-                        <td className="px-6 py-3">
-                          {formatCurrency(e.program.price)}{BILLING_FREQ_LABEL[e.program.billingFrequency] ?? ''}
-                        </td>
-                        <td className="px-6 py-3">
-                          <Badge variant={e.status === 'active' ? 'green' : e.status === 'paused' ? 'yellow' : 'gray'}>
-                            {e.status}
-                          </Badge>
-                        </td>
-                        <td className="px-6 py-3 text-gray-500">{formatDate(e.startDate)}</td>
-                      </tr>
+                      <div key={e.id} className="px-4 py-3 flex items-center justify-between gap-3">
+                        <div className="min-w-0">
+                          <p className="text-sm font-medium text-gray-900">{e.program.name}</p>
+                          <p className="text-xs text-gray-500">
+                            {formatCurrency(e.program.price)}{BILLING_FREQ_LABEL[e.program.billingFrequency] ?? ''} · Since {formatDate(e.startDate)}
+                          </p>
+                        </div>
+                        <Badge variant={e.status === 'active' ? 'green' : e.status === 'paused' ? 'yellow' : 'gray'}>
+                          {e.status}
+                        </Badge>
+                      </div>
                     ))}
-                  </tbody>
-                </table>
+                  </div>
+
+                  {/* Desktop table */}
+                  <div className="hidden md:block">
+                    <table className="w-full text-sm">
+                      <thead className="bg-gray-50 text-xs text-gray-500 uppercase">
+                        <tr>
+                          <th className="px-6 py-3 text-left">Program</th>
+                          <th className="px-6 py-3 text-left">Price</th>
+                          <th className="px-6 py-3 text-left">Status</th>
+                          <th className="px-6 py-3 text-left">Since</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-gray-100">
+                        {contact.enrollments.map((e) => (
+                          <tr key={e.id}>
+                            <td className="px-6 py-3 font-medium">{e.program.name}</td>
+                            <td className="px-6 py-3">
+                              {formatCurrency(e.program.price)}{BILLING_FREQ_LABEL[e.program.billingFrequency] ?? ''}
+                            </td>
+                            <td className="px-6 py-3">
+                              <Badge variant={e.status === 'active' ? 'green' : e.status === 'paused' ? 'yellow' : 'gray'}>
+                                {e.status}
+                              </Badge>
+                            </td>
+                            <td className="px-6 py-3 text-gray-500">{formatDate(e.startDate)}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </>
               )}
             </CardBody>
           </Card>
 
+          {/* Invoices */}
           <Card>
             <CardHeader className="flex items-center justify-between">
               <h2 className="text-base font-semibold text-gray-900">Recent Invoices</h2>
@@ -243,32 +247,54 @@ export function ContactDetailPage() {
               {!contact.invoices?.length ? (
                 <p className="px-6 py-6 text-sm text-gray-500">No invoices.</p>
               ) : (
-                <table className="w-full text-sm">
-                  <thead className="bg-gray-50 text-xs text-gray-500 uppercase">
-                    <tr>
-                      <th className="px-6 py-3 text-left">Invoice</th>
-                      <th className="px-6 py-3 text-left">Amount</th>
-                      <th className="px-6 py-3 text-left">Status</th>
-                      <th className="px-6 py-3 text-left">Due</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-gray-100">
+                <>
+                  {/* Mobile cards */}
+                  <div className="md:hidden divide-y divide-gray-100">
                     {contact.invoices.map((inv) => (
-                      <tr key={inv.id}>
-                        <td className="px-6 py-3">
-                          <Link to={`/invoices/${inv.id}`} className="text-indigo-600 hover:underline font-medium">
+                      <div key={inv.id} className="px-4 py-3 flex items-center justify-between gap-3">
+                        <div className="min-w-0">
+                          <Link to={`/invoices/${inv.id}`} className="text-sm font-semibold text-indigo-600">
                             {inv.invoiceNumber}
                           </Link>
-                        </td>
-                        <td className="px-6 py-3 font-medium">{formatCurrency(inv.amountDue)}</td>
-                        <td className="px-6 py-3">
-                          <InvoiceStatusBadge status={inv.status} />
-                        </td>
-                        <td className="px-6 py-3 text-gray-500">{formatDate(inv.dueDate)}</td>
-                      </tr>
+                          <p className="text-xs text-gray-500 mt-0.5">
+                            {formatCurrency(inv.amountDue)} · Due {formatDate(inv.dueDate)}
+                          </p>
+                        </div>
+                        <Badge variant={INVOICE_STATUS_VARIANT[inv.status] ?? 'gray'}>{inv.status}</Badge>
+                      </div>
                     ))}
-                  </tbody>
-                </table>
+                  </div>
+
+                  {/* Desktop table */}
+                  <div className="hidden md:block">
+                    <table className="w-full text-sm">
+                      <thead className="bg-gray-50 text-xs text-gray-500 uppercase">
+                        <tr>
+                          <th className="px-6 py-3 text-left">Invoice</th>
+                          <th className="px-6 py-3 text-left">Amount</th>
+                          <th className="px-6 py-3 text-left">Status</th>
+                          <th className="px-6 py-3 text-left">Due</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-gray-100">
+                        {contact.invoices.map((inv) => (
+                          <tr key={inv.id}>
+                            <td className="px-6 py-3">
+                              <Link to={`/invoices/${inv.id}`} className="text-indigo-600 hover:underline font-medium">
+                                {inv.invoiceNumber}
+                              </Link>
+                            </td>
+                            <td className="px-6 py-3 font-medium">{formatCurrency(inv.amountDue)}</td>
+                            <td className="px-6 py-3">
+                              <Badge variant={INVOICE_STATUS_VARIANT[inv.status] ?? 'gray'}>{inv.status}</Badge>
+                            </td>
+                            <td className="px-6 py-3 text-gray-500">{formatDate(inv.dueDate)}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </>
               )}
             </CardBody>
           </Card>
@@ -285,11 +311,4 @@ function Row({ label, value }: { label: string; value: string }) {
       <span className="text-gray-900 font-medium text-right max-w-xs truncate">{value}</span>
     </div>
   );
-}
-
-function InvoiceStatusBadge({ status }: { status: string }) {
-  const map: Record<string, 'green' | 'red' | 'gray' | 'blue' | 'yellow'> = {
-    paid: 'green', overdue: 'red', draft: 'gray', sent: 'blue', void: 'gray',
-  };
-  return <Badge variant={map[status] ?? 'gray'}>{status}</Badge>;
 }

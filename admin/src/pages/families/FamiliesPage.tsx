@@ -27,7 +27,7 @@ export function FamiliesPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between gap-2 flex-wrap">
         <h1 className="text-2xl font-bold text-gray-900">Families</h1>
         <Button onClick={() => setShowForm(true)}>
           <Plus className="h-4 w-4 mr-1" /> Add Family
@@ -40,14 +40,14 @@ export function FamiliesPage() {
             <h2 className="text-base font-semibold text-gray-900">New Family</h2>
           </CardHeader>
           <CardBody>
-            <form onSubmit={handleCreate} className="grid grid-cols-2 gap-4">
+            <form onSubmit={handleCreate} className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <Input label="Family name" id="name" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} required />
               <Input label="Billing email" id="billingEmail" type="email" value={form.billingEmail} onChange={(e) => setForm({ ...form, billingEmail: e.target.value })} />
-              <div className="col-span-2 flex items-center gap-2">
+              <div className="sm:col-span-2 flex items-center gap-2">
                 <input id="addFamilyCard" type="checkbox" checked={addCard} onChange={(e) => setAddCard(e.target.checked)} className="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500" />
                 <label htmlFor="addFamilyCard" className="text-sm text-gray-700">Add card on file after saving</label>
               </div>
-              <div className="col-span-2 flex gap-3 justify-end">
+              <div className="sm:col-span-2 flex gap-3 justify-end">
                 <Button type="button" variant="secondary" onClick={() => setShowForm(false)}>Cancel</Button>
                 <Button type="submit" loading={create.isPending}>Save</Button>
               </div>
@@ -66,30 +66,48 @@ export function FamiliesPage() {
           ) : !families.data?.items.length ? (
             <p className="px-6 py-10 text-center text-sm text-gray-500">No families yet.</p>
           ) : (
-            <table className="w-full text-sm">
-              <thead className="bg-gray-50 text-xs text-gray-500 uppercase">
-                <tr>
-                  <th className="px-6 py-3 text-left">Name</th>
-                  <th className="px-6 py-3 text-left">Billing email</th>
-                  <th className="px-6 py-3 text-left">Members</th>
-                  <th className="px-6 py-3 text-left">Added</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-100">
+            <>
+              {/* Mobile cards */}
+              <div className="md:hidden divide-y divide-gray-100">
                 {families.data.items.map((f) => (
-                  <tr key={f.id} className="hover:bg-gray-50">
-                    <td className="px-6 py-3 font-medium">
-                      <Link to={`/families/${f.id}`} className="text-indigo-600 hover:underline">
-                        {f.name}
-                      </Link>
-                    </td>
-                    <td className="px-6 py-3 text-gray-600">{f.billingEmail ?? '—'}</td>
-                    <td className="px-6 py-3 text-gray-600">{f.contacts?.length ?? 0}</td>
-                    <td className="px-6 py-3 text-gray-500">{formatDate(f.createdAt)}</td>
-                  </tr>
+                  <div key={f.id} className="px-4 py-3">
+                    <Link to={`/families/${f.id}`} className="text-sm font-semibold text-indigo-600">
+                      {f.name}
+                    </Link>
+                    <div className="text-xs text-gray-500 mt-1 space-y-0.5">
+                      {f.billingEmail && <p>{f.billingEmail}</p>}
+                      <p>{f.contacts?.length ?? 0} member{(f.contacts?.length ?? 0) !== 1 ? 's' : ''} · Added {formatDate(f.createdAt)}</p>
+                    </div>
+                  </div>
                 ))}
-              </tbody>
-            </table>
+              </div>
+
+              {/* Desktop table */}
+              <div className="hidden md:block">
+                <table className="w-full text-sm">
+                  <thead className="bg-gray-50 text-xs text-gray-500 uppercase">
+                    <tr>
+                      <th className="px-6 py-3 text-left">Name</th>
+                      <th className="px-6 py-3 text-left">Billing email</th>
+                      <th className="px-6 py-3 text-left">Members</th>
+                      <th className="px-6 py-3 text-left">Added</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-gray-100">
+                    {families.data.items.map((f) => (
+                      <tr key={f.id} className="hover:bg-gray-50">
+                        <td className="px-6 py-3 font-medium">
+                          <Link to={`/families/${f.id}`} className="text-indigo-600 hover:underline">{f.name}</Link>
+                        </td>
+                        <td className="px-6 py-3 text-gray-600">{f.billingEmail ?? '—'}</td>
+                        <td className="px-6 py-3 text-gray-600">{f.contacts?.length ?? 0}</td>
+                        <td className="px-6 py-3 text-gray-500">{formatDate(f.createdAt)}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </>
           )}
         </CardBody>
       </Card>

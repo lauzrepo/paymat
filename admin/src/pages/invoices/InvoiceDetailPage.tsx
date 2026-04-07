@@ -77,7 +77,7 @@ export function InvoiceDetailPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center gap-3">
+      <div className="flex flex-wrap items-center gap-3">
         <Link to="/invoices" className="text-gray-400 hover:text-gray-600">
           <ChevronLeft className="h-5 w-5" />
         </Link>
@@ -114,19 +114,10 @@ export function InvoiceDetailPage() {
 
           {canAct && (
             <div className="flex flex-col gap-3">
-              <Button variant="secondary" onClick={openPayForm}>
-                Record payment
-              </Button>
-              <Button
-                variant="ghost"
-                loading={voidInv.isPending}
-                onClick={() => {
-                  if (window.confirm('Void this invoice? This cannot be undone.')) {
-                    voidInv.mutate(invoice.id);
-                  }
-                }}
-                className="text-red-500 hover:text-red-700"
-              >
+              <Button variant="secondary" onClick={openPayForm}>Record payment</Button>
+              <Button variant="ghost" loading={voidInv.isPending}
+                onClick={() => { if (window.confirm('Void this invoice? This cannot be undone.')) voidInv.mutate(invoice.id); }}
+                className="text-red-500 hover:text-red-700">
                 Void invoice
               </Button>
             </div>
@@ -134,42 +125,66 @@ export function InvoiceDetailPage() {
         </div>
 
         <div className="lg:col-span-3 space-y-6">
+          {/* Line Items */}
           <Card>
             <CardHeader><h2 className="text-base font-semibold text-gray-900">Line Items</h2></CardHeader>
             <CardBody className="p-0">
               {!invoice.lineItems?.length ? (
                 <p className="px-6 py-6 text-sm text-gray-500">No line items.</p>
               ) : (
-                <table className="w-full text-sm">
-                  <thead className="bg-gray-50 text-xs text-gray-500 uppercase">
-                    <tr>
-                      <th className="px-6 py-3 text-left">Description</th>
-                      <th className="px-6 py-3 text-right">Qty</th>
-                      <th className="px-6 py-3 text-right">Unit price</th>
-                      <th className="px-6 py-3 text-right">Total</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-gray-100">
+                <>
+                  {/* Mobile cards */}
+                  <div className="md:hidden divide-y divide-gray-100">
                     {invoice.lineItems.map((li) => (
-                      <tr key={li.id}>
-                        <td className="px-6 py-3">{li.description}</td>
-                        <td className="px-6 py-3 text-right text-gray-500">{li.quantity}</td>
-                        <td className="px-6 py-3 text-right text-gray-500">{formatCurrency(li.unitPrice)}</td>
-                        <td className="px-6 py-3 text-right font-medium">{formatCurrency(li.total)}</td>
-                      </tr>
+                      <div key={li.id} className="px-4 py-3 flex items-center justify-between gap-3">
+                        <div className="min-w-0">
+                          <p className="text-sm font-medium text-gray-900 truncate">{li.description}</p>
+                          <p className="text-xs text-gray-500">Qty {li.quantity} × {formatCurrency(li.unitPrice)}</p>
+                        </div>
+                        <p className="text-sm font-semibold text-gray-900 flex-shrink-0">{formatCurrency(li.total)}</p>
+                      </div>
                     ))}
-                  </tbody>
-                  <tfoot>
-                    <tr className="border-t border-gray-200">
-                      <td colSpan={3} className="px-6 py-3 text-right text-sm font-semibold text-gray-700">Total</td>
-                      <td className="px-6 py-3 text-right text-sm font-bold text-gray-900">{formatCurrency(invoice.amountDue)}</td>
-                    </tr>
-                  </tfoot>
-                </table>
+                    <div className="px-4 py-3 flex justify-between border-t border-gray-200">
+                      <span className="text-sm font-semibold text-gray-700">Total</span>
+                      <span className="text-sm font-bold text-gray-900">{formatCurrency(invoice.amountDue)}</span>
+                    </div>
+                  </div>
+
+                  {/* Desktop table */}
+                  <div className="hidden md:block">
+                    <table className="w-full text-sm">
+                      <thead className="bg-gray-50 text-xs text-gray-500 uppercase">
+                        <tr>
+                          <th className="px-6 py-3 text-left">Description</th>
+                          <th className="px-6 py-3 text-right">Qty</th>
+                          <th className="px-6 py-3 text-right">Unit price</th>
+                          <th className="px-6 py-3 text-right">Total</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-gray-100">
+                        {invoice.lineItems.map((li) => (
+                          <tr key={li.id}>
+                            <td className="px-6 py-3">{li.description}</td>
+                            <td className="px-6 py-3 text-right text-gray-500">{li.quantity}</td>
+                            <td className="px-6 py-3 text-right text-gray-500">{formatCurrency(li.unitPrice)}</td>
+                            <td className="px-6 py-3 text-right font-medium">{formatCurrency(li.total)}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                      <tfoot>
+                        <tr className="border-t border-gray-200">
+                          <td colSpan={3} className="px-6 py-3 text-right text-sm font-semibold text-gray-700">Total</td>
+                          <td className="px-6 py-3 text-right text-sm font-bold text-gray-900">{formatCurrency(invoice.amountDue)}</td>
+                        </tr>
+                      </tfoot>
+                    </table>
+                  </div>
+                </>
               )}
             </CardBody>
           </Card>
 
+          {/* Payments */}
           <Card>
             <CardHeader><h2 className="text-base font-semibold text-gray-900">Payments</h2></CardHeader>
             <CardBody className="p-0">
@@ -178,40 +193,63 @@ export function InvoiceDetailPage() {
               ) : !payments.data?.items.length ? (
                 <p className="px-6 py-6 text-sm text-gray-500">No payments recorded.</p>
               ) : (
-                <table className="w-full text-sm">
-                  <thead className="bg-gray-50 text-xs text-gray-500 uppercase">
-                    <tr>
-                      <th className="px-6 py-3 text-left">Date</th>
-                      <th className="px-6 py-3 text-left">Method</th>
-                      <th className="px-6 py-3 text-left">Amount</th>
-                      <th className="px-6 py-3 text-left">Status</th>
-                      <th className="px-6 py-3 text-left"></th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-gray-100">
+                <>
+                  {/* Mobile cards */}
+                  <div className="md:hidden divide-y divide-gray-100">
                     {payments.data.items.map((p) => (
-                      <tr key={p.id}>
-                        <td className="px-6 py-3 text-gray-500">{formatDate(p.createdAt)}</td>
-                        <td className="px-6 py-3 text-gray-700 capitalize">{p.paymentMethodType?.replace('_', ' ') ?? '—'}</td>
-                        <td className="px-6 py-3 font-medium">{formatCurrency(p.amount)}</td>
-                        <td className="px-6 py-3">
+                      <div key={p.id} className="px-4 py-3 space-y-1">
+                        <div className="flex items-center justify-between gap-3">
+                          <p className="text-sm font-semibold text-gray-900">{formatCurrency(p.amount)}</p>
                           <Badge variant={PAYMENT_VARIANT[p.status] ?? 'gray'}>{p.status}</Badge>
-                        </td>
-                        <td className="px-6 py-3">
-                          {p.status === 'succeeded' && (
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => { setRefundModal({ id: p.id, amount: p.amount }); setRefundAmount(String(p.amount)); }}
-                            >
-                              Refund
-                            </Button>
-                          )}
-                        </td>
-                      </tr>
+                        </div>
+                        <p className="text-xs text-gray-500 capitalize">
+                          {p.paymentMethodType?.replace('_', ' ') ?? '—'} · {formatDate(p.createdAt)}
+                        </p>
+                        {p.status === 'succeeded' && (
+                          <Button variant="ghost" size="sm"
+                            onClick={() => { setRefundModal({ id: p.id, amount: p.amount }); setRefundAmount(String(p.amount)); }}>
+                            Refund
+                          </Button>
+                        )}
+                      </div>
                     ))}
-                  </tbody>
-                </table>
+                  </div>
+
+                  {/* Desktop table */}
+                  <div className="hidden md:block">
+                    <table className="w-full text-sm">
+                      <thead className="bg-gray-50 text-xs text-gray-500 uppercase">
+                        <tr>
+                          <th className="px-6 py-3 text-left">Date</th>
+                          <th className="px-6 py-3 text-left">Method</th>
+                          <th className="px-6 py-3 text-left">Amount</th>
+                          <th className="px-6 py-3 text-left">Status</th>
+                          <th className="px-6 py-3 text-left"></th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-gray-100">
+                        {payments.data.items.map((p) => (
+                          <tr key={p.id}>
+                            <td className="px-6 py-3 text-gray-500">{formatDate(p.createdAt)}</td>
+                            <td className="px-6 py-3 text-gray-700 capitalize">{p.paymentMethodType?.replace('_', ' ') ?? '—'}</td>
+                            <td className="px-6 py-3 font-medium">{formatCurrency(p.amount)}</td>
+                            <td className="px-6 py-3">
+                              <Badge variant={PAYMENT_VARIANT[p.status] ?? 'gray'}>{p.status}</Badge>
+                            </td>
+                            <td className="px-6 py-3">
+                              {p.status === 'succeeded' && (
+                                <Button variant="ghost" size="sm"
+                                  onClick={() => { setRefundModal({ id: p.id, amount: p.amount }); setRefundAmount(String(p.amount)); }}>
+                                  Refund
+                                </Button>
+                              )}
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </>
               )}
             </CardBody>
           </Card>
@@ -219,15 +257,13 @@ export function InvoiceDetailPage() {
       </div>
 
       {showPayForm && (
-        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
-          <div className="bg-white rounded-xl shadow-xl w-full max-w-md p-6">
+        <div className="fixed inset-0 bg-black/40 flex items-end sm:items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-xl shadow-xl w-full max-w-md p-6 max-h-[90vh] overflow-y-auto">
             <h2 className="text-base font-semibold text-gray-900 mb-4">Record Payment</h2>
             <form onSubmit={handleRecordPayment} className="space-y-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Amount ($)</label>
-                <input
-                  type="number" step="0.01" min="0.01" required
-                  value={payForm.amount}
+                <input type="number" step="0.01" min="0.01" required value={payForm.amount}
                   onChange={(e) => setPayForm({ ...payForm, amount: e.target.value })}
                   className="w-full text-sm border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500"
                 />
@@ -235,11 +271,8 @@ export function InvoiceDetailPage() {
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Payment method</label>
-                <select
-                  value={payForm.method}
-                  onChange={(e) => setPayForm({ ...payForm, method: e.target.value })}
-                  className="appearance-none bg-white w-full text-sm border border-gray-300 rounded-lg px-3 py-2 pr-8 focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                >
+                <select value={payForm.method} onChange={(e) => setPayForm({ ...payForm, method: e.target.value })}
+                  className="appearance-none bg-white w-full text-sm border border-gray-300 rounded-lg px-3 py-2 pr-8 focus:outline-none focus:ring-2 focus:ring-indigo-500">
                   <option value="cash">Cash</option>
                   <option value="check">Check</option>
                   <option value="bank_transfer">Bank transfer</option>
@@ -249,10 +282,7 @@ export function InvoiceDetailPage() {
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Notes (optional)</label>
-                <input
-                  type="text"
-                  value={payForm.notes}
-                  onChange={(e) => setPayForm({ ...payForm, notes: e.target.value })}
+                <input type="text" value={payForm.notes} onChange={(e) => setPayForm({ ...payForm, notes: e.target.value })}
                   placeholder="e.g. Check #1042"
                   className="w-full text-sm border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500"
                 />
@@ -267,16 +297,14 @@ export function InvoiceDetailPage() {
       )}
 
       {refundModal && (
-        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
-          <div className="bg-white rounded-xl shadow-xl w-full max-w-sm p-6">
+        <div className="fixed inset-0 bg-black/40 flex items-end sm:items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-xl shadow-xl w-full max-w-sm p-6 max-h-[90vh] overflow-y-auto">
             <h2 className="text-base font-semibold text-gray-900 mb-4">Refund Payment</h2>
             <form onSubmit={handleRefund} className="space-y-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Refund amount ($)</label>
-                <input
-                  type="number" step="0.01" min="0.01" max={refundModal.amount} required
-                  value={refundAmount}
-                  onChange={(e) => setRefundAmount(e.target.value)}
+                <input type="number" step="0.01" min="0.01" max={refundModal.amount} required
+                  value={refundAmount} onChange={(e) => setRefundAmount(e.target.value)}
                   className="w-full text-sm border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500"
                 />
                 <p className="text-xs text-gray-400 mt-1">Max: {formatCurrency(refundModal.amount)}</p>
