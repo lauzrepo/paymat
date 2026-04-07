@@ -66,34 +66,36 @@ export function DashboardPage() {
               ) : !overdueInvoices.data?.items.length ? (
                 <p className="px-6 py-8 text-center text-sm text-gray-500">No overdue invoices.</p>
               ) : (
-                <table className="w-full text-sm">
-                  <thead className="bg-gray-50 text-xs text-gray-500 uppercase">
-                    <tr>
-                      <th className="px-6 py-3 text-left">Invoice</th>
-                      <th className="px-6 py-3 text-left">Billed to</th>
-                      <th className="px-6 py-3 text-left">Amount</th>
-                      <th className="px-6 py-3 text-left">Due</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-gray-100">
-                    {overdueInvoices.data.items.map((inv) => (
-                      <tr key={inv.id}>
-                        <td className="px-6 py-3">
-                          <Link to={`/invoices/${inv.id}`} className="text-indigo-600 hover:underline font-medium">
-                            {inv.invoiceNumber}
-                          </Link>
-                        </td>
-                        <td className="px-6 py-3 text-gray-700">
-                          {inv.contact
-                            ? `${inv.contact.firstName} ${inv.contact.lastName}`
-                            : inv.family?.name ?? '—'}
-                        </td>
-                        <td className="px-6 py-3 font-medium">{formatCurrency(inv.amountDue)}</td>
-                        <td className="px-6 py-3 text-red-600">{formatDate(inv.dueDate)}</td>
+                <div className="overflow-x-auto">
+                  <table className="w-full text-sm">
+                    <thead className="bg-gray-50 text-xs text-gray-500 uppercase">
+                      <tr>
+                        <th className="px-4 py-3 text-left whitespace-nowrap">Invoice</th>
+                        <th className="px-4 py-3 text-left whitespace-nowrap">Billed to</th>
+                        <th className="px-4 py-3 text-left whitespace-nowrap">Amount</th>
+                        <th className="px-4 py-3 text-left whitespace-nowrap">Due</th>
                       </tr>
-                    ))}
-                  </tbody>
-                </table>
+                    </thead>
+                    <tbody className="divide-y divide-gray-100">
+                      {overdueInvoices.data.items.map((inv) => (
+                        <tr key={inv.id}>
+                          <td className="px-4 py-3 whitespace-nowrap">
+                            <Link to={`/invoices/${inv.id}`} className="text-indigo-600 hover:underline font-medium">
+                              {inv.invoiceNumber}
+                            </Link>
+                          </td>
+                          <td className="px-4 py-3 text-gray-700">
+                            {inv.contact
+                              ? `${inv.contact.firstName} ${inv.contact.lastName}`
+                              : inv.family?.name ?? '—'}
+                          </td>
+                          <td className="px-4 py-3 font-medium whitespace-nowrap">{formatCurrency(inv.amountDue)}</td>
+                          <td className="px-4 py-3 text-red-600 whitespace-nowrap">{formatDate(inv.dueDate)}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
               )}
             </CardBody>
           </Card>
