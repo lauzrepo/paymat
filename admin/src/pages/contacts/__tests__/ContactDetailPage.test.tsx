@@ -25,7 +25,6 @@ vi.mock('react-router-dom', async () => {
     ...actual,
     useParams: () => ({ id: 'c-1' }),
     useNavigate: () => vi.fn(),
-    useSearchParams: () => [new URLSearchParams(), vi.fn()],
   };
 });
 
@@ -43,7 +42,8 @@ const CONTACT = {
   email: 'jane@example.com',
   phone: '555-1234',
   status: 'active',
-  helcimToken: null,
+  stripeCustomerId: null,
+  stripeDefaultPaymentMethodId: null,
   family: null,
   dateOfBirth: null,
   notes: null,
@@ -88,13 +88,13 @@ describe('ContactDetailPage', () => {
     expect(screen.getByText('555-1234')).toBeInTheDocument();
   });
 
-  it('shows no card on file when helcimToken is null', () => {
+  it('shows no card on file when no payment method saved', () => {
     renderWithProviders(<ContactDetailPage />);
     expect(screen.getByText(/none/i)).toBeInTheDocument();
   });
 
-  it('shows saved card indicator when helcimToken is present', () => {
-    (useContact as Mock).mockReturnValue(mockQuery({ ...CONTACT, helcimToken: 'tok_abc' }));
+  it('shows saved card indicator when payment method is present', () => {
+    (useContact as Mock).mockReturnValue(mockQuery({ ...CONTACT, stripeCustomerId: 'cus_abc', stripeDefaultPaymentMethodId: 'pm_abc' }));
     renderWithProviders(<ContactDetailPage />);
     expect(screen.getByText(/saved/i)).toBeInTheDocument();
   });

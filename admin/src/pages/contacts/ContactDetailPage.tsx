@@ -1,6 +1,8 @@
-import { useState, useEffect } from 'react';
-import { useParams, Link, useNavigate, useSearchParams } from 'react-router-dom';
+import { useState } from 'react';
+import { useParams, Link, useNavigate } from 'react-router-dom';
 import { ChevronLeft, CreditCard } from 'lucide-react';
+import { loadStripe } from '@stripe/stripe-js';
+import { Elements, PaymentElement, useStripe, useElements } from '@stripe/react-stripe-js';
 import { useContact, useDeactivateContact, useReactivateContact, useDeleteContact } from '../../hooks/useContacts';
 import { initializeCardCheckout, saveCardToken } from '../../api/contacts';
 import { queryClient } from '../../lib/queryClient';
@@ -18,86 +20,99 @@ const INVOICE_STATUS_VARIANT: Record<string, 'green' | 'red' | 'gray' | 'blue' |
   paid: 'green', overdue: 'red', draft: 'gray', sent: 'blue', void: 'gray',
 };
 
+// ── Stripe setup form ──────────────────────────────────────────────────────────
+
+function CardSetupForm({
+  contactId,
+  customerId,
+  onSuccess,
+  onError,
+  onCancel,
+}: {
+  contactId: string;
+  customerId: string;
+  onSuccess: () => void;
+  onError: (msg: string) => void;
+  onCancel: () => void;
+}) {
+  const stripe = useStripe();
+  const elements = useElements();
+  const [submitting, setSubmitting] = useState(false);
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!stripe || !elements) return;
+    setSubmitting(true);
+    const { setupIntent, error } = await stripe.confirmSetup({
+      elements,
+      confirmParams: { return_url: window.location.href },
+      redirect: 'if_required',
+    });
+    if (error) {
+      onError(error.message ?? 'Card setup failed. Please try again.');
+      setSubmitting(false);
+      return;
+    }
+    const paymentMethodId = typeof setupIntent?.payment_method === 'string'
+      ? setupIntent.payment_method
+      : setupIntent?.payment_method?.id;
+    if (!paymentMethodId) {
+      onError('Card setup succeeded but payment method could not be retrieved.');
+      setSubmitting(false);
+      return;
+    }
+    try {
+      await saveCardToken(contactId, customerId, paymentMethodId);
+      queryClient.invalidateQueries({ queryKey: ['contacts', contactId] });
+      onSuccess();
+    } catch {
+      onError('Card captured but failed to save. Please try again.');
+    }
+    setSubmitting(false);
+  };
+
+  return (
+    <form onSubmit={handleSubmit} className="space-y-4">
+      <PaymentElement />
+      <div className="flex gap-2">
+        <Button type="submit" loading={submitting} disabled={!stripe}>Save card</Button>
+        <Button type="button" variant="secondary" onClick={onCancel}>Cancel</Button>
+      </div>
+    </form>
+  );
+}
+
+// ── Main page ──────────────────────────────────────────────────────────────────
+
 export function ContactDetailPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const [searchParams] = useSearchParams();
   const { data: contact, isLoading } = useContact(id!);
   const deactivate = useDeactivateContact();
   const reactivate = useReactivateContact();
   const remove = useDeleteContact();
-  const [cardStatus, setCardStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle');
+
+  const [cardStatus, setCardStatus] = useState<'idle' | 'loading' | 'form' | 'success' | 'error'>('idle');
   const [cardMessage, setCardMessage] = useState('');
+  const [stripePromise, setStripePromise] = useState<ReturnType<typeof loadStripe> | null>(null);
+  const [clientSecret, setClientSecret] = useState('');
+  const [customerId, setCustomerId] = useState('');
 
   const openCardForm = async () => {
     setCardStatus('loading');
     setCardMessage('');
     try {
-      const { checkoutToken } = await initializeCardCheckout(id!);
-      if (!document.getElementById('helcim-pay-js')) {
-        const script = document.createElement('script');
-        script.id = 'helcim-pay-js';
-        script.src = 'https://secure.helcim.app/helcim-pay/services/start.js';
-        script.onload = () => {
-          setCardStatus('idle');
-          // @ts-expect-error HelcimPay global injected by script
-          window.appendHelcimPayIframe?.(checkoutToken);
-        };
-        document.body.appendChild(script);
-      } else {
-        setCardStatus('idle');
-        // @ts-expect-error HelcimPay global injected by script
-        window.appendHelcimPayIframe?.(checkoutToken);
-      }
+      const data = await initializeCardCheckout(id!);
+      const promise = loadStripe(data.publishableKey, { stripeAccount: data.connectAccountId });
+      setStripePromise(promise);
+      setClientSecret(data.clientSecret);
+      setCustomerId(data.customerId);
+      setCardStatus('form');
     } catch {
       setCardStatus('error');
-      setCardMessage('Could not initialize card form. Check your Helcim API token.');
+      setCardMessage('Could not initialize card form. Check your Stripe configuration.');
     }
   };
-
-  useEffect(() => {
-    if (searchParams.get('addCard') === 'true' && contact) {
-      openCardForm();
-    }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [contact]);
-
-  useEffect(() => {
-    const onMessage = async (event: MessageEvent) => {
-      let data: Record<string, unknown>;
-      try {
-        data = typeof event.data === 'string' ? JSON.parse(event.data) : event.data;
-      } catch {
-        return;
-      }
-      if (data.eventType === 'HELCIM_PAY_JS_SUCCESS') {
-        const msg = data.eventMessage as Record<string, unknown> | undefined;
-        const cardToken = (msg?.data as Record<string, unknown> | undefined)?.cardToken as string | undefined
-          ?? msg?.cardToken as string | undefined;
-        if (!cardToken) {
-          setCardStatus('error');
-          setCardMessage('Card processed but no token received. Please try again.');
-          return;
-        }
-        setCardStatus('loading');
-        try {
-          await saveCardToken(id!, cardToken);
-          queryClient.invalidateQueries({ queryKey: ['contacts', id] });
-          setCardStatus('success');
-          setCardMessage('Card saved successfully.');
-        } catch {
-          setCardStatus('error');
-          setCardMessage('Failed to save card. Please try again.');
-        }
-      } else if (data.eventType === 'HELCIM_PAY_JS_FAILED') {
-        setCardStatus('error');
-        const msg = data.eventMessage;
-        setCardMessage(typeof msg === 'string' ? msg : 'Card capture failed.');
-      }
-    };
-    window.addEventListener('message', onMessage);
-    return () => window.removeEventListener('message', onMessage);
-  }, [id]);
 
   const handleDelete = async () => {
     if (!window.confirm('Permanently delete this contact? This cannot be undone.\n\nNote: contacts with invoices or payments cannot be deleted — deactivate them instead.')) return;
@@ -112,6 +127,8 @@ export function ContactDetailPage() {
 
   if (isLoading) return <div className="flex justify-center py-20"><Spinner /></div>;
   if (!contact) return <p className="text-center py-20 text-gray-500">Contact not found.</p>;
+
+  const hasCard = !!contact.stripeDefaultPaymentMethodId;
 
   return (
     <div className="space-y-6">
@@ -140,7 +157,7 @@ export function ContactDetailPage() {
               <Row label="Added" value={formatDate(contact.createdAt)} />
               <div className="flex justify-between items-center pt-1">
                 <span className="text-gray-500">Card on file</span>
-                {contact.helcimToken ? (
+                {hasCard ? (
                   <span className="text-green-600 text-xs font-medium flex items-center gap-1">
                     <CreditCard className="h-3 w-3" /> Saved
                   </span>
@@ -153,24 +170,41 @@ export function ContactDetailPage() {
             </CardBody>
           </Card>
 
-          <div className="flex flex-col gap-2 pt-1">
-            <Button variant="secondary" size="sm" onClick={openCardForm} loading={cardStatus === 'loading'}>
-              <CreditCard className="h-4 w-4 mr-1" />
-              {contact.helcimToken ? 'Replace card' : 'Save card on file'}
-            </Button>
-            {contact.status === 'active' ? (
-              <Button variant="danger" size="sm" loading={deactivate.isPending} onClick={() => deactivate.mutate(contact.id)}>
-                Deactivate contact
+          {cardStatus === 'form' && stripePromise && clientSecret ? (
+            <Card>
+              <CardHeader><h2 className="text-base font-semibold text-gray-900">Save card on file</h2></CardHeader>
+              <CardBody>
+                <Elements stripe={stripePromise} options={{ clientSecret }}>
+                  <CardSetupForm
+                    contactId={id!}
+                    customerId={customerId}
+                    onSuccess={() => { setCardStatus('success'); setCardMessage('Card saved successfully.'); }}
+                    onError={(msg) => { setCardStatus('error'); setCardMessage(msg); }}
+                    onCancel={() => setCardStatus('idle')}
+                  />
+                </Elements>
+              </CardBody>
+            </Card>
+          ) : (
+            <div className="flex flex-col gap-2 pt-1">
+              <Button variant="secondary" size="sm" onClick={openCardForm} loading={cardStatus === 'loading'}>
+                <CreditCard className="h-4 w-4 mr-1" />
+                {hasCard ? 'Replace card' : 'Save card on file'}
               </Button>
-            ) : (
-              <Button variant="secondary" size="sm" loading={reactivate.isPending} onClick={() => reactivate.mutate(contact.id)}>
-                Reactivate contact
+              {contact.status === 'active' ? (
+                <Button variant="danger" size="sm" loading={deactivate.isPending} onClick={() => deactivate.mutate(contact.id)}>
+                  Deactivate contact
+                </Button>
+              ) : (
+                <Button variant="secondary" size="sm" loading={reactivate.isPending} onClick={() => reactivate.mutate(contact.id)}>
+                  Reactivate contact
+                </Button>
+              )}
+              <Button variant="ghost" size="sm" loading={remove.isPending} onClick={handleDelete} className="text-red-500 hover:text-red-700">
+                Delete permanently
               </Button>
-            )}
-            <Button variant="ghost" size="sm" loading={remove.isPending} onClick={handleDelete} className="text-red-500 hover:text-red-700">
-              Delete permanently
-            </Button>
-          </div>
+            </div>
+          )}
         </div>
 
         <div className="lg:col-span-2 space-y-6">

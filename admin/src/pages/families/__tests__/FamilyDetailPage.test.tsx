@@ -23,7 +23,6 @@ vi.mock('react-router-dom', async () => {
     ...actual,
     useParams: () => ({ id: 'f-1' }),
     useNavigate: () => vi.fn(),
-    useSearchParams: () => [new URLSearchParams(), vi.fn()],
   };
 });
 
@@ -33,7 +32,8 @@ const FAMILY = {
   id: 'f-1',
   name: 'Johnson Family',
   billingEmail: 'johnson@example.com',
-  helcimToken: null,
+  stripeCustomerId: null,
+  stripeDefaultPaymentMethodId: null,
   createdAt: '2024-01-15T00:00:00.000Z',
   contacts: [],
 };
@@ -66,13 +66,13 @@ describe('FamilyDetailPage', () => {
     expect(screen.getByText('johnson@example.com')).toBeInTheDocument();
   });
 
-  it('shows no card on file when helcimToken is null', () => {
+  it('shows no card on file when no payment method saved', () => {
     renderWithProviders(<FamilyDetailPage />);
     expect(screen.getByText(/^none$/i)).toBeInTheDocument();
   });
 
-  it('shows saved card indicator when helcimToken is present', () => {
-    (useFamily as Mock).mockReturnValue(mockQuery({ ...FAMILY, helcimToken: 'tok_family' }));
+  it('shows saved card indicator when payment method is present', () => {
+    (useFamily as Mock).mockReturnValue(mockQuery({ ...FAMILY, stripeCustomerId: 'cus_abc', stripeDefaultPaymentMethodId: 'pm_abc' }));
     renderWithProviders(<FamilyDetailPage />);
     expect(screen.getByText(/saved/i)).toBeInTheDocument();
   });

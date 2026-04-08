@@ -1,6 +1,7 @@
 import { Request, Response } from 'express';
 import contactService from '../services/contactService';
-import helcimService from '../services/helcimService';
+import stripeConnectService from '../services/stripeConnectService';
+import { config } from '../config/environment';
 import prisma from '../config/database';
 import { asyncHandler, AppError } from '../middleware/errorHandler';
 
@@ -52,10 +53,31 @@ export const deactivateContact = asyncHandler(async (req: Request, res: Response
 
 export const initializeCardCheckout = asyncHandler(async (req: Request, res: Response) => {
   if (!req.user) throw new AppError(401, 'Not authenticated');
-  // Verify contact belongs to org
-  await contactService.getContactById(req.params.id, req.organization!.id);
-  const checkout = await helcimService.initializeCheckout(0, 'USD');
-  res.status(200).json({ status: 'success', data: checkout });
+
+  const contact = await contactService.getContactById(req.params.id, req.organization!.id);
+
+  const org = await prisma.organization.findUnique({
+    where: { id: req.organization!.id },
+    select: { stripeConnectAccountId: true },
+  });
+  if (!org?.stripeConnectAccountId) throw new AppError(503, 'Payment processing not configured for this organization');
+
+  let stripeCustomerId = (contact as { stripeCustomerId?: string | null }).stripeCustomerId ?? null;
+  if (!stripeCustomerId) {
+    stripeCustomerId = await stripeConnectService.createCustomer(
+      org.stripeConnectAccountId,
+      contact.email ?? `${contact.firstName} ${contact.lastName}`,
+      `${contact.firstName ?? ''} ${contact.lastName ?? ''}`.trim()
+    );
+    await prisma.contact.update({ where: { id: req.params.id }, data: { stripeCustomerId } });
+  }
+
+  const clientSecret = await stripeConnectService.createSetupIntent(org.stripeConnectAccountId, stripeCustomerId);
+
+  res.status(200).json({
+    status: 'success',
+    data: { clientSecret, connectAccountId: org.stripeConnectAccountId, publishableKey: config.stripe.publishableKey, customerId: stripeCustomerId },
+  });
 });
 
 export const saveCardToken = asyncHandler(async (req: Request, res: Response) => {

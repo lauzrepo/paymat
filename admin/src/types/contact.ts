@@ -8,7 +8,8 @@ export interface Contact {
   phone: string | null;
   dateOfBirth: string | null;
   notes: string | null;
-  helcimToken: string | null;
+  stripeCustomerId: string | null;
+  stripeDefaultPaymentMethodId: string | null;
   status: string;
   createdAt: string;
   updatedAt: string;
