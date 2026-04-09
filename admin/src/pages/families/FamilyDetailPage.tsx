@@ -1,13 +1,14 @@
 import { useState } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
-import { ChevronLeft, CreditCard } from 'lucide-react';
+import { ChevronLeft, CreditCard, Pencil } from 'lucide-react';
 import { loadStripe } from '@stripe/stripe-js';
 import { Elements, PaymentElement, useStripe, useElements } from '@stripe/react-stripe-js';
-import { useFamily, useDeleteFamily } from '../../hooks/useFamilies';
+import { useFamily, useDeleteFamily, useUpdateFamily } from '../../hooks/useFamilies';
 import { initializeFamilyCardCheckout, saveFamilyCardToken } from '../../api/families';
 import { queryClient } from '../../lib/queryClient';
 import { Card, CardHeader, CardBody } from '../../components/ui/Card';
 import { Button } from '../../components/ui/Button';
+import { Input } from '../../components/ui/Input';
 import { Badge } from '../../components/ui/Badge';
 import { Spinner } from '../../components/ui/Spinner';
 import { formatDate } from '../../lib/utils';
@@ -81,6 +82,28 @@ export function FamilyDetailPage() {
   const navigate = useNavigate();
   const { data: family, isLoading } = useFamily(id!);
   const deleteFamily = useDeleteFamily();
+  const updateFamily = useUpdateFamily(id!);
+
+  const [editing, setEditing] = useState(false);
+  const [editForm, setEditForm] = useState({ name: '', billingEmail: '' });
+  const [editError, setEditError] = useState('');
+
+  const startEdit = () => {
+    setEditForm({ name: family!.name, billingEmail: family!.billingEmail ?? '' });
+    setEditError('');
+    setEditing(true);
+  };
+
+  const handleEditSave = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setEditError('');
+    try {
+      await updateFamily.mutateAsync({ name: editForm.name, billingEmail: editForm.billingEmail || undefined });
+      setEditing(false);
+    } catch {
+      setEditError('Failed to save. Please try again.');
+    }
+  };
 
   const [cardStatus, setCardStatus] = useState<'idle' | 'loading' | 'form' | 'success' | 'error'>('idle');
   const [cardMessage, setCardMessage] = useState('');
@@ -135,6 +158,11 @@ export function FamilyDetailPage() {
           <div className="flex flex-wrap items-center justify-between gap-2">
             <h2 className="text-base font-semibold text-gray-900">Family info</h2>
             <div className="flex gap-2">
+              {!editing && (
+                <Button variant="secondary" size="sm" onClick={startEdit}>
+                  <Pencil className="h-4 w-4 mr-1" /> Edit
+                </Button>
+              )}
               <Button variant="secondary" size="sm" onClick={openCardForm} loading={cardStatus === 'loading'}>
                 <CreditCard className="h-4 w-4 mr-1" />
                 {hasCard ? 'Replace card' : 'Save card on file'}
@@ -146,24 +174,38 @@ export function FamilyDetailPage() {
           </div>
         </CardHeader>
         <CardBody className="space-y-3 text-sm">
-          <div className="flex justify-between">
-            <span className="text-gray-500">Billing email</span>
-            <span className="text-gray-800">{family.billingEmail ?? '—'}</span>
-          </div>
-          <div className="flex justify-between">
-            <span className="text-gray-500">Card on file</span>
-            {hasCard ? (
-              <span className="text-green-600 font-medium flex items-center gap-1">
-                <CreditCard className="h-3 w-3" /> Saved
-              </span>
-            ) : (
-              <span className="text-gray-400">None</span>
-            )}
-          </div>
-          <div className="flex justify-between">
-            <span className="text-gray-500">Added</span>
-            <span className="text-gray-800">{formatDate(family.createdAt)}</span>
-          </div>
+          {editing ? (
+            <form onSubmit={handleEditSave} className="space-y-3">
+              <Input label="Family name" id="name" value={editForm.name} onChange={(e) => setEditForm({ ...editForm, name: e.target.value })} required />
+              <Input label="Billing email (optional)" id="billingEmail" type="email" value={editForm.billingEmail} onChange={(e) => setEditForm({ ...editForm, billingEmail: e.target.value })} />
+              {editError && <p className="text-sm text-red-600">{editError}</p>}
+              <div className="flex gap-2">
+                <Button type="submit" size="sm" loading={updateFamily.isPending}>Save</Button>
+                <Button type="button" variant="secondary" size="sm" onClick={() => setEditing(false)}>Cancel</Button>
+              </div>
+            </form>
+          ) : (
+            <>
+              <div className="flex justify-between">
+                <span className="text-gray-500">Billing email</span>
+                <span className="text-gray-800">{family.billingEmail ?? '—'}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-gray-500">Card on file</span>
+                {hasCard ? (
+                  <span className="text-green-600 font-medium flex items-center gap-1">
+                    <CreditCard className="h-3 w-3" /> Saved
+                  </span>
+                ) : (
+                  <span className="text-gray-400">None</span>
+                )}
+              </div>
+              <div className="flex justify-between">
+                <span className="text-gray-500">Added</span>
+                <span className="text-gray-800">{formatDate(family.createdAt)}</span>
+              </div>
+            </>
+          )}
           {cardStatus === 'success' && <p className="text-sm text-green-600 font-medium">{cardMessage}</p>}
           {cardStatus === 'error' && <p className="text-sm text-red-600">{cardMessage}</p>}
         </CardBody>
