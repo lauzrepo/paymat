@@ -108,9 +108,10 @@ export function ContactDetailPage() {
       setClientSecret(data.clientSecret);
       setCustomerId(data.customerId);
       setCardStatus('form');
-    } catch {
+    } catch (err: unknown) {
+      const msg = (err as { response?: { data?: { message?: string } } })?.response?.data?.message;
       setCardStatus('error');
-      setCardMessage('Could not initialize card form. Check your Stripe configuration.');
+      setCardMessage(msg ?? 'Could not initialize card form. Check your Stripe configuration.');
     }
   };
 

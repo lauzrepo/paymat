@@ -58,7 +58,7 @@ export const initializeFamilyCardCheckout = asyncHandler(async (req: Request, re
   if (!stripeCustomerId) {
     stripeCustomerId = await stripeConnectService.createCustomer(
       org.stripeConnectAccountId,
-      family.billingEmail ?? family.name,
+      family.billingEmail ?? undefined,
       family.name
     );
     await prisma.family.update({ where: { id: req.params.id }, data: { stripeCustomerId } });

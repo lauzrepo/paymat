@@ -54,9 +54,9 @@ class StripeConnectService {
 
   // ── Customer management (per connected account) ──────────────────────────
 
-  async createCustomer(connectAccountId: string, email: string, name: string): Promise<string> {
+  async createCustomer(connectAccountId: string, email: string | undefined, name: string): Promise<string> {
     const customer = await this.client.customers.create(
-      { email, name },
+      { ...(email ? { email } : {}), name },
       { stripeAccount: connectAccountId }
     );
     logger.info(`[StripeConnect] created customer ${customer.id} on account ${connectAccountId}`);
