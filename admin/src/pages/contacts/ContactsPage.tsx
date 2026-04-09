@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Plus, Search } from 'lucide-react';
+import { Plus, Search, CreditCard } from 'lucide-react';
 import { useContacts, useCreateContact, useDeactivateContact, useReactivateContact, useDeleteContact } from '../../hooks/useContacts';
 import { useFamilies } from '../../hooks/useFamilies';
 import { Card, CardHeader, CardBody } from '../../components/ui/Card';
@@ -126,6 +126,11 @@ export function ContactsPage() {
                       {c.email && <p>{c.email}</p>}
                       {c.family?.name && <p>Family: {c.family.name}</p>}
                       <p>Added {formatDate(c.createdAt)}</p>
+                      {c.stripeDefaultPaymentMethodId && (
+                        <p className="flex items-center gap-1 text-green-600 font-medium">
+                          <CreditCard className="h-3 w-3" /> Card on file
+                        </p>
+                      )}
                     </div>
                     <div className="flex gap-2 pt-1">
                       {c.status === 'active' ? (
@@ -152,6 +157,7 @@ export function ContactsPage() {
                       <th className="px-6 py-3 text-left">Name</th>
                       <th className="px-6 py-3 text-left">Email</th>
                       <th className="px-6 py-3 text-left">Family</th>
+                      <th className="px-6 py-3 text-left">Card</th>
                       <th className="px-6 py-3 text-left">Status</th>
                       <th className="px-6 py-3 text-left">Added</th>
                       <th className="px-6 py-3 text-left"></th>
@@ -167,6 +173,15 @@ export function ContactsPage() {
                         </td>
                         <td className="px-6 py-3 text-gray-600">{c.email ?? '—'}</td>
                         <td className="px-6 py-3 text-gray-600">{c.family?.name ?? '—'}</td>
+                        <td className="px-6 py-3">
+                          {c.stripeDefaultPaymentMethodId ? (
+                            <span className="flex items-center gap-1 text-green-600 text-xs font-medium">
+                              <CreditCard className="h-3 w-3" /> Saved
+                            </span>
+                          ) : (
+                            <span className="text-gray-300 text-xs">—</span>
+                          )}
+                        </td>
                         <td className="px-6 py-3">
                           <Badge variant={c.status === 'active' ? 'green' : 'gray'}>{c.status}</Badge>
                         </td>

@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Plus } from 'lucide-react';
+import { Plus, CreditCard } from 'lucide-react';
 import { useFamilies, useCreateFamily } from '../../hooks/useFamilies';
 import { Card, CardHeader, CardBody } from '../../components/ui/Card';
 import { Button } from '../../components/ui/Button';
@@ -77,6 +77,11 @@ export function FamiliesPage() {
                     <div className="text-xs text-gray-500 mt-1 space-y-0.5">
                       {f.billingEmail && <p>{f.billingEmail}</p>}
                       <p>{f.contacts?.length ?? 0} member{(f.contacts?.length ?? 0) !== 1 ? 's' : ''} · Added {formatDate(f.createdAt)}</p>
+                      {f.stripeDefaultPaymentMethodId && (
+                        <p className="flex items-center gap-1 text-green-600 font-medium">
+                          <CreditCard className="h-3 w-3" /> Card on file
+                        </p>
+                      )}
                     </div>
                   </div>
                 ))}
@@ -90,6 +95,7 @@ export function FamiliesPage() {
                       <th className="px-6 py-3 text-left">Name</th>
                       <th className="px-6 py-3 text-left">Billing email</th>
                       <th className="px-6 py-3 text-left">Members</th>
+                      <th className="px-6 py-3 text-left">Card</th>
                       <th className="px-6 py-3 text-left">Added</th>
                     </tr>
                   </thead>
@@ -101,6 +107,15 @@ export function FamiliesPage() {
                         </td>
                         <td className="px-6 py-3 text-gray-600">{f.billingEmail ?? '—'}</td>
                         <td className="px-6 py-3 text-gray-600">{f.contacts?.length ?? 0}</td>
+                        <td className="px-6 py-3">
+                          {f.stripeDefaultPaymentMethodId ? (
+                            <span className="flex items-center gap-1 text-green-600 text-xs font-medium">
+                              <CreditCard className="h-3 w-3" /> Saved
+                            </span>
+                          ) : (
+                            <span className="text-gray-300 text-xs">—</span>
+                          )}
+                        </td>
                         <td className="px-6 py-3 text-gray-500">{formatDate(f.createdAt)}</td>
                       </tr>
                     ))}
