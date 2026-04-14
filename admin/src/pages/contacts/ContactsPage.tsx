@@ -109,25 +109,25 @@ export function ContactsPage() {
           {contacts.isLoading ? (
             <div className="flex justify-center py-10"><Spinner /></div>
           ) : !contacts.data?.items.length ? (
-            <p className="px-6 py-10 text-center text-sm text-gray-500">No contacts found.</p>
+            <p className="px-6 py-10 text-center text-sm text-gray-500 dark:text-gray-400">No contacts found.</p>
           ) : (
             <>
               {/* Mobile cards */}
-              <div className="md:hidden divide-y divide-gray-100">
+              <div className="md:hidden divide-y divide-gray-100 dark:divide-gray-700">
                 {contacts.data.items.map((c) => (
                   <div key={c.id} className="px-4 py-3 space-y-2">
                     <div className="flex items-center justify-between gap-2">
-                      <Link to={`/contacts/${c.id}`} className="text-sm font-semibold text-indigo-600">
+                      <Link to={`/contacts/${c.id}`} className="text-sm font-semibold text-indigo-600 dark:text-indigo-400">
                         {c.firstName} {c.lastName}
                       </Link>
                       <Badge variant={c.status === 'active' ? 'green' : 'gray'}>{c.status}</Badge>
                     </div>
-                    <div className="text-xs text-gray-500 space-y-0.5">
+                    <div className="text-xs text-gray-500 dark:text-gray-400 space-y-0.5">
                       {c.email && <p>{c.email}</p>}
                       {c.family?.name && <p>Family: {c.family.name}</p>}
                       <p>Added {formatDate(c.createdAt)}</p>
                       {c.stripeDefaultPaymentMethodId && (
-                        <p className="flex items-center gap-1 text-green-600 font-medium">
+                        <p className="flex items-center gap-1 text-green-600 dark:text-green-400 font-medium">
                           <CreditCard className="h-3 w-3" /> Card on file
                         </p>
                       )}
@@ -152,7 +152,7 @@ export function ContactsPage() {
               {/* Desktop table */}
               <div className="hidden md:block">
                 <table className="w-full text-sm">
-                  <thead className="bg-gray-50 text-xs text-gray-500 uppercase">
+                  <thead className="bg-gray-50 dark:bg-gray-700/50 text-xs text-gray-500 dark:text-gray-400 uppercase">
                     <tr>
                       <th className="px-6 py-3 text-left">Name</th>
                       <th className="px-6 py-3 text-left">Email</th>
@@ -163,29 +163,29 @@ export function ContactsPage() {
                       <th className="px-6 py-3 text-left"></th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-gray-100">
+                  <tbody className="divide-y divide-gray-100 dark:divide-gray-700">
                     {contacts.data.items.map((c) => (
-                      <tr key={c.id} className="hover:bg-gray-50">
+                      <tr key={c.id} className="hover:bg-gray-50 dark:hover:bg-gray-700/30">
                         <td className="px-6 py-3 font-medium">
-                          <Link to={`/contacts/${c.id}`} className="text-indigo-600 hover:underline">
+                          <Link to={`/contacts/${c.id}`} className="text-indigo-600 dark:text-indigo-400 hover:underline">
                             {c.firstName} {c.lastName}
                           </Link>
                         </td>
-                        <td className="px-6 py-3 text-gray-600">{c.email ?? '—'}</td>
-                        <td className="px-6 py-3 text-gray-600">{c.family?.name ?? '—'}</td>
+                        <td className="px-6 py-3 text-gray-600 dark:text-gray-400">{c.email ?? '—'}</td>
+                        <td className="px-6 py-3 text-gray-600 dark:text-gray-400">{c.family?.name ?? '—'}</td>
                         <td className="px-6 py-3">
                           {c.stripeDefaultPaymentMethodId ? (
-                            <span className="flex items-center gap-1 text-green-600 text-xs font-medium">
+                            <span className="flex items-center gap-1 text-green-600 dark:text-green-400 text-xs font-medium">
                               <CreditCard className="h-3 w-3" /> Saved
                             </span>
                           ) : (
-                            <span className="text-gray-300 text-xs">—</span>
+                            <span className="text-gray-400 dark:text-gray-600 text-xs">—</span>
                           )}
                         </td>
                         <td className="px-6 py-3">
                           <Badge variant={c.status === 'active' ? 'green' : 'gray'}>{c.status}</Badge>
                         </td>
-                        <td className="px-6 py-3 text-gray-500">{formatDate(c.createdAt)}</td>
+                        <td className="px-6 py-3 text-gray-500 dark:text-gray-400">{formatDate(c.createdAt)}</td>
                         <td className="px-6 py-3">
                           <div className="flex gap-1">
                             {c.status === 'active' ? (
