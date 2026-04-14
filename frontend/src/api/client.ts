@@ -104,8 +104,8 @@ export const initializeInvoicePayment = (id: string) =>
     (r) => r.data.data as PaymentInitData
   );
 
-export const confirmInvoicePayment = (id: string, paymentIntentId: string) =>
-  apiClient.post(`/client/invoices/${id}/confirm-payment`, { paymentIntentId }).then(
+export const confirmInvoicePayment = (invoiceId: string, paymentIntentId: string) =>
+  apiClient.post(`/client/invoices/${invoiceId}/confirm-payment`, { paymentIntentId }).then(
     (r) => r.data.data.invoice as Invoice
   );
 

@@ -27,7 +27,7 @@ function PaymentForm({
 }: {
   invoiceId: string;
   paymentIntentId: string;
-  onSuccess: () => void;
+  onSuccess: (confirmedInvoice: import('../../api/client').Invoice) => void;
   onError: (msg: string) => void;
 }) {
   const stripe = useStripe();
@@ -49,12 +49,16 @@ function PaymentForm({
       return;
     }
     // Sync payment status to our DB immediately (don't wait for webhook)
+    let confirmedInvoice: import('../../api/client').Invoice;
     try {
-      await confirmInvoicePayment(invoiceId, paymentIntentId);
-    } catch {
-      // Non-fatal: webhook may still deliver. Show success anyway.
+      confirmedInvoice = await confirmInvoicePayment(invoiceId, paymentIntentId);
+    } catch (err: unknown) {
+      const msg = (err as { response?: { data?: { message?: string } } })?.response?.data?.message;
+      onError(msg ?? 'Payment was charged but we could not confirm it. Please refresh the page.');
+      setSubmitting(false);
+      return;
     }
-    onSuccess();
+    onSuccess(confirmedInvoice);
   };
 
   return (
@@ -96,11 +100,15 @@ export function InvoiceDetailPage() {
     const status = searchParams.get('redirect_status');
     if (paymentIntentParam && status === 'succeeded' && id) {
       confirmInvoicePayment(id, paymentIntentParam)
-        .catch(() => {/* non-fatal */})
-        .finally(() => {
+        .then((confirmedInvoice) => {
+          qc.setQueryData(['client', 'invoices', id], confirmedInvoice);
           setPayStatus('success');
           setPayMessage('Payment successful! Thank you.');
+        })
+        .catch(() => {
           qc.invalidateQueries({ queryKey: ['client', 'invoices', id] });
+          setPayStatus('success');
+          setPayMessage('Payment successful! Thank you.');
         });
     }
   }, [searchParams, id, qc]);
@@ -193,26 +201,28 @@ export function InvoiceDetailPage() {
         </div>
       )}
 
-      {canPay && (
+      {payStatus === 'success' ? (
         <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 px-5 py-5">
-          {payStatus === 'success' ? (
-            <div className="flex items-center gap-2 text-green-700">
-              <CheckCircle className="h-5 w-5" />
-              <span className="text-sm font-medium">{payMessage}</span>
-            </div>
-          ) : payStatus === 'form' && payInit && stripePromise ? (
+          <div className="flex items-center gap-2 text-green-700 dark:text-green-400">
+            <CheckCircle className="h-5 w-5" />
+            <span className="text-sm font-medium">{payMessage}</span>
+          </div>
+        </div>
+      ) : canPay ? (
+        <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 px-5 py-5">
+          {payStatus === 'form' && payInit && stripePromise ? (
             <Elements
               stripe={stripePromise}
               options={{ clientSecret: payInit.clientSecret, appearance: { theme: 'stripe' } }}
             >
-              {payMessage && <p className="text-red-600 text-sm mb-3">{payMessage}</p>}
+              {payMessage && <p className="text-red-600 dark:text-red-400 text-sm mb-3">{payMessage}</p>}
               <PaymentForm
                 invoiceId={id!}
                 paymentIntentId={payInit.paymentIntentId}
-                onSuccess={() => {
+                onSuccess={(confirmedInvoice) => {
+                  qc.setQueryData(['client', 'invoices', id], confirmedInvoice);
                   setPayStatus('success');
                   setPayMessage('Payment successful! Thank you.');
-                  qc.invalidateQueries({ queryKey: ['client', 'invoices', id] });
                 }}
                 onError={(msg) => {
                   setPayMessage(msg);
@@ -221,7 +231,7 @@ export function InvoiceDetailPage() {
             </Elements>
           ) : (
             <>
-              {payMessage && <p className="text-red-600 text-sm mb-3">{payMessage}</p>}
+              {payMessage && <p className="text-red-600 dark:text-red-400 text-sm mb-3">{payMessage}</p>}
               <button
                 onClick={openPaymentForm}
                 disabled={payStatus === 'loading'}
@@ -233,7 +243,7 @@ export function InvoiceDetailPage() {
             </>
           )}
         </div>
-      )}
+      ) : null}
     </div>
   );
 }
