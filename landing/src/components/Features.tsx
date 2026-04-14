@@ -28,6 +28,7 @@ const features = [
       </svg>
     ),
     title: 'Direct payouts',
+    description:
       'Payments land directly in your bank account. Powered by Stripe Connect — fast, secure, and reliable. Paymat takes a small platform fee; you keep the rest.',
   },
 ];
