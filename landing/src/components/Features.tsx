@@ -7,7 +7,7 @@ const features = [
     ),
     title: 'Recurring billing',
     description:
-      'Set up weekly, monthly, or yearly billing per program. Invoices generate and send automatically. Families billed together, individuals billed separately.',
+      'Invoices generate and send automatically on your schedule — weekly, monthly, or yearly. Bill families together or members individually, with zero manual work.',
   },
   {
     icon: (
@@ -18,7 +18,7 @@ const features = [
     ),
     title: 'Member portal',
     description:
-      'Each member gets their own portal to view invoices, pay online, and manage their account. Branded per organization, no shared login page.',
+      'Every member gets a private portal to view invoices, pay online, and manage their account — branded with your name, ready to share on day one.',
   },
   {
     icon: (
@@ -28,8 +28,7 @@ const features = [
       </svg>
     ),
     title: 'Direct payouts',
-    description:
-      'Powered by Stripe Connect. Payments go directly to your bank account. Paymat takes a small platform fee — you keep the rest, instantly.',
+      'Payments land directly in your bank account. Powered by Stripe Connect — fast, secure, and reliable. Paymat takes a small platform fee; you keep the rest.',
   },
 ];
 
@@ -42,11 +41,10 @@ export default function Features() {
             className="text-3xl sm:text-4xl font-bold tracking-tight mb-4"
             style={{ color: 'var(--color-text)' }}
           >
-            Everything you need. Nothing you don't.
+            Simple billing, built for your business.
           </h2>
           <p className="text-base max-w-lg mx-auto" style={{ color: 'var(--color-muted)' }}>
-            No scheduling bloat. No attendance tracking. No 200-page manual.
-            Just billing, payments, and a clean portal for your members.
+            Set up in minutes. Get paid automatically. Give your members a clean portal they'll actually use.
           </p>
         </div>
 
