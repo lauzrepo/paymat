@@ -24,13 +24,13 @@ export function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50 px-4">
+    <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900 px-4">
       <div className="w-full max-w-sm">
         <div className="text-center mb-8">
-          <h1 className="text-2xl font-bold text-gray-900">Member Portal</h1>
-          <p className="mt-1 text-sm text-gray-500">Sign in to your account</p>
+          <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">Member Portal</h1>
+          <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">Sign in to your account</p>
         </div>
-        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+        <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6">
           <form onSubmit={handleSubmit} className="space-y-4">
             {login.isError && (
               <Alert variant="error">Invalid email or password.</Alert>
@@ -57,7 +57,7 @@ export function LoginPage() {
               Sign in
             </Button>
           </form>
-          <p className="mt-4 text-center text-sm text-gray-500">
+          <p className="mt-4 text-center text-sm text-gray-500 dark:text-gray-400">
             <Link to={`/${orgSlug}/forgot-password`} className="text-indigo-600 hover:text-indigo-500 font-medium">
               Forgot your password?
             </Link>

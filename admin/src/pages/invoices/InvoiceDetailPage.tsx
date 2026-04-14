@@ -64,7 +64,7 @@ export function InvoiceDetailPage() {
   };
 
   if (isLoading) return <div className="flex justify-center py-20"><Spinner /></div>;
-  if (!invoice) return <p className="text-center py-20 text-gray-500">Invoice not found.</p>;
+  if (!invoice) return <p className="text-center py-20 text-gray-500 dark:text-gray-400">Invoice not found.</p>;
 
   const billTo = invoice.contact
     ? { label: `${invoice.contact.firstName} ${invoice.contact.lastName}`, href: `/contacts/${invoice.contact.id}` }
@@ -75,13 +75,16 @@ export function InvoiceDetailPage() {
   const balance = invoice.amountDue - invoice.amountPaid;
   const canAct = invoice.status !== 'paid' && invoice.status !== 'void';
 
+  const modalInputCls = 'w-full text-sm border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500';
+  const modalSelectCls = 'appearance-none bg-white dark:bg-gray-700 dark:border-gray-600 dark:text-gray-100 w-full text-sm border border-gray-300 rounded-lg px-3 py-2 pr-8 focus:outline-none focus:ring-2 focus:ring-indigo-500';
+
   return (
     <div className="space-y-6">
       <div className="flex flex-wrap items-center gap-3">
-        <Link to="/invoices" className="text-gray-400 hover:text-gray-600">
+        <Link to="/invoices" className="text-gray-400 hover:text-gray-600 dark:text-gray-500 dark:hover:text-gray-300">
           <ChevronLeft className="h-5 w-5" />
         </Link>
-        <h1 className="text-2xl font-bold text-gray-900">{invoice.invoiceNumber}</h1>
+        <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">{invoice.invoiceNumber}</h1>
         <Badge variant={STATUS_VARIANT[invoice.status] ?? 'gray'}>{invoice.status}</Badge>
         <div className="ml-auto">
           <Suspense fallback={<Button variant="secondary" size="sm" loading>Download PDF</Button>}>
@@ -93,13 +96,13 @@ export function InvoiceDetailPage() {
       <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
         <div className="lg:col-span-2 space-y-6">
           <Card>
-            <CardHeader><h2 className="text-base font-semibold text-gray-900">Details</h2></CardHeader>
-            <CardBody className="divide-y divide-gray-100 !py-0">
+            <CardHeader><h2 className="text-base font-semibold text-gray-900 dark:text-gray-100">Details</h2></CardHeader>
+            <CardBody className="divide-y divide-gray-100 dark:divide-gray-700 !py-0">
               <Row label="Bill to">
                 {billTo ? (
-                  <Link to={billTo.href} className="text-indigo-600 hover:underline font-medium">{billTo.label}</Link>
+                  <Link to={billTo.href} className="text-indigo-600 dark:text-indigo-400 hover:underline font-medium">{billTo.label}</Link>
                 ) : (
-                  <span className="text-gray-900 font-medium">—</span>
+                  <span className="text-gray-900 dark:text-gray-100 font-medium">—</span>
                 )}
               </Row>
               <Row label="Amount due" value={formatCurrency(invoice.amountDue)} />
@@ -127,33 +130,33 @@ export function InvoiceDetailPage() {
         <div className="lg:col-span-3 space-y-6">
           {/* Line Items */}
           <Card>
-            <CardHeader><h2 className="text-base font-semibold text-gray-900">Line Items</h2></CardHeader>
+            <CardHeader><h2 className="text-base font-semibold text-gray-900 dark:text-gray-100">Line Items</h2></CardHeader>
             <CardBody className="p-0">
               {!invoice.lineItems?.length ? (
-                <p className="px-6 py-6 text-sm text-gray-500">No line items.</p>
+                <p className="px-6 py-6 text-sm text-gray-500 dark:text-gray-400">No line items.</p>
               ) : (
                 <>
                   {/* Mobile cards */}
-                  <div className="md:hidden divide-y divide-gray-100">
+                  <div className="md:hidden divide-y divide-gray-100 dark:divide-gray-700">
                     {invoice.lineItems.map((li) => (
                       <div key={li.id} className="px-4 py-3 flex items-center justify-between gap-3">
                         <div className="min-w-0">
-                          <p className="text-sm font-medium text-gray-900 truncate">{li.description}</p>
-                          <p className="text-xs text-gray-500">Qty {li.quantity} × {formatCurrency(li.unitPrice)}</p>
+                          <p className="text-sm font-medium text-gray-900 dark:text-gray-100 truncate">{li.description}</p>
+                          <p className="text-xs text-gray-500 dark:text-gray-400">Qty {li.quantity} × {formatCurrency(li.unitPrice)}</p>
                         </div>
-                        <p className="text-sm font-semibold text-gray-900 flex-shrink-0">{formatCurrency(li.total)}</p>
+                        <p className="text-sm font-semibold text-gray-900 dark:text-gray-100 flex-shrink-0">{formatCurrency(li.total)}</p>
                       </div>
                     ))}
-                    <div className="px-4 py-3 flex justify-between border-t border-gray-200">
-                      <span className="text-sm font-semibold text-gray-700">Total</span>
-                      <span className="text-sm font-bold text-gray-900">{formatCurrency(invoice.amountDue)}</span>
+                    <div className="px-4 py-3 flex justify-between border-t border-gray-200 dark:border-gray-700">
+                      <span className="text-sm font-semibold text-gray-700 dark:text-gray-300">Total</span>
+                      <span className="text-sm font-bold text-gray-900 dark:text-gray-100">{formatCurrency(invoice.amountDue)}</span>
                     </div>
                   </div>
 
                   {/* Desktop table */}
                   <div className="hidden md:block">
                     <table className="w-full text-sm">
-                      <thead className="bg-gray-50 text-xs text-gray-500 uppercase">
+                      <thead className="bg-gray-50 dark:bg-gray-700/50 text-xs text-gray-500 dark:text-gray-400 uppercase">
                         <tr>
                           <th className="px-6 py-3 text-left">Description</th>
                           <th className="px-6 py-3 text-right">Qty</th>
@@ -161,20 +164,20 @@ export function InvoiceDetailPage() {
                           <th className="px-6 py-3 text-right">Total</th>
                         </tr>
                       </thead>
-                      <tbody className="divide-y divide-gray-100">
+                      <tbody className="divide-y divide-gray-100 dark:divide-gray-700">
                         {invoice.lineItems.map((li) => (
                           <tr key={li.id}>
-                            <td className="px-6 py-3">{li.description}</td>
-                            <td className="px-6 py-3 text-right text-gray-500">{li.quantity}</td>
-                            <td className="px-6 py-3 text-right text-gray-500">{formatCurrency(li.unitPrice)}</td>
-                            <td className="px-6 py-3 text-right font-medium">{formatCurrency(li.total)}</td>
+                            <td className="px-6 py-3 dark:text-gray-100">{li.description}</td>
+                            <td className="px-6 py-3 text-right text-gray-500 dark:text-gray-400">{li.quantity}</td>
+                            <td className="px-6 py-3 text-right text-gray-500 dark:text-gray-400">{formatCurrency(li.unitPrice)}</td>
+                            <td className="px-6 py-3 text-right font-medium dark:text-gray-100">{formatCurrency(li.total)}</td>
                           </tr>
                         ))}
                       </tbody>
                       <tfoot>
-                        <tr className="border-t border-gray-200">
-                          <td colSpan={3} className="px-6 py-3 text-right text-sm font-semibold text-gray-700">Total</td>
-                          <td className="px-6 py-3 text-right text-sm font-bold text-gray-900">{formatCurrency(invoice.amountDue)}</td>
+                        <tr className="border-t border-gray-200 dark:border-gray-700">
+                          <td colSpan={3} className="px-6 py-3 text-right text-sm font-semibold text-gray-700 dark:text-gray-300">Total</td>
+                          <td className="px-6 py-3 text-right text-sm font-bold text-gray-900 dark:text-gray-100">{formatCurrency(invoice.amountDue)}</td>
                         </tr>
                       </tfoot>
                     </table>
@@ -186,23 +189,23 @@ export function InvoiceDetailPage() {
 
           {/* Payments */}
           <Card>
-            <CardHeader><h2 className="text-base font-semibold text-gray-900">Payments</h2></CardHeader>
+            <CardHeader><h2 className="text-base font-semibold text-gray-900 dark:text-gray-100">Payments</h2></CardHeader>
             <CardBody className="p-0">
               {payments.isLoading ? (
                 <div className="flex justify-center py-6"><Spinner /></div>
               ) : !payments.data?.items.length ? (
-                <p className="px-6 py-6 text-sm text-gray-500">No payments recorded.</p>
+                <p className="px-6 py-6 text-sm text-gray-500 dark:text-gray-400">No payments recorded.</p>
               ) : (
                 <>
                   {/* Mobile cards */}
-                  <div className="md:hidden divide-y divide-gray-100">
+                  <div className="md:hidden divide-y divide-gray-100 dark:divide-gray-700">
                     {payments.data.items.map((p) => (
                       <div key={p.id} className="px-4 py-3 space-y-1">
                         <div className="flex items-center justify-between gap-3">
-                          <p className="text-sm font-semibold text-gray-900">{formatCurrency(p.amount)}</p>
+                          <p className="text-sm font-semibold text-gray-900 dark:text-gray-100">{formatCurrency(p.amount)}</p>
                           <Badge variant={PAYMENT_VARIANT[p.status] ?? 'gray'}>{p.status}</Badge>
                         </div>
-                        <p className="text-xs text-gray-500 capitalize">
+                        <p className="text-xs text-gray-500 dark:text-gray-400 capitalize">
                           {p.paymentMethodType?.replace('_', ' ') ?? '—'} · {formatDate(p.createdAt)}
                         </p>
                         {p.status === 'succeeded' && (
@@ -218,7 +221,7 @@ export function InvoiceDetailPage() {
                   {/* Desktop table */}
                   <div className="hidden md:block">
                     <table className="w-full text-sm">
-                      <thead className="bg-gray-50 text-xs text-gray-500 uppercase">
+                      <thead className="bg-gray-50 dark:bg-gray-700/50 text-xs text-gray-500 dark:text-gray-400 uppercase">
                         <tr>
                           <th className="px-6 py-3 text-left">Date</th>
                           <th className="px-6 py-3 text-left">Method</th>
@@ -227,12 +230,12 @@ export function InvoiceDetailPage() {
                           <th className="px-6 py-3 text-left"></th>
                         </tr>
                       </thead>
-                      <tbody className="divide-y divide-gray-100">
+                      <tbody className="divide-y divide-gray-100 dark:divide-gray-700">
                         {payments.data.items.map((p) => (
                           <tr key={p.id}>
-                            <td className="px-6 py-3 text-gray-500">{formatDate(p.createdAt)}</td>
-                            <td className="px-6 py-3 text-gray-700 capitalize">{p.paymentMethodType?.replace('_', ' ') ?? '—'}</td>
-                            <td className="px-6 py-3 font-medium">{formatCurrency(p.amount)}</td>
+                            <td className="px-6 py-3 text-gray-500 dark:text-gray-400">{formatDate(p.createdAt)}</td>
+                            <td className="px-6 py-3 text-gray-700 dark:text-gray-300 capitalize">{p.paymentMethodType?.replace('_', ' ') ?? '—'}</td>
+                            <td className="px-6 py-3 font-medium dark:text-gray-100">{formatCurrency(p.amount)}</td>
                             <td className="px-6 py-3">
                               <Badge variant={PAYMENT_VARIANT[p.status] ?? 'gray'}>{p.status}</Badge>
                             </td>
@@ -258,21 +261,21 @@ export function InvoiceDetailPage() {
 
       {showPayForm && (
         <div className="fixed inset-0 bg-black/40 flex items-end sm:items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-xl shadow-xl w-full max-w-md p-6 max-h-[90vh] overflow-y-auto">
-            <h2 className="text-base font-semibold text-gray-900 mb-4">Record Payment</h2>
+          <div className="bg-white dark:bg-gray-800 rounded-xl shadow-xl w-full max-w-md p-6 max-h-[90vh] overflow-y-auto">
+            <h2 className="text-base font-semibold text-gray-900 dark:text-gray-100 mb-4">Record Payment</h2>
             <form onSubmit={handleRecordPayment} className="space-y-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Amount ($)</label>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Amount ($)</label>
                 <input type="number" step="0.01" min="0.01" required value={payForm.amount}
                   onChange={(e) => setPayForm({ ...payForm, amount: e.target.value })}
-                  className="w-full text-sm border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  className={modalInputCls}
                 />
-                <p className="text-xs text-gray-400 mt-1">Balance: {formatCurrency(balance)}</p>
+                <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">Balance: {formatCurrency(balance)}</p>
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Payment method</label>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Payment method</label>
                 <select value={payForm.method} onChange={(e) => setPayForm({ ...payForm, method: e.target.value })}
-                  className="appearance-none bg-white w-full text-sm border border-gray-300 rounded-lg px-3 py-2 pr-8 focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                  className={modalSelectCls}>
                   <option value="cash">Cash</option>
                   <option value="check">Check</option>
                   <option value="bank_transfer">Bank transfer</option>
@@ -281,10 +284,10 @@ export function InvoiceDetailPage() {
                 </select>
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Notes (optional)</label>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Notes (optional)</label>
                 <input type="text" value={payForm.notes} onChange={(e) => setPayForm({ ...payForm, notes: e.target.value })}
                   placeholder="e.g. Check #1042"
-                  className="w-full text-sm border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  className={modalInputCls}
                 />
               </div>
               <div className="flex gap-3 justify-end pt-2">
@@ -298,16 +301,16 @@ export function InvoiceDetailPage() {
 
       {refundModal && (
         <div className="fixed inset-0 bg-black/40 flex items-end sm:items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-xl shadow-xl w-full max-w-sm p-6 max-h-[90vh] overflow-y-auto">
-            <h2 className="text-base font-semibold text-gray-900 mb-4">Refund Payment</h2>
+          <div className="bg-white dark:bg-gray-800 rounded-xl shadow-xl w-full max-w-sm p-6 max-h-[90vh] overflow-y-auto">
+            <h2 className="text-base font-semibold text-gray-900 dark:text-gray-100 mb-4">Refund Payment</h2>
             <form onSubmit={handleRefund} className="space-y-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Refund amount ($)</label>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Refund amount ($)</label>
                 <input type="number" step="0.01" min="0.01" max={refundModal.amount} required
                   value={refundAmount} onChange={(e) => setRefundAmount(e.target.value)}
-                  className="w-full text-sm border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  className={modalInputCls}
                 />
-                <p className="text-xs text-gray-400 mt-1">Max: {formatCurrency(refundModal.amount)}</p>
+                <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">Max: {formatCurrency(refundModal.amount)}</p>
               </div>
               <div className="flex gap-3 justify-end pt-2">
                 <Button type="button" variant="secondary" onClick={() => setRefundModal(null)}>Cancel</Button>
@@ -324,8 +327,8 @@ export function InvoiceDetailPage() {
 function Row({ label, value, children }: { label: string; value?: string; children?: React.ReactNode }) {
   return (
     <div className="flex items-center justify-between py-3 gap-4">
-      <span className="text-sm text-gray-500 shrink-0">{label}</span>
-      <span className="text-sm text-gray-900 font-medium text-right">{children ?? value}</span>
+      <span className="text-sm text-gray-500 dark:text-gray-400 shrink-0">{label}</span>
+      <span className="text-sm text-gray-900 dark:text-gray-100 font-medium text-right">{children ?? value}</span>
     </div>
   );
 }

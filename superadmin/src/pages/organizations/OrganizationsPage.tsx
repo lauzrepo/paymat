@@ -18,7 +18,7 @@ export function OrganizationsPage() {
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold text-gray-900">Organizations</h1>
+        <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">Organizations</h1>
         <Button onClick={() => navigate('/organizations/new')}>
           <Plus className="h-4 w-4 mr-1" /> New Organization
         </Button>
@@ -34,20 +34,20 @@ export function OrganizationsPage() {
                 placeholder="Search by name or slug…"
                 value={search}
                 onChange={(e) => { setSearch(e.target.value); setPage(1); }}
-                className="w-full pl-9 pr-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-violet-500"
+                className="w-full pl-9 pr-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-violet-500"
               />
             </div>
-            <span className="text-sm text-gray-500 ml-auto">{data?.total ?? 0} organizations</span>
+            <span className="text-sm text-gray-500 dark:text-gray-400 ml-auto">{data?.total ?? 0} organizations</span>
           </div>
         </CardHeader>
         <CardBody className="p-0">
           {isLoading ? (
             <div className="flex justify-center py-12"><Spinner /></div>
           ) : !data?.organizations.length ? (
-            <p className="px-6 py-12 text-center text-sm text-gray-500">No organizations found.</p>
+            <p className="px-6 py-12 text-center text-sm text-gray-500 dark:text-gray-400">No organizations found.</p>
           ) : (
             <table className="w-full text-sm">
-              <thead className="bg-gray-50 text-xs text-gray-500 uppercase">
+              <thead className="bg-gray-50 dark:bg-gray-700/50 text-xs text-gray-500 dark:text-gray-400 uppercase">
                 <tr>
                   <th className="px-6 py-3 text-left">Name</th>
                   <th className="px-6 py-3 text-left">Slug</th>
@@ -58,24 +58,24 @@ export function OrganizationsPage() {
                   <th className="px-6 py-3 text-left">Created</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-gray-100">
+              <tbody className="divide-y divide-gray-100 dark:divide-gray-700">
                 {data.organizations.map((org) => (
-                  <tr key={org.id} className="hover:bg-gray-50">
+                  <tr key={org.id} className="hover:bg-gray-50 dark:hover:bg-gray-700/30">
                     <td className="px-6 py-3 font-medium">
                       <Link to={`/organizations/${org.id}`} className="text-violet-600 hover:underline">
                         {org.name}
                       </Link>
                     </td>
-                    <td className="px-6 py-3 text-gray-500 font-mono text-xs">{org.slug}</td>
-                    <td className="px-6 py-3 text-gray-600 capitalize">{org.type}</td>
-                    <td className="px-6 py-3 text-gray-600">{org._count?.contacts ?? '—'}</td>
-                    <td className="px-6 py-3 text-gray-600">{org._count?.users ?? '—'}</td>
+                    <td className="px-6 py-3 text-gray-500 dark:text-gray-400 font-mono text-xs">{org.slug}</td>
+                    <td className="px-6 py-3 text-gray-600 dark:text-gray-300 capitalize">{org.type}</td>
+                    <td className="px-6 py-3 text-gray-600 dark:text-gray-300">{org._count?.contacts ?? '—'}</td>
+                    <td className="px-6 py-3 text-gray-600 dark:text-gray-300">{org._count?.users ?? '—'}</td>
                     <td className="px-6 py-3">
                       <Badge variant={org.isActive ? 'green' : 'red'}>
                         {org.isActive ? 'Active' : 'Inactive'}
                       </Badge>
                     </td>
-                    <td className="px-6 py-3 text-gray-500">{formatDate(org.createdAt)}</td>
+                    <td className="px-6 py-3 text-gray-500 dark:text-gray-400">{formatDate(org.createdAt)}</td>
                   </tr>
                 ))}
               </tbody>
@@ -89,7 +89,7 @@ export function OrganizationsPage() {
           <Button variant="secondary" size="sm" disabled={page <= 1} onClick={() => setPage((p) => p - 1)}>
             Previous
           </Button>
-          <span className="text-sm text-gray-500">Page {page} of {data.totalPages}</span>
+          <span className="text-sm text-gray-500 dark:text-gray-400">Page {page} of {data.totalPages}</span>
           <Button variant="secondary" size="sm" disabled={page >= data.totalPages} onClick={() => setPage((p) => p + 1)}>
             Next
           </Button>

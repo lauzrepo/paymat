@@ -29,7 +29,7 @@ export function LoginPage() {
 
   return (
     <div className="space-y-6">
-      <h2 className="text-xl font-semibold text-gray-900">Sign in to your account</h2>
+      <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100">Sign in to your account</h2>
       {login.error && (
         <Alert variant="error">
           {(login.error as { response?: { data?: { message?: string } } }).response?.data?.message ?? 'Login failed'}
@@ -37,8 +37,8 @@ export function LoginPage() {
       )}
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">Workspace</label>
-          <div className="flex items-center border border-gray-300 rounded-lg overflow-hidden focus-within:ring-2 focus-within:ring-indigo-500">
+          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Workspace</label>
+          <div className="flex items-center border border-gray-300 dark:border-gray-600 rounded-lg overflow-hidden focus-within:ring-2 focus-within:ring-indigo-500">
             <input
               type="text"
               placeholder="acme-studio"
@@ -47,9 +47,9 @@ export function LoginPage() {
                 e.target.value = e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, '');
                 register('slug').onChange(e);
               }}
-              className="flex-1 px-3 py-2 text-sm focus:outline-none font-mono"
+              className="flex-1 px-3 py-2 text-sm focus:outline-none font-mono bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100"
             />
-            <span className="px-3 py-2 bg-gray-50 text-gray-400 text-sm border-l border-gray-300 select-none whitespace-nowrap">
+            <span className="px-3 py-2 bg-gray-50 dark:bg-gray-700 text-gray-400 dark:text-gray-500 text-sm border-l border-gray-300 dark:border-gray-600 select-none whitespace-nowrap">
               .cliqpaymat.app
             </span>
           </div>
@@ -59,7 +59,7 @@ export function LoginPage() {
         <div>
           <Input label="Password" id="password" type="password" {...register('password')} error={errors.password?.message} />
           <div className="mt-1 text-right">
-            <Link to="/forgot-password" className="text-sm text-indigo-600 hover:text-indigo-500">
+            <Link to="/forgot-password" className="text-sm text-indigo-600 dark:text-indigo-400 hover:text-indigo-500">
               Forgot password?
             </Link>
           </div>
@@ -68,9 +68,9 @@ export function LoginPage() {
           Sign in
         </Button>
       </form>
-      <p className="text-center text-sm text-gray-600">
+      <p className="text-center text-sm text-gray-600 dark:text-gray-400">
         Don't have an account?{' '}
-        <Link to="/register" className="text-indigo-600 hover:text-indigo-500 font-medium">
+        <Link to="/register" className="text-indigo-600 dark:text-indigo-400 hover:text-indigo-500 font-medium">
           Register
         </Link>
       </p>

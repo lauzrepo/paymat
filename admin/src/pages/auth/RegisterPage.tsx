@@ -30,7 +30,7 @@ export function RegisterPage() {
 
   return (
     <div className="space-y-6">
-      <h2 className="text-xl font-semibold text-gray-900">Create your account</h2>
+      <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100">Create your account</h2>
       {registerMutation.error && (
         <Alert variant="error">
           {(registerMutation.error as { response?: { data?: { message?: string } } }).response?.data?.message ?? 'Registration failed'}
@@ -47,9 +47,9 @@ export function RegisterPage() {
           Create account
         </Button>
       </form>
-      <p className="text-center text-sm text-gray-600">
+      <p className="text-center text-sm text-gray-600 dark:text-gray-400">
         Already have an account?{' '}
-        <Link to="/login" className="text-indigo-600 hover:text-indigo-500 font-medium">
+        <Link to="/login" className="text-indigo-600 dark:text-indigo-400 hover:text-indigo-500 font-medium">
           Sign in
         </Link>
       </p>

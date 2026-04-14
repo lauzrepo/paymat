@@ -39,11 +39,11 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
 
   return (
     <aside className={cn(
-      'fixed inset-y-0 left-0 z-50 w-64 flex-shrink-0 bg-white border-r border-gray-200 flex flex-col transition-transform duration-200',
+      'fixed inset-y-0 left-0 z-50 w-64 flex-shrink-0 bg-white dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700 flex flex-col transition-transform duration-200',
       'md:relative md:translate-x-0',
       isOpen ? 'translate-x-0' : '-translate-x-full'
     )}>
-      <div className="px-6 py-5 border-b border-gray-200 flex items-center justify-between gap-3">
+      <div className="px-6 py-5 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between gap-3">
         <div className="flex items-center gap-3 min-w-0">
           {branding?.logoUrl ? (
             <img src={branding.logoUrl} alt={branding.name} className="h-8 w-auto object-contain flex-shrink-0" />
@@ -55,11 +55,11 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
               {(branding?.name ?? 'P')[0].toUpperCase()}
             </div>
           )}
-          <span className="text-base font-semibold text-gray-900 truncate">
+          <span className="text-base font-semibold text-gray-900 dark:text-gray-100 truncate">
             {branding?.name ?? 'Admin Portal'}
           </span>
         </div>
-        <button className="md:hidden text-gray-500 flex-shrink-0" onClick={onClose}>
+        <button className="md:hidden text-gray-500 dark:text-gray-400 flex-shrink-0" onClick={onClose}>
           <X className="h-5 w-5" />
         </button>
       </div>
@@ -75,8 +75,8 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
               cn(
                 'flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors',
                 isActive
-                  ? 'bg-indigo-50 text-indigo-700'
-                  : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
+                  ? 'bg-indigo-50 dark:bg-indigo-900/40 text-indigo-700 dark:text-indigo-300'
+                  : 'text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700 hover:text-gray-900 dark:hover:text-gray-100'
               )
             }
           >

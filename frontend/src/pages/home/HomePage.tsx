@@ -19,29 +19,29 @@ export function HomePage() {
   return (
     <div className="space-y-6 max-w-2xl">
       <div>
-        <h1 className="text-2xl font-bold text-gray-900">Hi, {firstName} 👋</h1>
-        <p className="mt-1 text-sm text-gray-500">Welcome to your member portal.</p>
+        <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">Hi, {firstName} 👋</h1>
+        <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">Welcome to your member portal.</p>
       </div>
 
       <div className="grid grid-cols-2 gap-4">
-        <Link to={`/${orgSlug}/enrollments`} className="bg-white rounded-xl border border-gray-200 p-4 hover:border-indigo-200 hover:shadow-sm transition-all">
+        <Link to={`/${orgSlug}/enrollments`} className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-4 hover:border-indigo-200 hover:shadow-sm transition-all">
           <div className="flex items-center gap-3 mb-2">
             <div className="h-8 w-8 rounded-lg bg-indigo-50 flex items-center justify-center">
               <BookOpen className="h-4 w-4 text-indigo-600" />
             </div>
-            <span className="text-sm font-medium text-gray-700">Active Programs</span>
+            <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Active Programs</span>
           </div>
-          <p className="text-2xl font-bold text-gray-900">{activeEnrollments}</p>
+          <p className="text-2xl font-bold text-gray-900 dark:text-gray-100">{activeEnrollments}</p>
         </Link>
 
-        <Link to={`/${orgSlug}/invoices`} className="bg-white rounded-xl border border-gray-200 p-4 hover:border-indigo-200 hover:shadow-sm transition-all">
+        <Link to={`/${orgSlug}/invoices`} className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-4 hover:border-indigo-200 hover:shadow-sm transition-all">
           <div className="flex items-center gap-3 mb-2">
             <div className={`h-8 w-8 rounded-lg flex items-center justify-center ${overdueInvoices.length ? 'bg-red-50' : 'bg-gray-50'}`}>
               <FileText className={`h-4 w-4 ${overdueInvoices.length ? 'text-red-600' : 'text-gray-500'}`} />
             </div>
-            <span className="text-sm font-medium text-gray-700">Balance Due</span>
+            <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Balance Due</span>
           </div>
-          <p className={`text-2xl font-bold ${totalOwed > 0 ? 'text-orange-600' : 'text-gray-900'}`}>
+          <p className={`text-2xl font-bold ${totalOwed > 0 ? 'text-orange-600' : 'text-gray-900 dark:text-gray-100'}`}>
             ${totalOwed.toFixed(2)}
           </p>
           {overdueInvoices.length > 0 && (
@@ -65,19 +65,19 @@ export function HomePage() {
       )}
 
       <div className="grid grid-cols-2 gap-4">
-        <Link to={`/${orgSlug}/invoices`} className="bg-white rounded-xl border border-gray-200 p-4 flex items-start gap-3 hover:border-indigo-200 hover:shadow-sm transition-all">
+        <Link to={`/${orgSlug}/invoices`} className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-4 flex items-start gap-3 hover:border-indigo-200 hover:shadow-sm transition-all">
           <CreditCard className="h-5 w-5 text-indigo-600 flex-shrink-0 mt-0.5" />
           <div>
-            <p className="text-sm font-medium text-gray-900">Pay an invoice</p>
-            <p className="text-xs text-gray-500 mt-0.5">View and pay your outstanding balances.</p>
+            <p className="text-sm font-medium text-gray-900 dark:text-gray-100">Pay an invoice</p>
+            <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">View and pay your outstanding balances.</p>
           </div>
         </Link>
 
-        <Link to={`/${orgSlug}/feedback/new`} className="bg-white rounded-xl border border-gray-200 p-4 flex items-start gap-3 hover:border-indigo-200 hover:shadow-sm transition-all">
+        <Link to={`/${orgSlug}/feedback/new`} className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-4 flex items-start gap-3 hover:border-indigo-200 hover:shadow-sm transition-all">
           <MessageSquare className="h-5 w-5 text-indigo-600 flex-shrink-0 mt-0.5" />
           <div>
-            <p className="text-sm font-medium text-gray-900">Get support</p>
-            <p className="text-xs text-gray-500 mt-0.5">Report an issue or send feedback.</p>
+            <p className="text-sm font-medium text-gray-900 dark:text-gray-100">Get support</p>
+            <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">Report an issue or send feedback.</p>
           </div>
         </Link>
       </div>

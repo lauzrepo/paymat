@@ -103,15 +103,15 @@ export function OrganizationDetailPage() {
   };
 
   if (isLoading) return <div className="flex justify-center py-20"><Spinner /></div>;
-  if (!org) return <p className="text-center py-20 text-gray-500">Organization not found.</p>;
+  if (!org) return <p className="text-center py-20 text-gray-500 dark:text-gray-400">Organization not found.</p>;
 
   return (
     <div className="space-y-6 max-w-4xl">
       <div className="flex items-center gap-3">
-        <Link to="/" className="text-gray-400 hover:text-gray-600">
+        <Link to="/" className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300">
           <ChevronLeft className="h-5 w-5" />
         </Link>
-        <h1 className="text-2xl font-bold text-gray-900">{org.name}</h1>
+        <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">{org.name}</h1>
         <Badge variant={org.isActive ? 'green' : 'red'}>{org.isActive ? 'Active' : 'Inactive'}</Badge>
       </div>
 
@@ -124,9 +124,9 @@ export function OrganizationDetailPage() {
           { label: 'Invoices', value: org._count?.invoices ?? 0 },
           { label: 'Revenue', value: formatCurrency(org.stats?.totalRevenue ?? 0) },
         ].map(({ label, value }) => (
-          <div key={label} className="bg-white rounded-xl border border-gray-200 px-4 py-4">
-            <p className="text-xs text-gray-500 uppercase tracking-wide">{label}</p>
-            <p className="text-xl font-bold text-gray-900 mt-1">{value}</p>
+          <div key={label} className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 px-4 py-4">
+            <p className="text-xs text-gray-500 dark:text-gray-400 uppercase tracking-wide">{label}</p>
+            <p className="text-xl font-bold text-gray-900 dark:text-gray-100 mt-1">{value}</p>
           </div>
         ))}
       </div>
@@ -135,59 +135,59 @@ export function OrganizationDetailPage() {
         {/* Settings */}
         <Card>
           <CardHeader className="flex items-center justify-between">
-            <h2 className="text-base font-semibold text-gray-900">Settings</h2>
+            <h2 className="text-base font-semibold text-gray-900 dark:text-gray-100">Settings</h2>
             {!editing && <Button variant="secondary" size="sm" onClick={startEdit}>Edit</Button>}
           </CardHeader>
           <CardBody>
             {editing ? (
               <form onSubmit={handleSave} className="space-y-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Name</label>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Name</label>
                   <input
                     type="text" required value={form.name}
                     onChange={(e) => setForm({ ...form, name: e.target.value })}
-                    className="w-full text-sm border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-violet-500"
+                    className="w-full text-sm border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-violet-500"
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Slug</label>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Slug</label>
                   <input
                     type="text" required value={form.slug} pattern="[a-z0-9-]+"
                     onChange={(e) => setForm({ ...form, slug: e.target.value })}
-                    className="w-full text-sm border border-gray-300 rounded-lg px-3 py-2 font-mono focus:outline-none focus:ring-2 focus:ring-violet-500"
+                    className="w-full text-sm border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 font-mono bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-violet-500"
                   />
                 </div>
                 <div className="grid grid-cols-2 gap-3">
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Type</label>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Type</label>
                     <select
                       value={form.type}
                       onChange={(e) => setForm({ ...form, type: e.target.value })}
-                      className="appearance-none bg-white w-full text-sm border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-violet-500"
+                      className="appearance-none bg-white dark:bg-gray-700 w-full text-sm border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-violet-500"
                     >
                       {ORG_TYPES.map((t) => <option key={t} value={t}>{t.charAt(0).toUpperCase() + t.slice(1)}</option>)}
                     </select>
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Timezone</label>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Timezone</label>
                     <select
                       value={form.timezone}
                       onChange={(e) => setForm({ ...form, timezone: e.target.value })}
-                      className="appearance-none bg-white w-full text-sm border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-violet-500"
+                      className="appearance-none bg-white dark:bg-gray-700 w-full text-sm border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-violet-500"
                     >
                       {TIMEZONES.map((tz) => <option key={tz} value={tz}>{tz}</option>)}
                     </select>
                   </div>
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Primary color</label>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Primary color</label>
                   <div className="flex items-center gap-2">
                     <input
                       type="color" value={form.primaryColor || '#4f46e5'}
                       onChange={(e) => setForm({ ...form, primaryColor: e.target.value })}
-                      className="h-9 w-16 rounded border border-gray-300 cursor-pointer"
+                      className="h-9 w-16 rounded border border-gray-300 dark:border-gray-600 cursor-pointer"
                     />
-                    <span className="text-sm text-gray-500 font-mono">{form.primaryColor || '#4f46e5'}</span>
+                    <span className="text-sm text-gray-500 dark:text-gray-400 font-mono">{form.primaryColor || '#4f46e5'}</span>
                   </div>
                 </div>
                 {saveError && <p className="text-red-600 text-sm">{saveError}</p>}
@@ -206,16 +206,16 @@ export function OrganizationDetailPage() {
                   { label: 'Updated', value: formatDate(org.updatedAt) },
                 ].map(({ label, value, mono }) => (
                   <div key={label} className="flex justify-between">
-                    <dt className="text-gray-500">{label}</dt>
-                    <dd className={`font-medium text-gray-900 ${mono ? 'font-mono text-xs' : ''}`}>{value}</dd>
+                    <dt className="text-gray-500 dark:text-gray-400">{label}</dt>
+                    <dd className={`font-medium text-gray-900 dark:text-gray-100 ${mono ? 'font-mono text-xs' : ''}`}>{value}</dd>
                   </div>
                 ))}
                 {org.primaryColor && (
                   <div className="flex justify-between items-center">
-                    <dt className="text-gray-500">Primary color</dt>
+                    <dt className="text-gray-500 dark:text-gray-400">Primary color</dt>
                     <dd className="flex items-center gap-2">
-                      <span className="h-4 w-4 rounded-full border border-gray-200 inline-block" style={{ backgroundColor: org.primaryColor }} />
-                      <span className="font-mono text-xs text-gray-900">{org.primaryColor}</span>
+                      <span className="h-4 w-4 rounded-full border border-gray-200 dark:border-gray-600 inline-block" style={{ backgroundColor: org.primaryColor }} />
+                      <span className="font-mono text-xs text-gray-900 dark:text-gray-100">{org.primaryColor}</span>
                     </dd>
                   </div>
                 )}
@@ -226,19 +226,19 @@ export function OrganizationDetailPage() {
 
         {/* Users */}
         <Card>
-          <CardHeader><h2 className="text-base font-semibold text-gray-900">Users ({org._count?.users ?? 0})</h2></CardHeader>
+          <CardHeader><h2 className="text-base font-semibold text-gray-900 dark:text-gray-100">Users ({org._count?.users ?? 0})</h2></CardHeader>
           <CardBody className="p-0">
             {!org.users?.length ? (
-              <p className="px-6 py-6 text-sm text-gray-500">No users.</p>
+              <p className="px-6 py-6 text-sm text-gray-500 dark:text-gray-400">No users.</p>
             ) : (
-              <ul className="divide-y divide-gray-100">
+              <ul className="divide-y divide-gray-100 dark:divide-gray-700">
                 {org.users.map((u) => (
                   <li key={u.id} className="px-6 py-3 flex items-center justify-between">
                     <div>
-                      <p className="text-sm font-medium text-gray-900">
+                      <p className="text-sm font-medium text-gray-900 dark:text-gray-100">
                         {u.firstName || u.lastName ? `${u.firstName} ${u.lastName}`.trim() : '—'}
                       </p>
-                      <p className="text-xs text-gray-500">{u.email}</p>
+                      <p className="text-xs text-gray-500 dark:text-gray-400">{u.email}</p>
                     </div>
                     <Badge variant={u.role === 'admin' ? 'blue' : 'gray'}>{u.role}</Badge>
                   </li>
@@ -252,12 +252,12 @@ export function OrganizationDetailPage() {
       {/* Billing */}
       <Card>
         <CardHeader className="flex items-center gap-2">
-          <CreditCard className="h-4 w-4 text-gray-500" />
-          <h2 className="text-base font-semibold text-gray-900">Platform Billing</h2>
+          <CreditCard className="h-4 w-4 text-gray-500 dark:text-gray-400" />
+          <h2 className="text-base font-semibold text-gray-900 dark:text-gray-100">Platform Billing</h2>
         </CardHeader>
         <CardBody className="flex items-center justify-between gap-4">
           <div>
-            <p className="text-sm text-gray-700">
+            <p className="text-sm text-gray-700 dark:text-gray-300">
               Status: <span className={`font-semibold ${
                 org.subscriptionStatus === 'active' ? 'text-green-600' :
                 org.subscriptionStatus === 'past_due' ? 'text-orange-600' :
@@ -267,7 +267,7 @@ export function OrganizationDetailPage() {
                 {org.subscriptionStatus ?? 'inactive'}
               </span>
             </p>
-            {billingMsg && <p className="text-xs text-gray-500 mt-1">{billingMsg}</p>}
+            {billingMsg && <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">{billingMsg}</p>}
           </div>
           <div className="flex gap-2 flex-shrink-0">
             {org.subscriptionStatus !== 'active' && (
@@ -286,14 +286,14 @@ export function OrganizationDetailPage() {
 
       {/* Danger zone */}
       <Card>
-        <CardHeader><h2 className="text-base font-semibold text-gray-900">Danger Zone</h2></CardHeader>
-        <CardBody className="divide-y divide-gray-100 !py-0">
+        <CardHeader><h2 className="text-base font-semibold text-gray-900 dark:text-gray-100">Danger Zone</h2></CardHeader>
+        <CardBody className="divide-y divide-gray-100 dark:divide-gray-700 !py-0">
           <div className="flex items-center justify-between py-4">
             <div>
-              <p className="text-sm font-medium text-gray-900">
+              <p className="text-sm font-medium text-gray-900 dark:text-gray-100">
                 {org.isActive ? 'Deactivate organization' : 'Activate organization'}
               </p>
-              <p className="text-xs text-gray-500 mt-0.5">
+              <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
                 {org.isActive
                   ? 'Prevents all users from logging in. Data is preserved.'
                   : 'Re-enables login for all users in this organization.'}
@@ -310,8 +310,8 @@ export function OrganizationDetailPage() {
           </div>
           <div className="flex items-center justify-between py-4">
             <div>
-              <p className="text-sm font-medium text-gray-900">Delete organization permanently</p>
-              <p className="text-xs text-gray-500 mt-0.5">
+              <p className="text-sm font-medium text-gray-900 dark:text-gray-100">Delete organization permanently</p>
+              <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
                 Removes all data — contacts, invoices, payments, users, and more. Cannot be undone.
               </p>
             </div>

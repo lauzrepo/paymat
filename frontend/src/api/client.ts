@@ -104,6 +104,11 @@ export const initializeInvoicePayment = (id: string) =>
     (r) => r.data.data as PaymentInitData
   );
 
+export const confirmInvoicePayment = (id: string, paymentIntentId: string) =>
+  apiClient.post(`/client/invoices/${id}/confirm-payment`, { paymentIntentId }).then(
+    (r) => r.data.data.invoice as Invoice
+  );
+
 export const getMyPayments = (page = 1) =>
   apiClient.get('/client/payments', { params: { page } }).then(
     (r) => r.data.data as { payments: Payment[]; total: number; page: number }

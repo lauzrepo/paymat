@@ -140,23 +140,23 @@ export function FamilyDetailPage() {
   };
 
   if (isLoading) return <div className="flex justify-center py-20"><Spinner /></div>;
-  if (!family) return <p className="text-center text-gray-500 py-20">Family not found.</p>;
+  if (!family) return <p className="text-center text-gray-500 dark:text-gray-400 py-20">Family not found.</p>;
 
   const hasCard = !!family.stripeDefaultPaymentMethodId;
 
   return (
     <div className="space-y-6 max-w-2xl">
       <div className="flex items-center gap-3">
-        <Link to="/families" className="text-gray-400 hover:text-gray-600">
+        <Link to="/families" className="text-gray-400 hover:text-gray-600 dark:text-gray-500 dark:hover:text-gray-300">
           <ChevronLeft className="h-5 w-5" />
         </Link>
-        <h1 className="text-2xl font-bold text-gray-900">{family.name}</h1>
+        <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">{family.name}</h1>
       </div>
 
       <Card>
         <CardHeader>
           <div className="flex flex-wrap items-center justify-between gap-2">
-            <h2 className="text-base font-semibold text-gray-900">Family info</h2>
+            <h2 className="text-base font-semibold text-gray-900 dark:text-gray-100">Family info</h2>
             <div className="flex gap-2">
               {!editing && (
                 <Button variant="secondary" size="sm" onClick={startEdit}>
@@ -178,7 +178,7 @@ export function FamilyDetailPage() {
             <form onSubmit={handleEditSave} className="space-y-3">
               <Input label="Family name" id="name" value={editForm.name} onChange={(e) => setEditForm({ ...editForm, name: e.target.value })} required />
               <Input label="Billing email (optional)" id="billingEmail" type="email" value={editForm.billingEmail} onChange={(e) => setEditForm({ ...editForm, billingEmail: e.target.value })} />
-              {editError && <p className="text-sm text-red-600">{editError}</p>}
+              {editError && <p className="text-sm text-red-600 dark:text-red-400">{editError}</p>}
               <div className="flex gap-2">
                 <Button type="submit" size="sm" loading={updateFamily.isPending}>Save</Button>
                 <Button type="button" variant="secondary" size="sm" onClick={() => setEditing(false)}>Cancel</Button>
@@ -187,33 +187,33 @@ export function FamilyDetailPage() {
           ) : (
             <>
               <div className="flex justify-between">
-                <span className="text-gray-500">Billing email</span>
-                <span className="text-gray-800">{family.billingEmail ?? '—'}</span>
+                <span className="text-gray-500 dark:text-gray-400">Billing email</span>
+                <span className="text-gray-800 dark:text-gray-200">{family.billingEmail ?? '—'}</span>
               </div>
               <div className="flex justify-between">
-                <span className="text-gray-500">Card on file</span>
+                <span className="text-gray-500 dark:text-gray-400">Card on file</span>
                 {hasCard ? (
-                  <span className="text-green-600 font-medium flex items-center gap-1">
+                  <span className="text-green-600 dark:text-green-400 font-medium flex items-center gap-1">
                     <CreditCard className="h-3 w-3" /> Saved
                   </span>
                 ) : (
-                  <span className="text-gray-400">None</span>
+                  <span className="text-gray-400 dark:text-gray-500">None</span>
                 )}
               </div>
               <div className="flex justify-between">
-                <span className="text-gray-500">Added</span>
-                <span className="text-gray-800">{formatDate(family.createdAt)}</span>
+                <span className="text-gray-500 dark:text-gray-400">Added</span>
+                <span className="text-gray-800 dark:text-gray-200">{formatDate(family.createdAt)}</span>
               </div>
             </>
           )}
-          {cardStatus === 'success' && <p className="text-sm text-green-600 font-medium">{cardMessage}</p>}
-          {cardStatus === 'error' && <p className="text-sm text-red-600">{cardMessage}</p>}
+          {cardStatus === 'success' && <p className="text-sm text-green-600 dark:text-green-400 font-medium">{cardMessage}</p>}
+          {cardStatus === 'error' && <p className="text-sm text-red-600 dark:text-red-400">{cardMessage}</p>}
         </CardBody>
       </Card>
 
       {cardStatus === 'form' && stripePromise && clientSecret && (
         <Card>
-          <CardHeader><h2 className="text-base font-semibold text-gray-900">Save card on file</h2></CardHeader>
+          <CardHeader><h2 className="text-base font-semibold text-gray-900 dark:text-gray-100">Save card on file</h2></CardHeader>
           <CardBody>
             <Elements stripe={stripePromise} options={{ clientSecret }}>
               <CardSetupForm
@@ -230,18 +230,18 @@ export function FamilyDetailPage() {
 
       <Card>
         <CardHeader>
-          <h2 className="text-base font-semibold text-gray-900">Members</h2>
+          <h2 className="text-base font-semibold text-gray-900 dark:text-gray-100">Members</h2>
         </CardHeader>
         <CardBody className="p-0">
           {!family.contacts?.length ? (
-            <p className="px-6 py-8 text-center text-sm text-gray-500">No members yet.</p>
+            <p className="px-6 py-8 text-center text-sm text-gray-500 dark:text-gray-400">No members yet.</p>
           ) : (
             <>
               {/* Mobile cards */}
-              <div className="md:hidden divide-y divide-gray-100">
+              <div className="md:hidden divide-y divide-gray-100 dark:divide-gray-700">
                 {family.contacts.map((c) => (
                   <div key={c.id} className="px-4 py-3 flex items-center justify-between gap-3">
-                    <Link to={`/contacts/${c.id}`} className="text-sm font-semibold text-indigo-600">
+                    <Link to={`/contacts/${c.id}`} className="text-sm font-semibold text-indigo-600 dark:text-indigo-400">
                       {c.firstName} {c.lastName}
                     </Link>
                     <Badge variant={c.status === 'active' ? 'green' : 'gray'}>{c.status}</Badge>
@@ -252,17 +252,17 @@ export function FamilyDetailPage() {
               {/* Desktop table */}
               <div className="hidden md:block">
                 <table className="w-full text-sm">
-                  <thead className="bg-gray-50 text-xs text-gray-500 uppercase">
+                  <thead className="bg-gray-50 dark:bg-gray-700/50 text-xs text-gray-500 dark:text-gray-400 uppercase">
                     <tr>
                       <th className="px-6 py-3 text-left">Name</th>
                       <th className="px-6 py-3 text-left">Status</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-gray-100">
+                  <tbody className="divide-y divide-gray-100 dark:divide-gray-700">
                     {family.contacts.map((c) => (
-                      <tr key={c.id} className="hover:bg-gray-50">
+                      <tr key={c.id} className="hover:bg-gray-50 dark:hover:bg-gray-700/30">
                         <td className="px-6 py-3 font-medium">
-                          <Link to={`/contacts/${c.id}`} className="text-indigo-600 hover:underline">
+                          <Link to={`/contacts/${c.id}`} className="text-indigo-600 dark:text-indigo-400 hover:underline">
                             {c.firstName} {c.lastName}
                           </Link>
                         </td>

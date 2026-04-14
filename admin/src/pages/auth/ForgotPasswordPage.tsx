@@ -31,7 +31,7 @@ export function ForgotPasswordPage() {
   if (forgotPassword.isSuccess) {
     return (
       <div className="space-y-4">
-        <h2 className="text-xl font-semibold text-gray-900">Check your email</h2>
+        <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100">Check your email</h2>
         <Alert variant="success">
           If an account with that email exists, a password reset link has been sent.
         </Alert>
@@ -40,8 +40,8 @@ export function ForgotPasswordPage() {
             <strong>Dev mode:</strong> <a href={devResetUrl} className="underline break-all">{devResetUrl}</a>
           </Alert>
         )}
-        <p className="text-center text-sm text-gray-600">
-          <Link to="/login" className="text-indigo-600 hover:text-indigo-500 font-medium">
+        <p className="text-center text-sm text-gray-600 dark:text-gray-400">
+          <Link to="/login" className="text-indigo-600 dark:text-indigo-400 hover:text-indigo-500 font-medium">
             Back to login
           </Link>
         </p>
@@ -52,8 +52,8 @@ export function ForgotPasswordPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h2 className="text-xl font-semibold text-gray-900">Reset your password</h2>
-        <p className="mt-1 text-sm text-gray-600">
+        <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100">Reset your password</h2>
+        <p className="mt-1 text-sm text-gray-600 dark:text-gray-400">
           Enter your email and we'll send you a reset link.
         </p>
       </div>
@@ -68,8 +68,8 @@ export function ForgotPasswordPage() {
           Send reset link
         </Button>
       </form>
-      <p className="text-center text-sm text-gray-600">
-        <Link to="/login" className="text-indigo-600 hover:text-indigo-500 font-medium">
+      <p className="text-center text-sm text-gray-600 dark:text-gray-400">
+        <Link to="/login" className="text-indigo-600 dark:text-indigo-400 hover:text-indigo-500 font-medium">
           Back to login
         </Link>
       </p>

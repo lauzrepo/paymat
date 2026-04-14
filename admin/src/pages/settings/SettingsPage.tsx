@@ -65,11 +65,11 @@ export function SettingsPage() {
 
   return (
     <div className="space-y-6 max-w-2xl">
-      <h1 className="text-2xl font-bold text-gray-900">Settings</h1>
+      <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">Settings</h1>
 
       <Card>
         <CardHeader>
-          <h2 className="text-base font-semibold text-gray-900">Organization</h2>
+          <h2 className="text-base font-semibold text-gray-900 dark:text-gray-100">Organization</h2>
         </CardHeader>
         <CardBody>
           {saved && <Alert variant="success" className="mb-4">Settings saved.</Alert>}
@@ -83,11 +83,11 @@ export function SettingsPage() {
               required
             />
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Business type</label>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Business type</label>
               <select
                 value={form.type}
                 onChange={(e) => setForm({ ...form, type: e.target.value })}
-                className="appearance-none bg-white w-full text-sm border border-gray-300 rounded-lg px-3 py-2 pr-8 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                className="appearance-none bg-white dark:bg-gray-700 dark:border-gray-600 dark:text-gray-100 w-full text-sm border border-gray-300 rounded-lg px-3 py-2 pr-8 focus:outline-none focus:ring-2 focus:ring-indigo-500"
               >
                 <option value="general">General</option>
                 <option value="gym">Gym / Fitness</option>
@@ -100,11 +100,11 @@ export function SettingsPage() {
               </select>
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Timezone</label>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Timezone</label>
               <select
                 value={form.timezone}
                 onChange={(e) => setForm({ ...form, timezone: e.target.value })}
-                className="appearance-none bg-white w-full text-sm border border-gray-300 rounded-lg px-3 py-2 pr-8 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                className="appearance-none bg-white dark:bg-gray-700 dark:border-gray-600 dark:text-gray-100 w-full text-sm border border-gray-300 rounded-lg px-3 py-2 pr-8 focus:outline-none focus:ring-2 focus:ring-indigo-500"
               >
                 {TIMEZONES.map((tz) => (
                   <option key={tz} value={tz}>{tz}</option>
@@ -120,15 +120,15 @@ export function SettingsPage() {
               placeholder="https://…"
             />
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Primary color</label>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Primary color</label>
               <div className="flex items-center gap-3">
                 <input
                   type="color"
                   value={form.primaryColor || '#4f46e5'}
                   onChange={(e) => setForm({ ...form, primaryColor: e.target.value })}
-                  className="h-9 w-12 rounded border border-gray-300 cursor-pointer"
+                  className="h-9 w-12 rounded border border-gray-300 dark:border-gray-600 cursor-pointer"
                 />
-                <span className="text-sm text-gray-500">{form.primaryColor || '#4f46e5'}</span>
+                <span className="text-sm text-gray-500 dark:text-gray-400">{form.primaryColor || '#4f46e5'}</span>
               </div>
             </div>
             <div className="flex justify-end pt-2">
@@ -139,10 +139,10 @@ export function SettingsPage() {
       </Card>
       <Card>
         <CardHeader>
-          <h2 className="text-base font-semibold text-gray-900">Recurring Billing</h2>
+          <h2 className="text-base font-semibold text-gray-900 dark:text-gray-100">Recurring Billing</h2>
         </CardHeader>
         <CardBody className="space-y-4">
-          <p className="text-sm text-gray-600">
+          <p className="text-sm text-gray-600 dark:text-gray-400">
             Generate invoices for all active enrollments that are due today or overdue, and attempt auto-charge for contacts with a saved card.
             This runs automatically each night via cron. Use the button below to trigger it manually.
           </p>

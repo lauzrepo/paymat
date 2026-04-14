@@ -127,17 +127,17 @@ export function ContactDetailPage() {
   };
 
   if (isLoading) return <div className="flex justify-center py-20"><Spinner /></div>;
-  if (!contact) return <p className="text-center py-20 text-gray-500">Contact not found.</p>;
+  if (!contact) return <p className="text-center py-20 text-gray-500 dark:text-gray-400">Contact not found.</p>;
 
   const hasCard = !!contact.stripeDefaultPaymentMethodId;
 
   return (
     <div className="space-y-6">
       <div className="flex items-center gap-3 flex-wrap">
-        <Link to="/contacts" className="text-gray-400 hover:text-gray-600">
+        <Link to="/contacts" className="text-gray-400 hover:text-gray-600 dark:text-gray-500 dark:hover:text-gray-300">
           <ChevronLeft className="h-5 w-5" />
         </Link>
-        <h1 className="text-2xl font-bold text-gray-900">
+        <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">
           {contact.firstName} {contact.lastName}
         </h1>
         <Badge variant={contact.status === 'active' ? 'green' : 'gray'}>{contact.status}</Badge>
@@ -147,7 +147,7 @@ export function ContactDetailPage() {
         <div className="lg:col-span-1 space-y-6">
           <Card>
             <CardHeader>
-              <h2 className="text-base font-semibold text-gray-900">Profile</h2>
+              <h2 className="text-base font-semibold text-gray-900 dark:text-gray-100">Profile</h2>
             </CardHeader>
             <CardBody className="space-y-3 text-sm">
               <Row label="Email" value={contact.email ?? '—'} />
@@ -157,23 +157,23 @@ export function ContactDetailPage() {
               {contact.notes && <Row label="Notes" value={contact.notes} />}
               <Row label="Added" value={formatDate(contact.createdAt)} />
               <div className="flex justify-between items-center pt-1">
-                <span className="text-gray-500">Card on file</span>
+                <span className="text-gray-500 dark:text-gray-400">Card on file</span>
                 {hasCard ? (
-                  <span className="text-green-600 text-xs font-medium flex items-center gap-1">
+                  <span className="text-green-600 dark:text-green-400 text-xs font-medium flex items-center gap-1">
                     <CreditCard className="h-3 w-3" /> Saved
                   </span>
                 ) : (
-                  <span className="text-gray-400 text-xs">None</span>
+                  <span className="text-gray-400 dark:text-gray-500 text-xs">None</span>
                 )}
               </div>
-              {cardStatus === 'success' && <p className="text-sm text-green-600 font-medium">{cardMessage}</p>}
-              {cardStatus === 'error' && <p className="text-sm text-red-600">{cardMessage}</p>}
+              {cardStatus === 'success' && <p className="text-sm text-green-600 dark:text-green-400 font-medium">{cardMessage}</p>}
+              {cardStatus === 'error' && <p className="text-sm text-red-600 dark:text-red-400">{cardMessage}</p>}
             </CardBody>
           </Card>
 
           {cardStatus === 'form' && stripePromise && clientSecret ? (
             <Card>
-              <CardHeader><h2 className="text-base font-semibold text-gray-900">Save card on file</h2></CardHeader>
+              <CardHeader><h2 className="text-base font-semibold text-gray-900 dark:text-gray-100">Save card on file</h2></CardHeader>
               <CardBody>
                 <Elements stripe={stripePromise} options={{ clientSecret }}>
                   <CardSetupForm
@@ -212,20 +212,20 @@ export function ContactDetailPage() {
           {/* Enrollments */}
           <Card>
             <CardHeader>
-              <h2 className="text-base font-semibold text-gray-900">Enrollments</h2>
+              <h2 className="text-base font-semibold text-gray-900 dark:text-gray-100">Enrollments</h2>
             </CardHeader>
             <CardBody className="p-0">
               {!contact.enrollments?.length ? (
-                <p className="px-6 py-6 text-sm text-gray-500">No enrollments.</p>
+                <p className="px-6 py-6 text-sm text-gray-500 dark:text-gray-400">No enrollments.</p>
               ) : (
                 <>
                   {/* Mobile cards */}
-                  <div className="md:hidden divide-y divide-gray-100">
+                  <div className="md:hidden divide-y divide-gray-100 dark:divide-gray-700">
                     {contact.enrollments.map((e) => (
                       <div key={e.id} className="px-4 py-3 flex items-center justify-between gap-3">
                         <div className="min-w-0">
-                          <p className="text-sm font-medium text-gray-900">{e.program.name}</p>
-                          <p className="text-xs text-gray-500">
+                          <p className="text-sm font-medium text-gray-900 dark:text-gray-100">{e.program.name}</p>
+                          <p className="text-xs text-gray-500 dark:text-gray-400">
                             {formatCurrency(e.program.price)}{BILLING_FREQ_LABEL[e.program.billingFrequency] ?? ''} · Since {formatDate(e.startDate)}
                           </p>
                         </div>
@@ -239,7 +239,7 @@ export function ContactDetailPage() {
                   {/* Desktop table */}
                   <div className="hidden md:block">
                     <table className="w-full text-sm">
-                      <thead className="bg-gray-50 text-xs text-gray-500 uppercase">
+                      <thead className="bg-gray-50 dark:bg-gray-700/50 text-xs text-gray-500 dark:text-gray-400 uppercase">
                         <tr>
                           <th className="px-6 py-3 text-left">Program</th>
                           <th className="px-6 py-3 text-left">Price</th>
@@ -247,11 +247,11 @@ export function ContactDetailPage() {
                           <th className="px-6 py-3 text-left">Since</th>
                         </tr>
                       </thead>
-                      <tbody className="divide-y divide-gray-100">
+                      <tbody className="divide-y divide-gray-100 dark:divide-gray-700">
                         {contact.enrollments.map((e) => (
                           <tr key={e.id}>
-                            <td className="px-6 py-3 font-medium">{e.program.name}</td>
-                            <td className="px-6 py-3">
+                            <td className="px-6 py-3 font-medium dark:text-gray-100">{e.program.name}</td>
+                            <td className="px-6 py-3 dark:text-gray-100">
                               {formatCurrency(e.program.price)}{BILLING_FREQ_LABEL[e.program.billingFrequency] ?? ''}
                             </td>
                             <td className="px-6 py-3">
@@ -259,7 +259,7 @@ export function ContactDetailPage() {
                                 {e.status}
                               </Badge>
                             </td>
-                            <td className="px-6 py-3 text-gray-500">{formatDate(e.startDate)}</td>
+                            <td className="px-6 py-3 text-gray-500 dark:text-gray-400">{formatDate(e.startDate)}</td>
                           </tr>
                         ))}
                       </tbody>
@@ -273,25 +273,25 @@ export function ContactDetailPage() {
           {/* Invoices */}
           <Card>
             <CardHeader className="flex items-center justify-between">
-              <h2 className="text-base font-semibold text-gray-900">Recent Invoices</h2>
-              <Link to={`/invoices?contactId=${contact.id}`} className="text-sm text-indigo-600 hover:text-indigo-500">
+              <h2 className="text-base font-semibold text-gray-900 dark:text-gray-100">Recent Invoices</h2>
+              <Link to={`/invoices?contactId=${contact.id}`} className="text-sm text-indigo-600 dark:text-indigo-400 hover:text-indigo-500">
                 View all
               </Link>
             </CardHeader>
             <CardBody className="p-0">
               {!contact.invoices?.length ? (
-                <p className="px-6 py-6 text-sm text-gray-500">No invoices.</p>
+                <p className="px-6 py-6 text-sm text-gray-500 dark:text-gray-400">No invoices.</p>
               ) : (
                 <>
                   {/* Mobile cards */}
-                  <div className="md:hidden divide-y divide-gray-100">
+                  <div className="md:hidden divide-y divide-gray-100 dark:divide-gray-700">
                     {contact.invoices.map((inv) => (
                       <div key={inv.id} className="px-4 py-3 flex items-center justify-between gap-3">
                         <div className="min-w-0">
-                          <Link to={`/invoices/${inv.id}`} className="text-sm font-semibold text-indigo-600">
+                          <Link to={`/invoices/${inv.id}`} className="text-sm font-semibold text-indigo-600 dark:text-indigo-400">
                             {inv.invoiceNumber}
                           </Link>
-                          <p className="text-xs text-gray-500 mt-0.5">
+                          <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
                             {formatCurrency(inv.amountDue)} · Due {formatDate(inv.dueDate)}
                           </p>
                         </div>
@@ -303,7 +303,7 @@ export function ContactDetailPage() {
                   {/* Desktop table */}
                   <div className="hidden md:block">
                     <table className="w-full text-sm">
-                      <thead className="bg-gray-50 text-xs text-gray-500 uppercase">
+                      <thead className="bg-gray-50 dark:bg-gray-700/50 text-xs text-gray-500 dark:text-gray-400 uppercase">
                         <tr>
                           <th className="px-6 py-3 text-left">Invoice</th>
                           <th className="px-6 py-3 text-left">Amount</th>
@@ -311,19 +311,19 @@ export function ContactDetailPage() {
                           <th className="px-6 py-3 text-left">Due</th>
                         </tr>
                       </thead>
-                      <tbody className="divide-y divide-gray-100">
+                      <tbody className="divide-y divide-gray-100 dark:divide-gray-700">
                         {contact.invoices.map((inv) => (
                           <tr key={inv.id}>
                             <td className="px-6 py-3">
-                              <Link to={`/invoices/${inv.id}`} className="text-indigo-600 hover:underline font-medium">
+                              <Link to={`/invoices/${inv.id}`} className="text-indigo-600 dark:text-indigo-400 hover:underline font-medium">
                                 {inv.invoiceNumber}
                               </Link>
                             </td>
-                            <td className="px-6 py-3 font-medium">{formatCurrency(inv.amountDue)}</td>
+                            <td className="px-6 py-3 font-medium dark:text-gray-100">{formatCurrency(inv.amountDue)}</td>
                             <td className="px-6 py-3">
                               <Badge variant={INVOICE_STATUS_VARIANT[inv.status] ?? 'gray'}>{inv.status}</Badge>
                             </td>
-                            <td className="px-6 py-3 text-gray-500">{formatDate(inv.dueDate)}</td>
+                            <td className="px-6 py-3 text-gray-500 dark:text-gray-400">{formatDate(inv.dueDate)}</td>
                           </tr>
                         ))}
                       </tbody>
@@ -342,8 +342,8 @@ export function ContactDetailPage() {
 function Row({ label, value }: { label: string; value: string }) {
   return (
     <div className="flex justify-between">
-      <span className="text-gray-500">{label}</span>
-      <span className="text-gray-900 font-medium text-right max-w-xs truncate">{value}</span>
+      <span className="text-gray-500 dark:text-gray-400">{label}</span>
+      <span className="text-gray-900 dark:text-gray-100 font-medium text-right max-w-xs truncate">{value}</span>
     </div>
   );
 }

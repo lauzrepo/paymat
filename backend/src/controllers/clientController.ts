@@ -1,8 +1,12 @@
 import { Request, Response } from 'express';
+import { Prisma } from '@prisma/client';
+const Decimal = Prisma.Decimal;
 import prisma from '../config/database';
 import { asyncHandler, AppError } from '../middleware/errorHandler';
 import stripeConnectService from '../services/stripeConnectService';
+import { sendPaymentReceived } from '../services/emailService';
 import { config } from '../config/environment';
+import logger from '../utils/logger';
 
 // GET /api/client/me
 export const getMe = asyncHandler(async (req: Request, res: Response) => {
@@ -193,6 +197,129 @@ export const initializeInvoicePayment = asyncHandler(async (req: Request, res: R
       currency: invoice.currency,
     },
   });
+});
+
+// POST /api/client/invoices/:id/confirm-payment
+// Called by the frontend immediately after stripe.confirmPayment() resolves.
+// Retrieves the PaymentIntent from Stripe and records the payment + marks the
+// invoice paid — mirrors the Connect webhook logic so the DB is updated even
+// when webhooks are not yet configured.
+export const confirmInvoicePayment = asyncHandler(async (req: Request, res: Response) => {
+  if (!req.user) throw new AppError(401, 'Not authenticated');
+
+  const { paymentIntentId } = req.body as { paymentIntentId?: string };
+  if (!paymentIntentId) throw new AppError(400, 'paymentIntentId is required');
+
+  const user = await prisma.user.findUnique({
+    where: { id: req.user.userId },
+    include: { contact: true },
+  });
+  if (!user?.contactId) throw new AppError(403, 'No contact record linked to your account');
+
+  const familyId = user.contact?.familyId ?? null;
+
+  const invoice = await prisma.invoice.findFirst({
+    where: {
+      id: req.params.id,
+      organizationId: req.organization!.id,
+      OR: [
+        { contactId: user.contactId },
+        ...(familyId ? [{ familyId }] : []),
+      ],
+    },
+    include: {
+      contact: { select: { email: true, firstName: true, lastName: true } },
+      family: { select: { billingEmail: true, name: true } },
+    },
+  });
+
+  if (!invoice) throw new AppError(404, 'Invoice not found');
+
+  const org = await prisma.organization.findUnique({
+    where: { id: req.organization!.id },
+    select: { stripeConnectAccountId: true, name: true },
+  });
+  if (!org?.stripeConnectAccountId) throw new AppError(503, 'Payment processing not configured');
+
+  // Retrieve and verify the PaymentIntent from Stripe
+  const intent = await stripeConnectService.retrievePaymentIntent(
+    org.stripeConnectAccountId,
+    paymentIntentId
+  );
+
+  if (intent.status !== 'succeeded') {
+    throw new AppError(400, `Payment has not succeeded (status: ${intent.status})`);
+  }
+
+  // Verify the PaymentIntent belongs to this invoice
+  if (intent.metadata?.invoiceId !== invoice.id) {
+    throw new AppError(403, 'PaymentIntent does not match this invoice');
+  }
+
+  const amount = intent.amount / 100;
+  const chargeId = typeof intent.latest_charge === 'string' ? intent.latest_charge : null;
+
+  // Upsert payment record (idempotent — webhook may also fire later)
+  const existing = await prisma.payment.findFirst({
+    where: { stripePaymentIntentId: intent.id },
+  });
+
+  if (!existing) {
+    await prisma.payment.create({
+      data: {
+        organizationId: invoice.organizationId,
+        invoiceId: invoice.id,
+        stripePaymentIntentId: intent.id,
+        stripeChargeId: chargeId,
+        amount: new Decimal(amount),
+        currency: intent.currency.toUpperCase(),
+        status: 'succeeded',
+        paymentMethodType: 'card',
+        notes: 'Paid via member portal',
+      },
+    });
+  } else if (chargeId && !existing.stripeChargeId) {
+    await prisma.payment.update({
+      where: { id: existing.id },
+      data: { stripeChargeId: chargeId, status: 'succeeded' },
+    });
+  }
+
+  const newAmountPaid = Number(invoice.amountPaid) + (existing ? 0 : amount);
+  if (newAmountPaid >= Number(invoice.amountDue)) {
+    await prisma.invoice.update({
+      where: { id: invoice.id },
+      data: { status: 'paid', amountPaid: new Decimal(newAmountPaid), paidAt: new Date() },
+    });
+  } else {
+    await prisma.invoice.update({
+      where: { id: invoice.id },
+      data: { amountPaid: new Decimal(newAmountPaid) },
+    });
+  }
+
+  const recipientEmail = invoice.family?.billingEmail ?? invoice.contact?.email ?? null;
+  const recipientName = invoice.family?.name
+    ?? `${invoice.contact?.firstName ?? ''} ${invoice.contact?.lastName ?? ''}`.trim();
+
+  if (recipientEmail && !existing) {
+    sendPaymentReceived(recipientEmail, {
+      recipientName,
+      orgName: org.name,
+      invoiceNumber: invoice.invoiceNumber,
+      amount,
+      currency: intent.currency.toUpperCase(),
+    }).catch((err) => logger.error('Failed to send payment received email', { err }));
+  }
+
+  logger.info(`[ClientAPI] invoice ${invoice.id} payment confirmed by client ($${amount})`);
+
+  const updatedInvoice = await prisma.invoice.findUnique({
+    where: { id: invoice.id },
+    include: { lineItems: true, payments: true },
+  });
+
+  res.json({ status: 'success', data: { invoice: updatedInvoice } });
 });
 
 // GET /api/client/payments

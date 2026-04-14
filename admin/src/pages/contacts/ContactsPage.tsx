@@ -37,7 +37,7 @@ export function ContactsPage() {
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between gap-2 flex-wrap">
-        <h1 className="text-2xl font-bold text-gray-900">Contacts</h1>
+        <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">Contacts</h1>
         <Button onClick={() => setShowForm(true)}>
           <Plus className="h-4 w-4 mr-1" /> Add Contact
         </Button>
@@ -46,7 +46,7 @@ export function ContactsPage() {
       {showForm && (
         <Card>
           <CardHeader>
-            <h2 className="text-base font-semibold text-gray-900">New Contact</h2>
+            <h2 className="text-base font-semibold text-gray-900 dark:text-gray-100">New Contact</h2>
           </CardHeader>
           <CardBody>
             <form onSubmit={handleCreate} className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -55,11 +55,11 @@ export function ContactsPage() {
               <Input label="Email" id="email" type="email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} />
               <Input label="Phone" id="phone" value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} />
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Family (optional)</label>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Family (optional)</label>
                 <select
                   value={form.familyId}
                   onChange={(e) => setForm({ ...form, familyId: e.target.value })}
-                  className="appearance-none bg-white w-full text-sm border border-gray-300 rounded-lg px-3 py-2 pr-8 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  className="appearance-none bg-white dark:bg-gray-800 dark:text-gray-100 w-full text-sm border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 pr-8 focus:outline-none focus:ring-2 focus:ring-indigo-500"
                 >
                   <option value="">No family</option>
                   {families.data?.items.map((f) => (
@@ -69,7 +69,7 @@ export function ContactsPage() {
               </div>
               <div className="sm:col-span-2 flex items-center gap-2">
                 <input id="addCard" type="checkbox" checked={addCard} onChange={(e) => setAddCard(e.target.checked)} className="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500" />
-                <label htmlFor="addCard" className="text-sm text-gray-700">Add card on file after saving</label>
+                <label htmlFor="addCard" className="text-sm text-gray-700 dark:text-gray-300">Add card on file after saving</label>
               </div>
               <div className="sm:col-span-2 flex gap-3 justify-end">
                 <Button type="button" variant="secondary" onClick={() => setShowForm(false)}>Cancel</Button>
@@ -90,19 +90,19 @@ export function ContactsPage() {
                 placeholder="Search contacts…"
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
-                className="w-full pl-9 pr-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                className="w-full pl-9 pr-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-indigo-500"
               />
             </div>
             <select
               value={status}
               onChange={(e) => setStatus(e.target.value)}
-              className="appearance-none bg-white text-sm border border-gray-300 rounded-lg px-3 py-2 pr-8 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              className="appearance-none bg-white dark:bg-gray-800 dark:text-gray-100 text-sm border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 pr-8 focus:outline-none focus:ring-2 focus:ring-indigo-500"
             >
               <option value="">All statuses</option>
               <option value="active">Active</option>
               <option value="inactive">Inactive</option>
             </select>
-            <span className="text-sm text-gray-500 ml-auto">{contacts.data?.total ?? 0} contacts</span>
+            <span className="text-sm text-gray-500 dark:text-gray-400 ml-auto">{contacts.data?.total ?? 0} contacts</span>
           </div>
         </CardHeader>
         <CardBody className="p-0">

@@ -48,49 +48,49 @@ export function CreateOrganizationPage() {
   return (
     <div className="space-y-6 max-w-2xl">
       <div className="flex items-center gap-3">
-        <Link to="/" className="text-gray-400 hover:text-gray-600">
+        <Link to="/" className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300">
           <ChevronLeft className="h-5 w-5" />
         </Link>
-        <h1 className="text-2xl font-bold text-gray-900">New Organization</h1>
+        <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">New Organization</h1>
       </div>
 
       <form onSubmit={handleSubmit} className="space-y-6">
         <Card>
-          <CardHeader><h2 className="text-base font-semibold text-gray-900">Organization Details</h2></CardHeader>
+          <CardHeader><h2 className="text-base font-semibold text-gray-900 dark:text-gray-100">Organization Details</h2></CardHeader>
           <CardBody className="space-y-4">
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Name</label>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Name</label>
                 <input
                   type="text"
                   required
                   value={form.name}
                   onChange={(e) => handleNameChange(e.target.value)}
-                  className="w-full text-sm border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-violet-500"
+                  className="w-full text-sm border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-violet-500"
                   placeholder="Acme Studio"
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Slug</label>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Slug</label>
                 <input
                   type="text"
                   required
                   value={form.slug}
                   onChange={(e) => setForm({ ...form, slug: e.target.value })}
                   pattern="[a-z0-9-]+"
-                  className="w-full text-sm border border-gray-300 rounded-lg px-3 py-2 font-mono focus:outline-none focus:ring-2 focus:ring-violet-500"
+                  className="w-full text-sm border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 font-mono bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-violet-500"
                   placeholder="acme-studio"
                 />
-                <p className="text-xs text-gray-400 mt-1">Lowercase letters, numbers, hyphens only</p>
+                <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">Lowercase letters, numbers, hyphens only</p>
               </div>
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Type</label>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Type</label>
                 <select
                   value={form.type}
                   onChange={(e) => setForm({ ...form, type: e.target.value })}
-                  className="appearance-none bg-white w-full text-sm border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-violet-500"
+                  className="appearance-none bg-white dark:bg-gray-700 w-full text-sm border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-violet-500"
                 >
                   {ORG_TYPES.map((t) => (
                     <option key={t} value={t}>{t.charAt(0).toUpperCase() + t.slice(1)}</option>
@@ -98,11 +98,11 @@ export function CreateOrganizationPage() {
                 </select>
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Timezone</label>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Timezone</label>
                 <select
                   value={form.timezone}
                   onChange={(e) => setForm({ ...form, timezone: e.target.value })}
-                  className="appearance-none bg-white w-full text-sm border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-violet-500"
+                  className="appearance-none bg-white dark:bg-gray-700 w-full text-sm border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-violet-500"
                 >
                   {TIMEZONES.map((tz) => (
                     <option key={tz} value={tz}>{tz}</option>
@@ -114,40 +114,40 @@ export function CreateOrganizationPage() {
         </Card>
 
         <Card>
-          <CardHeader><h2 className="text-base font-semibold text-gray-900">Admin Account</h2></CardHeader>
+          <CardHeader><h2 className="text-base font-semibold text-gray-900 dark:text-gray-100">Admin Account</h2></CardHeader>
           <CardBody className="space-y-4">
-            <p className="text-sm text-gray-500">This creates the first admin user for the organization.</p>
+            <p className="text-sm text-gray-500 dark:text-gray-400">This creates the first admin user for the organization.</p>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Name</label>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Name</label>
               <input
                 type="text"
                 value={form.adminName}
                 onChange={(e) => setForm({ ...form, adminName: e.target.value })}
-                className="w-full text-sm border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-violet-500"
+                className="w-full text-sm border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-violet-500"
                 placeholder="Jane Smith"
               />
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Email</label>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Email</label>
                 <input
                   type="email"
                   required
                   value={form.adminEmail}
                   onChange={(e) => setForm({ ...form, adminEmail: e.target.value })}
-                  className="w-full text-sm border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-violet-500"
+                  className="w-full text-sm border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-violet-500"
                   placeholder="admin@acmestudio.com"
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Password</label>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Password</label>
                 <input
                   type="text"
                   required
                   minLength={8}
                   value={form.adminPassword}
                   onChange={(e) => setForm({ ...form, adminPassword: e.target.value })}
-                  className="w-full text-sm border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-violet-500"
+                  className="w-full text-sm border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-violet-500"
                   placeholder="Temporary password"
                 />
               </div>

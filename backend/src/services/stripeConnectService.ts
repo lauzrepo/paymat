@@ -162,6 +162,12 @@ class StripeConnectService {
     return setup.client_secret!;
   }
 
+  // ── Payment intent retrieval ─────────────────────────────────────────────
+
+  async retrievePaymentIntent(connectAccountId: string, paymentIntentId: string): Promise<Stripe.PaymentIntent> {
+    return this.client.paymentIntents.retrieve(paymentIntentId, {}, { stripeAccount: connectAccountId });
+  }
+
   // ── Webhooks ─────────────────────────────────────────────────────────────
 
   constructWebhookEvent(rawBody: Buffer, signature: string, secret: string): Stripe.Event {

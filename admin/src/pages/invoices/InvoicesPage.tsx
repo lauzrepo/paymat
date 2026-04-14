@@ -69,10 +69,13 @@ export function InvoicesPage() {
     setLineItems([{ enrollmentId: '', description: '', quantity: 1, unitPrice: '' }]);
   };
 
+  const selectCls = 'appearance-none bg-white dark:bg-gray-700 dark:border-gray-600 dark:text-gray-100 w-full text-sm border border-gray-300 rounded-lg px-3 py-2 pr-8 focus:outline-none focus:ring-2 focus:ring-indigo-500';
+  const inputCls = 'appearance-none bg-white dark:bg-gray-700 dark:border-gray-600 dark:text-gray-100 w-full text-sm border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500';
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between gap-2 flex-wrap">
-        <h1 className="text-2xl font-bold text-gray-900">Invoices</h1>
+        <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">Invoices</h1>
         <Button onClick={() => setShowForm(true)}>
           <Plus className="h-4 w-4 mr-1" /> Create Invoice
         </Button>
@@ -91,19 +94,19 @@ export function InvoicesPage() {
 
       {showForm && (
         <Card>
-          <CardHeader><h2 className="text-base font-semibold text-gray-900">New Invoice</h2></CardHeader>
+          <CardHeader><h2 className="text-base font-semibold text-gray-900 dark:text-gray-100">New Invoice</h2></CardHeader>
           <CardBody>
             <form onSubmit={handleCreate} className="space-y-4">
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Bill to</label>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Bill to</label>
                   <select
                     value={form.contactId}
                     onChange={(e) => {
                       setForm({ ...form, contactId: e.target.value });
                       setLineItems([{ enrollmentId: '', description: '', quantity: 1, unitPrice: '' }]);
                     }}
-                    className="appearance-none bg-white w-full text-sm border border-gray-300 rounded-lg px-3 py-2 pr-8 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                    className={selectCls}
                   >
                     <option value="">Select contact…</option>
                     {contacts.data?.items.map((c) => (
@@ -112,28 +115,28 @@ export function InvoicesPage() {
                   </select>
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Due date</label>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Due date</label>
                   <input
                     type="date"
                     value={form.dueDate}
                     onChange={(e) => setForm({ ...form, dueDate: e.target.value })}
                     required
-                    className="appearance-none bg-white w-full text-sm border border-gray-300 rounded-lg px-3 py-2 pr-8 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                    className={selectCls}
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Notes</label>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Notes</label>
                   <input
                     type="text"
                     value={form.notes}
                     onChange={(e) => setForm({ ...form, notes: e.target.value })}
                     placeholder="Optional"
-                    className="appearance-none bg-white w-full text-sm border border-gray-300 rounded-lg px-3 py-2 pr-8 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                    className={selectCls}
                   />
                 </div>
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Line items</label>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Line items</label>
                 <div className="space-y-2">
                   {lineItems.map((li, i) => {
                     const isCustom = li.enrollmentId === '__custom__';
@@ -157,7 +160,7 @@ export function InvoicesPage() {
                               }
                               setLineItems(c);
                             }}
-                            className="appearance-none bg-white w-full text-sm border border-gray-300 rounded-lg px-3 py-2 pr-8 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                            className={selectCls}
                           >
                             <option value="">Select enrollment…</option>
                             {enrollments.data?.items.map((en) => (
@@ -172,26 +175,26 @@ export function InvoicesPage() {
                               <div className="col-span-3">
                                 <input type="text" placeholder="Description" value={li.description} required
                                   onChange={(e) => { const c = [...lineItems]; c[i].description = e.target.value; setLineItems(c); }}
-                                  className="appearance-none bg-white w-full text-sm border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                                  className={inputCls}
                                 />
                               </div>
                               <div className="col-span-1">
                                 <input type="number" placeholder="Qty" min="1" value={li.quantity}
                                   onChange={(e) => { const c = [...lineItems]; c[i].quantity = parseInt(e.target.value); setLineItems(c); }}
-                                  className="appearance-none bg-white w-full text-sm border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                                  className={inputCls}
                                 />
                               </div>
                               <div className="col-span-1">
                                 <input type="number" placeholder="Price" step="0.01" min="0" value={li.unitPrice} required
                                   onChange={(e) => { const c = [...lineItems]; c[i].unitPrice = e.target.value; setLineItems(c); }}
-                                  className="appearance-none bg-white w-full text-sm border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                                  className={inputCls}
                                 />
                               </div>
                             </>
                           ) : (
                             <div className="col-span-5 flex items-center gap-2">
-                              <span className="text-sm text-gray-500 truncate flex-1">{li.description || '—'}</span>
-                              <span className="text-sm font-medium text-gray-700 whitespace-nowrap">
+                              <span className="text-sm text-gray-500 dark:text-gray-400 truncate flex-1">{li.description || '—'}</span>
+                              <span className="text-sm font-medium text-gray-700 dark:text-gray-300 whitespace-nowrap">
                                 {li.unitPrice ? formatCurrency(parseFloat(li.unitPrice)) : '—'}
                               </span>
                             </div>
@@ -209,7 +212,7 @@ export function InvoicesPage() {
                 </div>
                 <button type="button"
                   onClick={() => setLineItems([...lineItems, { enrollmentId: '', description: '', quantity: 1, unitPrice: '' }])}
-                  className="mt-2 text-sm text-indigo-600 hover:text-indigo-500">+ Add line item</button>
+                  className="mt-2 text-sm text-indigo-600 dark:text-indigo-400 hover:text-indigo-500">+ Add line item</button>
               </div>
               <div className="flex gap-3 justify-end">
                 <Button type="button" variant="secondary" onClick={() => setShowForm(false)}>Cancel</Button>
@@ -224,7 +227,7 @@ export function InvoicesPage() {
         <CardHeader>
           <div className="flex items-center gap-3">
             <select value={status} onChange={(e) => setStatus(e.target.value)}
-              className="appearance-none bg-white text-sm border border-gray-300 rounded-lg px-3 py-2 pr-8 focus:outline-none focus:ring-2 focus:ring-indigo-500">
+              className="appearance-none bg-white dark:bg-gray-700 dark:border-gray-600 dark:text-gray-100 text-sm border border-gray-300 rounded-lg px-3 py-2 pr-8 focus:outline-none focus:ring-2 focus:ring-indigo-500">
               <option value="">All statuses</option>
               <option value="draft">Draft</option>
               <option value="sent">Sent</option>
@@ -232,27 +235,27 @@ export function InvoicesPage() {
               <option value="overdue">Overdue</option>
               <option value="void">Void</option>
             </select>
-            <span className="text-sm text-gray-500 ml-auto">{invoices.data?.total ?? 0} invoices</span>
+            <span className="text-sm text-gray-500 dark:text-gray-400 ml-auto">{invoices.data?.total ?? 0} invoices</span>
           </div>
         </CardHeader>
         <CardBody className="p-0">
           {invoices.isLoading ? (
             <div className="flex justify-center py-10"><Spinner /></div>
           ) : !invoices.data?.items.length ? (
-            <p className="px-6 py-10 text-center text-sm text-gray-500">No invoices found.</p>
+            <p className="px-6 py-10 text-center text-sm text-gray-500 dark:text-gray-400">No invoices found.</p>
           ) : (
             <>
               {/* Mobile cards */}
-              <div className="md:hidden divide-y divide-gray-100">
+              <div className="md:hidden divide-y divide-gray-100 dark:divide-gray-700">
                 {invoices.data.items.map((inv) => (
                   <div key={inv.id} className="px-4 py-3 space-y-2">
                     <div className="flex items-center justify-between gap-2">
-                      <Link to={`/invoices/${inv.id}`} className="text-sm font-semibold text-indigo-600">
+                      <Link to={`/invoices/${inv.id}`} className="text-sm font-semibold text-indigo-600 dark:text-indigo-400">
                         {inv.invoiceNumber}
                       </Link>
                       <Badge variant={STATUS_VARIANT[inv.status] ?? 'gray'}>{inv.status}</Badge>
                     </div>
-                    <div className="text-xs text-gray-500 space-y-0.5">
+                    <div className="text-xs text-gray-500 dark:text-gray-400 space-y-0.5">
                       <p>{inv.contact ? `${inv.contact.firstName} ${inv.contact.lastName}` : inv.family?.name ?? '—'}</p>
                       <p>{formatCurrency(inv.amountDue)} · Due {formatDate(inv.dueDate)}</p>
                     </div>
@@ -269,7 +272,7 @@ export function InvoicesPage() {
               {/* Desktop table */}
               <div className="hidden md:block">
                 <table className="w-full text-sm">
-                  <thead className="bg-gray-50 text-xs text-gray-500 uppercase">
+                  <thead className="bg-gray-50 dark:bg-gray-700/50 text-xs text-gray-500 dark:text-gray-400 uppercase">
                     <tr>
                       <th className="px-6 py-3 text-left">Invoice</th>
                       <th className="px-6 py-3 text-left">Billed to</th>
@@ -279,18 +282,18 @@ export function InvoicesPage() {
                       <th className="px-6 py-3 text-left"></th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-gray-100">
+                  <tbody className="divide-y divide-gray-100 dark:divide-gray-700">
                     {invoices.data.items.map((inv) => (
-                      <tr key={inv.id} className="hover:bg-gray-50">
+                      <tr key={inv.id} className="hover:bg-gray-50 dark:hover:bg-gray-700/30">
                         <td className="px-6 py-3 font-medium">
-                          <Link to={`/invoices/${inv.id}`} className="text-indigo-600 hover:underline">{inv.invoiceNumber}</Link>
+                          <Link to={`/invoices/${inv.id}`} className="text-indigo-600 dark:text-indigo-400 hover:underline">{inv.invoiceNumber}</Link>
                         </td>
-                        <td className="px-6 py-3 text-gray-700">
+                        <td className="px-6 py-3 text-gray-700 dark:text-gray-300">
                           {inv.contact ? `${inv.contact.firstName} ${inv.contact.lastName}` : inv.family?.name ?? '—'}
                         </td>
-                        <td className="px-6 py-3 font-medium">{formatCurrency(inv.amountDue)}</td>
+                        <td className="px-6 py-3 font-medium dark:text-gray-100">{formatCurrency(inv.amountDue)}</td>
                         <td className="px-6 py-3"><Badge variant={STATUS_VARIANT[inv.status] ?? 'gray'}>{inv.status}</Badge></td>
-                        <td className="px-6 py-3 text-gray-500">{formatDate(inv.dueDate)}</td>
+                        <td className="px-6 py-3 text-gray-500 dark:text-gray-400">{formatDate(inv.dueDate)}</td>
                         <td className="px-6 py-3">
                           <div className="flex gap-1">
                             {inv.status !== 'paid' && inv.status !== 'void' && (
@@ -312,25 +315,25 @@ export function InvoicesPage() {
       </Card>
       {paymentModal && (
         <div className="fixed inset-0 bg-black/40 flex items-end sm:items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-xl shadow-xl w-full max-w-md p-6 max-h-[90vh] overflow-y-auto">
-            <h2 className="text-base font-semibold text-gray-900 mb-4">Record Payment — {paymentModal.invoiceNumber}</h2>
+          <div className="bg-white dark:bg-gray-800 rounded-xl shadow-xl w-full max-w-md p-6 max-h-[90vh] overflow-y-auto">
+            <h2 className="text-base font-semibold text-gray-900 dark:text-gray-100 mb-4">Record Payment — {paymentModal.invoiceNumber}</h2>
             <form onSubmit={handleRecordPayment} className="space-y-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Amount ($)</label>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Amount ($)</label>
                 <input
                   type="number" step="0.01" min="0.01" required
                   value={paymentForm.amount}
                   onChange={(e) => setPaymentForm({ ...paymentForm, amount: e.target.value })}
-                  className="w-full text-sm border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  className="w-full text-sm border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500"
                 />
-                <p className="text-xs text-gray-400 mt-1">Invoice total: ${paymentModal.amountDue}</p>
+                <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">Invoice total: ${paymentModal.amountDue}</p>
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Payment method</label>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Payment method</label>
                 <select
                   value={paymentForm.method}
                   onChange={(e) => setPaymentForm({ ...paymentForm, method: e.target.value })}
-                  className="appearance-none bg-white w-full text-sm border border-gray-300 rounded-lg px-3 py-2 pr-8 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  className="appearance-none bg-white dark:bg-gray-700 dark:border-gray-600 dark:text-gray-100 w-full text-sm border border-gray-300 rounded-lg px-3 py-2 pr-8 focus:outline-none focus:ring-2 focus:ring-indigo-500"
                 >
                   <option value="cash">Cash</option>
                   <option value="check">Check</option>
@@ -340,13 +343,13 @@ export function InvoicesPage() {
                 </select>
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Notes (optional)</label>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Notes (optional)</label>
                 <input
                   type="text"
                   value={paymentForm.notes}
                   onChange={(e) => setPaymentForm({ ...paymentForm, notes: e.target.value })}
                   placeholder="e.g. Check #1042"
-                  className="w-full text-sm border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  className="w-full text-sm border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500"
                 />
               </div>
               <div className="flex gap-3 justify-end pt-2">

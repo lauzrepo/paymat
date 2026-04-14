@@ -34,7 +34,7 @@ export function ResetPasswordPage() {
       <div className="space-y-4">
         <Alert variant="error">Invalid or missing reset token. Please request a new link.</Alert>
         <p className="text-center text-sm">
-          <Link to="/forgot-password" className="text-indigo-600 hover:text-indigo-500 font-medium">
+          <Link to="/forgot-password" className="text-indigo-600 dark:text-indigo-400 hover:text-indigo-500 font-medium">
             Request new link
           </Link>
         </p>
@@ -45,12 +45,12 @@ export function ResetPasswordPage() {
   if (resetPassword.isSuccess) {
     return (
       <div className="space-y-4">
-        <h2 className="text-xl font-semibold text-gray-900">Password updated</h2>
+        <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100">Password updated</h2>
         <Alert variant="success">
           Your password has been reset. Redirecting you to login...
         </Alert>
         <p className="text-center text-sm">
-          <Link to="/login" className="text-indigo-600 hover:text-indigo-500 font-medium">
+          <Link to="/login" className="text-indigo-600 dark:text-indigo-400 hover:text-indigo-500 font-medium">
             Go to login
           </Link>
         </p>
@@ -64,7 +64,7 @@ export function ResetPasswordPage() {
 
   return (
     <div className="space-y-6">
-      <h2 className="text-xl font-semibold text-gray-900">Set new password</h2>
+      <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100">Set new password</h2>
       {resetPassword.error && (
         <Alert variant="error">
           {(resetPassword.error as { response?: { data?: { message?: string } } }).response?.data?.message ?? 'Invalid or expired token'}

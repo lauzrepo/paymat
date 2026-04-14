@@ -16,30 +16,30 @@ export function SettingsPage() {
 
   return (
     <div className="space-y-6 max-w-lg">
-      <h1 className="text-2xl font-bold text-gray-900">Settings</h1>
+      <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">Settings</h1>
 
       <Card>
-        <CardHeader><h2 className="text-base font-semibold text-gray-900">Account</h2></CardHeader>
+        <CardHeader><h2 className="text-base font-semibold text-gray-900 dark:text-gray-100">Account</h2></CardHeader>
         <CardBody className="space-y-3 text-sm">
           <div className="flex justify-between">
-            <span className="text-gray-500">Email</span>
-            <span className="font-medium text-gray-900">{user?.email}</span>
+            <span className="text-gray-500 dark:text-gray-400">Email</span>
+            <span className="font-medium text-gray-900 dark:text-gray-100">{user?.email}</span>
           </div>
           <div className="flex justify-between">
-            <span className="text-gray-500">Name</span>
-            <span className="font-medium text-gray-900">{user?.name}</span>
+            <span className="text-gray-500 dark:text-gray-400">Name</span>
+            <span className="font-medium text-gray-900 dark:text-gray-100">{user?.name}</span>
           </div>
           <div className="flex justify-between">
-            <span className="text-gray-500">Role</span>
-            <span className="font-medium text-gray-900">Super Admin</span>
+            <span className="text-gray-500 dark:text-gray-400">Role</span>
+            <span className="font-medium text-gray-900 dark:text-gray-100">Super Admin</span>
           </div>
         </CardBody>
       </Card>
 
       <Card>
-        <CardHeader><h2 className="text-base font-semibold text-gray-900">Session</h2></CardHeader>
+        <CardHeader><h2 className="text-base font-semibold text-gray-900 dark:text-gray-100">Session</h2></CardHeader>
         <CardBody className="flex items-center justify-between">
-          <p className="text-sm text-gray-600">Sign out of the super admin portal.</p>
+          <p className="text-sm text-gray-600 dark:text-gray-400">Sign out of the super admin portal.</p>
           <Button
             variant="danger"
             size="sm"

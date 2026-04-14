@@ -108,7 +108,7 @@ export function OnboardingPage() {
 
   if (step === 'loading') {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+      <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900">
         <div className="text-gray-400 text-sm">Verifying your invite...</div>
       </div>
     );
@@ -116,13 +116,13 @@ export function OnboardingPage() {
 
   if (step === 'invalid') {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
-        <div className="max-w-md w-full bg-white rounded-xl shadow-sm border border-gray-200 p-8 text-center">
+      <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900">
+        <div className="max-w-md w-full bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-8 text-center">
           <div className="h-12 w-12 rounded-full bg-red-100 flex items-center justify-center mx-auto mb-4">
             <span className="text-red-600 text-xl">✕</span>
           </div>
-          <h1 className="text-xl font-bold text-gray-900 mb-2">Invite Not Valid</h1>
-          <p className="text-gray-500 text-sm">{errorMsg}</p>
+          <h1 className="text-xl font-bold text-gray-900 dark:text-gray-100 mb-2">Invite Not Valid</h1>
+          <p className="text-gray-500 dark:text-gray-400 text-sm">{errorMsg}</p>
         </div>
       </div>
     );
@@ -130,16 +130,16 @@ export function OnboardingPage() {
 
   if (step === 'connect') {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
-        <div className="max-w-md w-full bg-white rounded-xl shadow-sm border border-gray-200 p-8 text-center">
+      <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900">
+        <div className="max-w-md w-full bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-8 text-center">
           <div className="h-12 w-12 rounded-full bg-indigo-100 flex items-center justify-center mx-auto mb-4">
             <span className="text-indigo-600 text-xl">💳</span>
           </div>
-          <h1 className="text-xl font-bold text-gray-900 mb-2">Set up payments</h1>
-          <p className="text-gray-500 text-sm mb-2">
+          <h1 className="text-xl font-bold text-gray-900 dark:text-gray-100 mb-2">Set up payments</h1>
+          <p className="text-gray-500 dark:text-gray-400 text-sm mb-2">
             Your account is ready. The last step is connecting your payment account so you can collect membership fees.
           </p>
-          <p className="text-gray-400 text-xs mb-6">
+          <p className="text-gray-400 dark:text-gray-500 text-xs mb-6">
             You'll be taken to Stripe to verify your business and add your bank details. This takes about 5 minutes.
           </p>
           <a
@@ -150,7 +150,7 @@ export function OnboardingPage() {
           </a>
           <button
             onClick={() => navigate('/login')}
-            className="mt-3 text-xs text-gray-400 hover:text-gray-600 transition-colors"
+            className="mt-3 text-xs text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 transition-colors"
           >
             Skip for now — do this later in Settings
           </button>
@@ -161,13 +161,13 @@ export function OnboardingPage() {
 
   if (step === 'done') {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
-        <div className="max-w-md w-full bg-white rounded-xl shadow-sm border border-gray-200 p-8 text-center">
+      <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900">
+        <div className="max-w-md w-full bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-8 text-center">
           <div className="h-12 w-12 rounded-full bg-green-100 flex items-center justify-center mx-auto mb-4">
             <span className="text-green-600 text-xl">✓</span>
           </div>
-          <h1 className="text-xl font-bold text-gray-900 mb-2">You're all set!</h1>
-          <p className="text-gray-500 text-sm mb-6">
+          <h1 className="text-xl font-bold text-gray-900 dark:text-gray-100 mb-2">You're all set!</h1>
+          <p className="text-gray-500 dark:text-gray-400 text-sm mb-6">
             Your account, organization, and payment processing are ready. Log in to get started.
           </p>
           <button
@@ -182,33 +182,33 @@ export function OnboardingPage() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4">
+    <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900 py-12 px-4">
       <div className="max-w-lg w-full space-y-6">
         <div className="text-center">
           <div className="h-10 w-10 rounded-lg bg-violet-600 flex items-center justify-center text-white text-lg font-bold mx-auto mb-4">
             P
           </div>
-          <h1 className="text-2xl font-bold text-gray-900">Set up your account</h1>
-          <p className="text-gray-500 text-sm mt-1">
+          <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">Set up your account</h1>
+          <p className="text-gray-500 dark:text-gray-400 text-sm mt-1">
             Welcome, {invite?.recipientName}. Let's get <strong>{invite?.orgName}</strong> set up on Paymat.
           </p>
         </div>
 
-        <form onSubmit={handleSubmit} className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 space-y-5">
+        <form onSubmit={handleSubmit} className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6 space-y-5">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Email</label>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Email</label>
             <input
               type="email"
               disabled
               value={invite?.email ?? ''}
-              className="w-full text-sm border border-gray-200 rounded-lg px-3 py-2 bg-gray-50 text-gray-500 cursor-not-allowed"
+              className="w-full text-sm border border-gray-200 dark:border-gray-700 rounded-lg px-3 py-2 bg-gray-50 dark:bg-gray-700 text-gray-500 dark:text-gray-400 cursor-not-allowed"
             />
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Organization URL slug</label>
-            <div className="flex items-center border border-gray-300 rounded-lg overflow-hidden focus-within:ring-2 focus-within:ring-violet-500">
-              <span className="px-3 py-2 bg-gray-50 text-gray-400 text-sm border-r border-gray-300 select-none">
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Organization URL slug</label>
+            <div className="flex items-center border border-gray-300 dark:border-gray-600 rounded-lg overflow-hidden focus-within:ring-2 focus-within:ring-violet-500">
+              <span className="px-3 py-2 bg-gray-50 dark:bg-gray-700 text-gray-400 dark:text-gray-500 text-sm border-r border-gray-300 dark:border-gray-600 select-none">
                 cliqpaymat.app/
               </span>
               <input
@@ -217,34 +217,34 @@ export function OnboardingPage() {
                 value={form.slug}
                 onChange={(e) => setForm({ ...form, slug: e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, '') })}
                 pattern="[a-z0-9-]+"
-                className="flex-1 px-3 py-2 text-sm focus:outline-none font-mono"
+                className="flex-1 px-3 py-2 text-sm focus:outline-none font-mono bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100"
                 placeholder="acme-studio"
               />
             </div>
-            <p className="text-xs text-gray-400 mt-1">Lowercase letters, numbers, hyphens only. This can be changed later.</p>
+            <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">Lowercase letters, numbers, hyphens only. This can be changed later.</p>
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Password</label>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Password</label>
             <input
               type="password"
               required
               minLength={8}
               value={form.password}
               onChange={(e) => setForm({ ...form, password: e.target.value })}
-              className="w-full text-sm border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-violet-500"
+              className="w-full text-sm border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-violet-500"
               placeholder="At least 8 characters"
             />
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Confirm Password</label>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Confirm Password</label>
             <input
               type="password"
               required
               value={form.confirmPassword}
               onChange={(e) => setForm({ ...form, confirmPassword: e.target.value })}
-              className="w-full text-sm border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-violet-500"
+              className="w-full text-sm border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-violet-500"
             />
           </div>
 

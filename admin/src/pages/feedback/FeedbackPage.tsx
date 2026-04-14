@@ -39,7 +39,7 @@ export function FeedbackPage() {
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between gap-2 flex-wrap">
-        <h1 className="text-2xl font-bold text-gray-900">Feedback & Issues</h1>
+        <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">Feedback & Issues</h1>
         <Button onClick={() => setShowForm(true)}>
           <Plus className="h-4 w-4 mr-1" /> Submit Feedback
         </Button>
@@ -48,7 +48,7 @@ export function FeedbackPage() {
       {showForm && (
         <Card>
           <CardHeader>
-            <h2 className="text-base font-semibold text-gray-900">New Submission</h2>
+            <h2 className="text-base font-semibold text-gray-900 dark:text-gray-100">New Submission</h2>
           </CardHeader>
           <CardBody>
             <form onSubmit={handleSubmit} className="space-y-4">
@@ -57,11 +57,11 @@ export function FeedbackPage() {
                 <Input label="Email (optional)" id="email" type="email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Type</label>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Type</label>
                 <select
                   value={form.type}
                   onChange={(e) => setForm({ ...form, type: e.target.value as FeedbackType })}
-                  className="appearance-none bg-white w-full text-sm border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  className="appearance-none bg-white dark:bg-gray-700 dark:border-gray-600 dark:text-gray-100 w-full text-sm border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500"
                 >
                   <option value="feedback">Feedback</option>
                   <option value="bug">Bug Report</option>
@@ -70,13 +70,13 @@ export function FeedbackPage() {
               </div>
               <Input label="Subject" id="subject" value={form.subject} onChange={(e) => setForm({ ...form, subject: e.target.value })} required />
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Message</label>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Message</label>
                 <textarea
                   value={form.message}
                   onChange={(e) => setForm({ ...form, message: e.target.value })}
                   rows={4}
                   required
-                  className="w-full text-sm border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500 resize-none"
+                  className="w-full text-sm border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500 resize-none"
                 />
               </div>
               <div className="flex gap-3 justify-end">
@@ -93,7 +93,7 @@ export function FeedbackPage() {
           <div className="flex flex-wrap items-center gap-3">
             <div className="relative">
               <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)}
-                className="appearance-none bg-white text-sm border border-gray-300 rounded-lg pl-3 pr-8 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500 cursor-pointer">
+                className="appearance-none bg-white dark:bg-gray-700 dark:border-gray-600 dark:text-gray-100 text-sm border border-gray-300 rounded-lg pl-3 pr-8 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500 cursor-pointer">
                 <option value="">All statuses</option>
                 <option value="open">Open</option>
                 <option value="in_progress">In Progress</option>
@@ -104,7 +104,7 @@ export function FeedbackPage() {
             </div>
             <div className="relative">
               <select value={typeFilter} onChange={(e) => setTypeFilter(e.target.value)}
-                className="appearance-none bg-white text-sm border border-gray-300 rounded-lg pl-3 pr-8 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500 cursor-pointer">
+                className="appearance-none bg-white dark:bg-gray-700 dark:border-gray-600 dark:text-gray-100 text-sm border border-gray-300 rounded-lg pl-3 pr-8 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500 cursor-pointer">
                 <option value="">All types</option>
                 <option value="feedback">Feedback</option>
                 <option value="bug">Bug Report</option>
@@ -112,30 +112,30 @@ export function FeedbackPage() {
               </select>
               <ChevronDown className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
             </div>
-            <span className="text-sm text-gray-500 ml-auto">{list.data?.total ?? 0} submissions</span>
+            <span className="text-sm text-gray-500 dark:text-gray-400 ml-auto">{list.data?.total ?? 0} submissions</span>
           </div>
         </CardHeader>
         <CardBody className="p-0">
           {list.isLoading ? (
             <div className="flex justify-center py-10"><Spinner /></div>
           ) : !list.data?.items.length ? (
-            <div className="flex flex-col items-center py-12 text-gray-400 gap-2">
+            <div className="flex flex-col items-center py-12 text-gray-400 dark:text-gray-500 gap-2">
               <MessageSquare className="h-8 w-8" />
               <p className="text-sm">No submissions yet.</p>
             </div>
           ) : (
             <>
               {/* Mobile cards */}
-              <div className="md:hidden divide-y divide-gray-100">
+              <div className="md:hidden divide-y divide-gray-100 dark:divide-gray-700">
                 {list.data.items.map((s) => (
                   <div key={s.id} className="px-4 py-3 space-y-1">
                     <div className="flex items-center justify-between gap-2">
-                      <Link to={`/feedback/${s.id}`} className="text-sm font-semibold text-indigo-600 truncate">
+                      <Link to={`/feedback/${s.id}`} className="text-sm font-semibold text-indigo-600 dark:text-indigo-400 truncate">
                         {s.subject}
                       </Link>
                       <Badge variant={STATUS_VARIANTS[s.status] ?? 'gray'}>{s.status.replace('_', ' ')}</Badge>
                     </div>
-                    <p className="text-xs text-gray-500">
+                    <p className="text-xs text-gray-500 dark:text-gray-400">
                       {s.contact
                         ? `${s.contact.firstName} ${s.contact.lastName}`
                         : s.name} · {TYPE_LABELS[s.type]} · {formatDate(s.createdAt)}
@@ -147,7 +147,7 @@ export function FeedbackPage() {
               {/* Desktop table */}
               <div className="hidden md:block">
                 <table className="w-full text-sm">
-                  <thead className="bg-gray-50 text-xs text-gray-500 uppercase">
+                  <thead className="bg-gray-50 dark:bg-gray-700/50 text-xs text-gray-500 dark:text-gray-400 uppercase">
                     <tr>
                       <th className="px-6 py-3 text-left">Subject</th>
                       <th className="px-6 py-3 text-left">From</th>
@@ -156,22 +156,22 @@ export function FeedbackPage() {
                       <th className="px-6 py-3 text-left">Submitted</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-gray-100">
+                  <tbody className="divide-y divide-gray-100 dark:divide-gray-700">
                     {list.data.items.map((s) => (
-                      <tr key={s.id} className="hover:bg-gray-50">
+                      <tr key={s.id} className="hover:bg-gray-50 dark:hover:bg-gray-700/30">
                         <td className="px-6 py-3 font-medium">
-                          <Link to={`/feedback/${s.id}`} className="text-indigo-600 hover:underline">{s.subject}</Link>
+                          <Link to={`/feedback/${s.id}`} className="text-indigo-600 dark:text-indigo-400 hover:underline">{s.subject}</Link>
                         </td>
-                        <td className="px-6 py-3 text-gray-600">
+                        <td className="px-6 py-3 text-gray-600 dark:text-gray-400">
                           {s.contact
                             ? <Link to={`/contacts/${s.contact.id}`} className="hover:underline">{s.contact.firstName} {s.contact.lastName}</Link>
                             : s.name}
                         </td>
-                        <td className="px-6 py-3 text-gray-600">{TYPE_LABELS[s.type]}</td>
+                        <td className="px-6 py-3 text-gray-600 dark:text-gray-400">{TYPE_LABELS[s.type]}</td>
                         <td className="px-6 py-3">
                           <Badge variant={STATUS_VARIANTS[s.status] ?? 'gray'}>{s.status.replace('_', ' ')}</Badge>
                         </td>
-                        <td className="px-6 py-3 text-gray-500">{formatDate(s.createdAt)}</td>
+                        <td className="px-6 py-3 text-gray-500 dark:text-gray-400">{formatDate(s.createdAt)}</td>
                       </tr>
                     ))}
                   </tbody>

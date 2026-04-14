@@ -6,6 +6,7 @@ import { Elements, PaymentElement, useStripe, useElements } from '@stripe/react-
 import { useMyInvoice, useInitializeInvoicePayment } from '../../hooks/useClient';
 import { useQueryClient } from '@tanstack/react-query';
 import type { PaymentInitData } from '../../api/client';
+import { confirmInvoicePayment } from '../../api/client';
 import { useOrgSlug } from '../../context/OrgSlugContext';
 
 const STATUS_COLORS: Record<string, string> = {
@@ -18,7 +19,17 @@ const STATUS_COLORS: Record<string, string> = {
 
 // ── Stripe payment form (rendered inside <Elements>) ──────────────────────────
 
-function PaymentForm({ onSuccess, onError }: { onSuccess: () => void; onError: (msg: string) => void }) {
+function PaymentForm({
+  invoiceId,
+  paymentIntentId,
+  onSuccess,
+  onError,
+}: {
+  invoiceId: string;
+  paymentIntentId: string;
+  onSuccess: () => void;
+  onError: (msg: string) => void;
+}) {
   const stripe = useStripe();
   const elements = useElements();
   const [submitting, setSubmitting] = useState(false);
@@ -35,9 +46,15 @@ function PaymentForm({ onSuccess, onError }: { onSuccess: () => void; onError: (
     if (error) {
       onError(error.message ?? 'Payment failed. Please try again.');
       setSubmitting(false);
-    } else {
-      onSuccess();
+      return;
     }
+    // Sync payment status to our DB immediately (don't wait for webhook)
+    try {
+      await confirmInvoicePayment(invoiceId, paymentIntentId);
+    } catch {
+      // Non-fatal: webhook may still deliver. Show success anyway.
+    }
+    onSuccess();
   };
 
   return (
@@ -75,12 +92,16 @@ export function InvoiceDetailPage() {
 
   // Handle Stripe redirect return (payment confirmed via redirect)
   useEffect(() => {
-    const paymentIntent = searchParams.get('payment_intent');
+    const paymentIntentParam = searchParams.get('payment_intent');
     const status = searchParams.get('redirect_status');
-    if (paymentIntent && status === 'succeeded') {
-      setPayStatus('success');
-      setPayMessage('Payment successful! Thank you.');
-      qc.invalidateQueries({ queryKey: ['client', 'invoices', id] });
+    if (paymentIntentParam && status === 'succeeded' && id) {
+      confirmInvoicePayment(id, paymentIntentParam)
+        .catch(() => {/* non-fatal */})
+        .finally(() => {
+          setPayStatus('success');
+          setPayMessage('Payment successful! Thank you.');
+          qc.invalidateQueries({ queryKey: ['client', 'invoices', id] });
+        });
     }
   }, [searchParams, id, qc]);
 
@@ -106,16 +127,16 @@ export function InvoiceDetailPage() {
   return (
     <div className="max-w-lg space-y-6">
       <div className="flex items-center gap-2">
-        <Link to={`/${orgSlug}/invoices`} className="text-sm text-gray-500 hover:text-gray-700 flex items-center gap-1">
+        <Link to={`/${orgSlug}/invoices`} className="text-sm text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 flex items-center gap-1">
           <ChevronLeft className="h-4 w-4" /> Back
         </Link>
       </div>
 
-      <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
-        <div className="px-5 py-4 border-b border-gray-100 flex items-center justify-between">
+      <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 overflow-hidden">
+        <div className="px-5 py-4 border-b border-gray-100 dark:border-gray-700 flex items-center justify-between">
           <div>
-            <h1 className="text-lg font-bold text-gray-900">{invoice.invoiceNumber}</h1>
-            <p className="text-xs text-gray-500 mt-0.5">Due {new Date(invoice.dueDate).toLocaleDateString()}</p>
+            <h1 className="text-lg font-bold text-gray-900 dark:text-gray-100">{invoice.invoiceNumber}</h1>
+            <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">Due {new Date(invoice.dueDate).toLocaleDateString()}</p>
           </div>
           <span className={`text-xs px-2.5 py-1 rounded-full font-medium ${STATUS_COLORS[invoice.status] ?? 'bg-gray-100 text-gray-500'}`}>
             {invoice.status.charAt(0).toUpperCase() + invoice.status.slice(1)}
@@ -125,26 +146,26 @@ export function InvoiceDetailPage() {
         <div className="px-5 py-4 space-y-2">
           {invoice.lineItems.map((item) => (
             <div key={item.id} className="flex items-center justify-between text-sm">
-              <span className="text-gray-700">{item.description}</span>
-              <span className="text-gray-900 font-medium">${Number(item.total).toFixed(2)}</span>
+              <span className="text-gray-700 dark:text-gray-300">{item.description}</span>
+              <span className="text-gray-900 dark:text-gray-100 font-medium">${Number(item.total).toFixed(2)}</span>
             </div>
           ))}
         </div>
 
-        <div className="px-5 py-3 border-t border-gray-100 bg-gray-50 flex items-center justify-between text-sm font-semibold">
+        <div className="px-5 py-3 border-t border-gray-100 dark:border-gray-700 bg-gray-50 dark:bg-gray-700/50 flex items-center justify-between text-sm font-semibold dark:text-gray-100">
           <span>Total</span>
           <span>${Number(invoice.amountDue).toFixed(2)} {invoice.currency}</span>
         </div>
 
         {Number(invoice.amountPaid) > 0 && (
-          <div className="px-5 py-3 border-t border-gray-100 flex items-center justify-between text-sm">
-            <span className="text-gray-500">Paid</span>
+          <div className="px-5 py-3 border-t border-gray-100 dark:border-gray-700 flex items-center justify-between text-sm">
+            <span className="text-gray-500 dark:text-gray-400">Paid</span>
             <span className="text-green-600 font-medium">-${Number(invoice.amountPaid).toFixed(2)}</span>
           </div>
         )}
 
         {outstanding > 0 && invoice.status !== 'paid' && (
-          <div className="px-5 py-3 border-t border-gray-100 flex items-center justify-between text-sm font-bold">
+          <div className="px-5 py-3 border-t border-gray-100 dark:border-gray-700 flex items-center justify-between text-sm font-bold dark:text-gray-100">
             <span>Outstanding</span>
             <span className="text-orange-600">${outstanding.toFixed(2)}</span>
           </div>
@@ -152,28 +173,28 @@ export function InvoiceDetailPage() {
       </div>
 
       {invoice.notes && (
-        <div className="bg-white rounded-xl border border-gray-200 px-5 py-4">
-          <p className="text-xs font-medium text-gray-500 uppercase tracking-wide mb-1">Notes</p>
-          <p className="text-sm text-gray-700">{invoice.notes}</p>
+        <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 px-5 py-4">
+          <p className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-1">Notes</p>
+          <p className="text-sm text-gray-700 dark:text-gray-300">{invoice.notes}</p>
         </div>
       )}
 
       {invoice.payments.length > 0 && (
-        <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
-          <div className="px-5 py-3 border-b border-gray-100">
-            <h2 className="text-sm font-semibold text-gray-700">Payment History</h2>
+        <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 overflow-hidden">
+          <div className="px-5 py-3 border-b border-gray-100 dark:border-gray-700">
+            <h2 className="text-sm font-semibold text-gray-700 dark:text-gray-300">Payment History</h2>
           </div>
           {invoice.payments.map((payment) => (
-            <div key={payment.id} className="px-5 py-3 border-b border-gray-50 last:border-0 flex items-center justify-between text-sm">
-              <span className="text-gray-600">{new Date(payment.createdAt).toLocaleDateString()}</span>
-              <span className="font-medium text-gray-900">${Number(payment.amount).toFixed(2)}</span>
+            <div key={payment.id} className="px-5 py-3 border-b border-gray-50 dark:border-gray-700 last:border-0 flex items-center justify-between text-sm">
+              <span className="text-gray-600 dark:text-gray-400">{new Date(payment.createdAt).toLocaleDateString()}</span>
+              <span className="font-medium text-gray-900 dark:text-gray-100">${Number(payment.amount).toFixed(2)}</span>
             </div>
           ))}
         </div>
       )}
 
       {canPay && (
-        <div className="bg-white rounded-xl border border-gray-200 px-5 py-5">
+        <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 px-5 py-5">
           {payStatus === 'success' ? (
             <div className="flex items-center gap-2 text-green-700">
               <CheckCircle className="h-5 w-5" />
@@ -186,6 +207,8 @@ export function InvoiceDetailPage() {
             >
               {payMessage && <p className="text-red-600 text-sm mb-3">{payMessage}</p>}
               <PaymentForm
+                invoiceId={id!}
+                paymentIntentId={payInit.paymentIntentId}
                 onSuccess={() => {
                   setPayStatus('success');
                   setPayMessage('Payment successful! Thank you.');

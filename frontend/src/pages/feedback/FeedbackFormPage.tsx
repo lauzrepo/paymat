@@ -35,12 +35,12 @@ export function FeedbackFormPage() {
           <Link to={`/${orgSlug}/feedback`} className="text-gray-400 hover:text-gray-600">
             <ArrowLeft className="h-5 w-5" />
           </Link>
-          <h1 className="text-2xl font-bold text-gray-900">Feedback & Issues</h1>
+          <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">Feedback & Issues</h1>
         </div>
-        <div className="bg-white rounded-xl border border-gray-200 p-8 text-center space-y-3">
+        <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-8 text-center space-y-3">
           <CheckCircle className="h-10 w-10 text-green-500 mx-auto" />
-          <h2 className="text-lg font-semibold text-gray-900">Thanks for reaching out!</h2>
-          <p className="text-sm text-gray-500">We've received your submission and will follow up shortly.</p>
+          <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100">Thanks for reaching out!</h2>
+          <p className="text-sm text-gray-500 dark:text-gray-400">We've received your submission and will follow up shortly.</p>
           <button
             onClick={() => { setForm(EMPTY_FORM); setSubmitted(false); }}
             className="mt-2 text-sm text-indigo-600 hover:text-indigo-700 font-medium"
@@ -58,21 +58,21 @@ export function FeedbackFormPage() {
         <Link to={`/${orgSlug}/feedback`} className="text-gray-400 hover:text-gray-600">
           <ArrowLeft className="h-5 w-5" />
         </Link>
-        <h1 className="text-2xl font-bold text-gray-900">Feedback & Issues</h1>
+        <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">Feedback & Issues</h1>
       </div>
 
-      <div className="bg-white rounded-xl border border-gray-200 p-6">
+      <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-6">
         <form onSubmit={handleSubmit} className="space-y-4">
           {submit.isError && (
             <Alert variant="error">Something went wrong. Please try again.</Alert>
           )}
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Type</label>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Type</label>
             <select
               value={form.type}
               onChange={(e) => setForm({ ...form, type: e.target.value as FeedbackType })}
-              className="appearance-none bg-white w-full text-sm border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              className="appearance-none bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 w-full text-sm border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500"
             >
               <option value="feedback">General Feedback</option>
               <option value="bug">Report a Problem</option>
@@ -90,14 +90,14 @@ export function FeedbackFormPage() {
           />
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Message</label>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Message</label>
             <textarea
               value={form.message}
               onChange={(e) => setForm({ ...form, message: e.target.value })}
               rows={5}
               required
               placeholder="Describe your feedback or issue in detail…"
-              className="w-full text-sm border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500 resize-none"
+              className="w-full text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500 resize-none placeholder:text-gray-400 dark:placeholder:text-gray-500"
             />
           </div>
 

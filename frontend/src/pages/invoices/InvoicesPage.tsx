@@ -17,14 +17,14 @@ export function InvoicesPage() {
 
   return (
     <div className="space-y-6 max-w-2xl">
-      <h1 className="text-2xl font-bold text-gray-900">Invoices</h1>
+      <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">Invoices</h1>
 
       {isLoading && <div className="text-sm text-gray-400">Loading...</div>}
 
       {!isLoading && !data?.invoices.length && (
-        <div className="bg-white rounded-xl border border-gray-200 p-8 text-center">
+        <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-8 text-center">
           <FileText className="h-8 w-8 text-gray-300 mx-auto mb-3" />
-          <p className="text-gray-500 text-sm">No invoices yet.</p>
+          <p className="text-gray-500 dark:text-gray-400 text-sm">No invoices yet.</p>
         </div>
       )}
 
@@ -36,7 +36,7 @@ export function InvoicesPage() {
           <Link
             key={invoice.id}
             to={`/${orgSlug}/invoices/${invoice.id}`}
-            className="block bg-white rounded-xl border border-gray-200 hover:border-indigo-200 hover:shadow-sm transition-all"
+            className="block bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 hover:border-indigo-200 hover:shadow-sm transition-all"
           >
             <div className="px-5 py-4 flex items-center justify-between">
               <div className="flex items-center gap-3">
@@ -44,8 +44,8 @@ export function InvoicesPage() {
                   <FileText className="h-4 w-4 text-indigo-600" />
                 </div>
                 <div>
-                  <p className="text-sm font-semibold text-gray-900">{invoice.invoiceNumber}</p>
-                  <p className="text-xs text-gray-500 mt-0.5">
+                  <p className="text-sm font-semibold text-gray-900 dark:text-gray-100">{invoice.invoiceNumber}</p>
+                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
                     Due {new Date(invoice.dueDate).toLocaleDateString()}
                     {invoice.notes && ` · ${invoice.notes}`}
                   </p>
@@ -53,7 +53,7 @@ export function InvoicesPage() {
               </div>
               <div className="flex items-center gap-3">
                 <div className="text-right">
-                  <p className="text-sm font-semibold text-gray-900">
+                  <p className="text-sm font-semibold text-gray-900 dark:text-gray-100">
                     ${Number(invoice.amountDue).toFixed(2)}
                   </p>
                   {canPay && outstanding < Number(invoice.amountDue) && (

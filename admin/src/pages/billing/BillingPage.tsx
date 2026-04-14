@@ -32,32 +32,32 @@ interface InvoiceStats {
 const STRIPE_STATUS: Record<string, { label: string; color: string; icon: React.ReactNode; description: string }> = {
   active: {
     label: 'Active',
-    color: 'text-green-700 bg-green-50 border-green-200',
-    icon: <CheckCircle className="h-4 w-4 text-green-600" />,
+    color: 'text-green-700 bg-green-50 border-green-200 dark:text-green-300 dark:bg-green-900/30 dark:border-green-800',
+    icon: <CheckCircle className="h-4 w-4 text-green-600 dark:text-green-400" />,
     description: 'Your Paymat subscription is active.',
   },
   past_due: {
     label: 'Past Due',
-    color: 'text-orange-700 bg-orange-50 border-orange-200',
-    icon: <AlertTriangle className="h-4 w-4 text-orange-600" />,
+    color: 'text-orange-700 bg-orange-50 border-orange-200 dark:text-orange-300 dark:bg-orange-900/30 dark:border-orange-800',
+    icon: <AlertTriangle className="h-4 w-4 text-orange-600 dark:text-orange-400" />,
     description: 'Your last payment failed. Update your payment method to avoid interruption.',
   },
   canceled: {
     label: 'Canceled',
-    color: 'text-red-700 bg-red-50 border-red-200',
-    icon: <XCircle className="h-4 w-4 text-red-600" />,
+    color: 'text-red-700 bg-red-50 border-red-200 dark:text-red-300 dark:bg-red-900/30 dark:border-red-800',
+    icon: <XCircle className="h-4 w-4 text-red-600 dark:text-red-400" />,
     description: 'Your subscription has been canceled. Contact support to reactivate.',
   },
   trialing: {
     label: 'Trial',
-    color: 'text-blue-700 bg-blue-50 border-blue-200',
-    icon: <Clock className="h-4 w-4 text-blue-600" />,
+    color: 'text-blue-700 bg-blue-50 border-blue-200 dark:text-blue-300 dark:bg-blue-900/30 dark:border-blue-800',
+    icon: <Clock className="h-4 w-4 text-blue-600 dark:text-blue-400" />,
     description: 'You are on a free trial.',
   },
   inactive: {
     label: 'Not subscribed',
-    color: 'text-gray-600 bg-gray-50 border-gray-200',
-    icon: <CreditCard className="h-4 w-4 text-gray-400" />,
+    color: 'text-gray-600 bg-gray-50 border-gray-200 dark:text-gray-400 dark:bg-gray-700/50 dark:border-gray-600',
+    icon: <CreditCard className="h-4 w-4 text-gray-400 dark:text-gray-500" />,
     description: 'Contact your account manager to set up a subscription.',
   },
 };
@@ -117,21 +117,21 @@ export function BillingPage() {
 
   return (
     <div className="space-y-6">
-      <h1 className="text-2xl font-bold text-gray-900">Billing</h1>
+      <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">Billing</h1>
 
       {success && (
-        <div className="bg-green-50 border border-green-200 rounded-xl px-4 py-3 flex items-center gap-2 text-green-700 text-sm">
+        <div className="bg-green-50 dark:bg-green-900/30 border border-green-200 dark:border-green-800 rounded-xl px-4 py-3 flex items-center gap-2 text-green-700 dark:text-green-300 text-sm">
           <CheckCircle className="h-4 w-4 flex-shrink-0" />
           Subscription activated successfully. Welcome aboard!
         </div>
       )}
       {canceled && (
-        <div className="bg-yellow-50 border border-yellow-200 rounded-xl px-4 py-3 text-yellow-700 text-sm">
+        <div className="bg-yellow-50 dark:bg-yellow-900/30 border border-yellow-200 dark:border-yellow-800 rounded-xl px-4 py-3 text-yellow-700 dark:text-yellow-300 text-sm">
           Checkout was canceled. Your subscription has not changed.
         </div>
       )}
       {error && (
-        <div className="bg-red-50 border border-red-200 rounded-xl px-4 py-3 text-red-700 text-sm">
+        <div className="bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-800 rounded-xl px-4 py-3 text-red-700 dark:text-red-300 text-sm">
           {error}
         </div>
       )}
@@ -158,7 +158,7 @@ export function BillingPage() {
             icon={<AlertCircle className="h-5 w-5 text-red-400" />}
             label="Overdue"
             value={String(stats.overdue)}
-            valueClass={stats.overdue > 0 ? 'text-red-600' : undefined}
+            valueClass={stats.overdue > 0 ? 'text-red-600 dark:text-red-400' : undefined}
           />
         </div>
       )}
@@ -166,8 +166,8 @@ export function BillingPage() {
       {/* ── Billing run ── */}
       <Card>
         <CardHeader>
-          <h2 className="text-base font-semibold text-gray-900">Billing run</h2>
-          <p className="text-sm text-gray-500 mt-0.5">
+          <h2 className="text-base font-semibold text-gray-900 dark:text-gray-100">Billing run</h2>
+          <p className="text-sm text-gray-500 dark:text-gray-400 mt-0.5">
             Generate invoices and auto-charge cards for all enrollments due today or earlier.
           </p>
         </CardHeader>
@@ -183,22 +183,22 @@ export function BillingPage() {
                 <RunStat label="Invoices created" value={runResult.invoicesCreated} />
                 <RunStat label="Auto-charged" value={runResult.autoCharged} />
                 <RunStat label="Active enrollments" value={runResult.activeEnrollments} />
-                <RunStat label="Errors" value={runResult.errors} valueClass={runResult.errors > 0 ? 'text-red-600' : 'text-gray-900'} />
+                <RunStat label="Errors" value={runResult.errors} valueClass={runResult.errors > 0 ? 'text-red-600 dark:text-red-400' : 'text-gray-900 dark:text-gray-100'} />
               </div>
               {runResult.errorMessages?.length > 0 && (
-                <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 space-y-1">
-                  <p className="text-xs font-semibold text-red-700 uppercase tracking-wide mb-1">Error details</p>
+                <div className="rounded-lg border border-red-200 dark:border-red-800 bg-red-50 dark:bg-red-900/30 px-4 py-3 space-y-1">
+                  <p className="text-xs font-semibold text-red-700 dark:text-red-300 uppercase tracking-wide mb-1">Error details</p>
                   {runResult.errorMessages.map((msg, i) => (
-                    <p key={i} className="text-xs text-red-600 font-mono">{msg}</p>
+                    <p key={i} className="text-xs text-red-600 dark:text-red-400 font-mono">{msg}</p>
                   ))}
                 </div>
               )}
             </div>
           )}
 
-          <p className="text-xs text-gray-400">
+          <p className="text-xs text-gray-400 dark:text-gray-500">
             Invoices are also automatically generated each day via a scheduled job.{' '}
-            <Link to="/invoices" className="text-indigo-600 hover:underline">View all invoices →</Link>
+            <Link to="/invoices" className="text-indigo-600 dark:text-indigo-400 hover:underline">View all invoices →</Link>
           </p>
         </CardBody>
       </Card>
@@ -206,7 +206,7 @@ export function BillingPage() {
       {/* ── Paymat subscription ── */}
       <Card>
         <CardHeader>
-          <h2 className="text-base font-semibold text-gray-900">Paymat subscription</h2>
+          <h2 className="text-base font-semibold text-gray-900 dark:text-gray-100">Paymat subscription</h2>
         </CardHeader>
         <CardBody className="space-y-4">
           <div className={`rounded-lg border px-4 py-3 flex items-center gap-3 ${stripeConfig.color}`}>
@@ -231,11 +231,11 @@ export function BillingPage() {
 
 function StatCard({ icon, label, value, valueClass }: { icon: React.ReactNode; label: string; value: string; valueClass?: string }) {
   return (
-    <div className="bg-white rounded-xl border border-gray-200 px-5 py-4 flex items-start gap-3">
+    <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 px-5 py-4 flex items-start gap-3">
       <div className="mt-0.5">{icon}</div>
       <div>
-        <p className="text-xs text-gray-500">{label}</p>
-        <p className={`text-lg font-semibold mt-0.5 ${valueClass ?? 'text-gray-900'}`}>{value}</p>
+        <p className="text-xs text-gray-500 dark:text-gray-400">{label}</p>
+        <p className={`text-lg font-semibold mt-0.5 ${valueClass ?? 'text-gray-900 dark:text-gray-100'}`}>{value}</p>
       </div>
     </div>
   );
@@ -243,9 +243,9 @@ function StatCard({ icon, label, value, valueClass }: { icon: React.ReactNode; l
 
 function RunStat({ label, value, valueClass }: { label: string; value: number; valueClass?: string }) {
   return (
-    <div className="bg-gray-50 rounded-lg px-4 py-3">
-      <p className="text-xs text-gray-500">{label}</p>
-      <p className={`text-xl font-bold mt-0.5 ${valueClass ?? 'text-gray-900'}`}>{value}</p>
+    <div className="bg-gray-50 dark:bg-gray-700/50 rounded-lg px-4 py-3">
+      <p className="text-xs text-gray-500 dark:text-gray-400">{label}</p>
+      <p className={`text-xl font-bold mt-0.5 ${valueClass ?? 'text-gray-900 dark:text-gray-100'}`}>{value}</p>
     </div>
   );
 }

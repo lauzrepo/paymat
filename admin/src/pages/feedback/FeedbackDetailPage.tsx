@@ -33,15 +33,15 @@ export function FeedbackDetailPage() {
   const updateStatus = useUpdateFeedbackStatus();
 
   if (isLoading) return <div className="flex justify-center py-20"><Spinner /></div>;
-  if (!submission) return <p className="text-center text-gray-500 py-20">Submission not found.</p>;
+  if (!submission) return <p className="text-center text-gray-500 dark:text-gray-400 py-20">Submission not found.</p>;
 
   return (
     <div className="space-y-6 max-w-2xl">
       <div className="flex items-center gap-3">
-        <Link to="/feedback" className="text-gray-400 hover:text-gray-600">
+        <Link to="/feedback" className="text-gray-400 hover:text-gray-600 dark:text-gray-500 dark:hover:text-gray-300">
           <ArrowLeft className="h-5 w-5" />
         </Link>
-        <h1 className="text-2xl font-bold text-gray-900 truncate">{submission.subject}</h1>
+        <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100 truncate">{submission.subject}</h1>
       </div>
 
       <Card>
@@ -51,17 +51,17 @@ export function FeedbackDetailPage() {
               <Badge variant={STATUS_VARIANTS[submission.status] ?? 'gray'}>
                 {submission.status.replace('_', ' ')}
               </Badge>
-              <span className="text-sm text-gray-500">{TYPE_LABELS[submission.type]}</span>
+              <span className="text-sm text-gray-500 dark:text-gray-400">{TYPE_LABELS[submission.type]}</span>
             </div>
             <div className="flex items-center gap-2">
-              <label className="text-sm text-gray-500">Update status:</label>
+              <label className="text-sm text-gray-500 dark:text-gray-400">Update status:</label>
               <div className="relative">
                 <select
                   value={submission.status}
                   onChange={(e) =>
                     updateStatus.mutate({ id: submission.id, status: e.target.value as FeedbackStatus })
                   }
-                  className="appearance-none bg-white text-sm border border-gray-300 rounded-lg pl-3 pr-8 py-1.5 focus:outline-none focus:ring-2 focus:ring-indigo-500 cursor-pointer"
+                  className="appearance-none bg-white dark:bg-gray-700 dark:border-gray-600 dark:text-gray-100 text-sm border border-gray-300 rounded-lg pl-3 pr-8 py-1.5 focus:outline-none focus:ring-2 focus:ring-indigo-500 cursor-pointer"
                 >
                   {STATUSES.map((s) => (
                     <option key={s.value} value={s.value}>{s.label}</option>
@@ -75,10 +75,10 @@ export function FeedbackDetailPage() {
         <CardBody className="space-y-4">
           <div className="grid grid-cols-2 gap-4 text-sm">
             <div>
-              <p className="text-gray-500">From</p>
-              <p className="font-medium text-gray-900">
+              <p className="text-gray-500 dark:text-gray-400">From</p>
+              <p className="font-medium text-gray-900 dark:text-gray-100">
                 {submission.contact ? (
-                  <Link to={`/contacts/${submission.contact.id}`} className="text-indigo-600 hover:underline">
+                  <Link to={`/contacts/${submission.contact.id}`} className="text-indigo-600 dark:text-indigo-400 hover:underline">
                     {submission.contact.firstName} {submission.contact.lastName}
                   </Link>
                 ) : (
@@ -88,21 +88,21 @@ export function FeedbackDetailPage() {
             </div>
             {submission.email && (
               <div>
-                <p className="text-gray-500">Email</p>
-                <p className="font-medium text-gray-900">{submission.email}</p>
+                <p className="text-gray-500 dark:text-gray-400">Email</p>
+                <p className="font-medium text-gray-900 dark:text-gray-100">{submission.email}</p>
               </div>
             )}
             <div>
-              <p className="text-gray-500">Submitted</p>
-              <p className="font-medium text-gray-900">{formatDate(submission.createdAt)}</p>
+              <p className="text-gray-500 dark:text-gray-400">Submitted</p>
+              <p className="font-medium text-gray-900 dark:text-gray-100">{formatDate(submission.createdAt)}</p>
             </div>
           </div>
 
-          <hr className="border-gray-100" />
+          <hr className="border-gray-100 dark:border-gray-700" />
 
           <div>
-            <p className="text-sm text-gray-500 mb-1">Message</p>
-            <p className="text-sm text-gray-900 whitespace-pre-wrap">{submission.message}</p>
+            <p className="text-sm text-gray-500 dark:text-gray-400 mb-1">Message</p>
+            <p className="text-sm text-gray-900 dark:text-gray-100 whitespace-pre-wrap">{submission.message}</p>
           </div>
         </CardBody>
       </Card>
