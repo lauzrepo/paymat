@@ -89,8 +89,8 @@ export function DashboardPage() {
                             <td className="px-6 py-3 text-gray-700 dark:text-gray-300">
                               {inv.contact ? `${inv.contact.firstName} ${inv.contact.lastName}` : inv.family?.name ?? '—'}
                             </td>
-                            <td className="px-6 py-3 font-medium">{formatCurrency(inv.amountDue)}</td>
-                            <td className="px-6 py-3 text-red-600">{formatDate(inv.dueDate)}</td>
+                            <td className="px-6 py-3 font-medium dark:text-gray-100">{formatCurrency(inv.amountDue)}</td>
+                            <td className="px-6 py-3 text-red-600 dark:text-red-400">{formatDate(inv.dueDate)}</td>
                           </tr>
                         ))}
                       </tbody>
