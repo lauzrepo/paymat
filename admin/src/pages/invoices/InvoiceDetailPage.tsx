@@ -209,10 +209,11 @@ export function InvoiceDetailPage() {
                           {p.paymentMethodType?.replace('_', ' ') ?? '—'} · {formatDate(p.createdAt)}
                         </p>
                         {p.status === 'succeeded' && (
-                          <Button variant="ghost" size="sm"
-                            onClick={() => { setRefundModal({ id: p.id, amount: p.amount }); setRefundAmount(String(p.amount)); }}>
+                          <button
+                            onClick={() => { setRefundModal({ id: p.id, amount: p.amount }); setRefundAmount(String(p.amount)); }}
+                            className="text-xs font-medium px-2.5 py-1 rounded-md border border-red-300 dark:border-red-700 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors">
                             Refund
-                          </Button>
+                          </button>
                         )}
                       </div>
                     ))}
@@ -241,10 +242,11 @@ export function InvoiceDetailPage() {
                             </td>
                             <td className="px-6 py-3">
                               {p.status === 'succeeded' && (
-                                <Button variant="ghost" size="sm"
-                                  onClick={() => { setRefundModal({ id: p.id, amount: p.amount }); setRefundAmount(String(p.amount)); }}>
+                                <button
+                                  onClick={() => { setRefundModal({ id: p.id, amount: p.amount }); setRefundAmount(String(p.amount)); }}
+                                  className="text-xs font-medium px-2.5 py-1 rounded-md border border-red-300 dark:border-red-700 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors">
                                   Refund
-                                </Button>
+                                </button>
                               )}
                             </td>
                           </tr>
