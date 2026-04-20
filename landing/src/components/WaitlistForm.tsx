@@ -48,6 +48,7 @@ export default function WaitlistForm() {
   return (
     <form onSubmit={handleSubmit} className="flex flex-col sm:flex-row gap-3 justify-center max-w-md mx-auto">
       <input
+        id="waitlist-input"
         type="email"
         required
         value={email}

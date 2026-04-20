@@ -18,6 +18,19 @@ export default function Nav({ onToggleTheme, isLight }: NavProps) {
           Paymat
         </span>
         <div className="flex items-center gap-4">
+          <a
+            href="#pricing"
+            onClick={e => {
+              e.preventDefault();
+              document.getElementById('pricing')?.scrollIntoView({ behavior: 'smooth' });
+            }}
+            className="text-sm transition-colors"
+            style={{ color: 'var(--color-muted)' }}
+            onMouseEnter={e => (e.currentTarget.style.color = 'var(--color-text)')}
+            onMouseLeave={e => (e.currentTarget.style.color = 'var(--color-muted)')}
+          >
+            Pricing
+          </a>
           <button
             onClick={onToggleTheme}
             aria-label="Toggle theme"
