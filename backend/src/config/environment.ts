@@ -33,6 +33,8 @@ const envSchema = z.object({
   SUPER_ADMIN_EMAIL: z.string().email('SUPER_ADMIN_EMAIL must be a valid email'),
   APP_URL: z.string().url().default('https://app.cliqpaymat.app'),
   STRIPE_SECRET_KEY: z.string().min(1, 'STRIPE_SECRET_KEY is required'),
+  STRIPE_SECRET_KEY_LIVE: z.string().optional(),
+  STRIPE_PUBLISHABLE_KEY_LIVE: z.string().optional(),
   STRIPE_WEBHOOK_SECRET: z.string().optional(),
   STRIPE_PRICE_ID: z.string().optional(),
 });
@@ -109,10 +111,12 @@ export const config = {
   },
   stripe: {
     secretKey: env.STRIPE_SECRET_KEY,
+    secretKeyLive: env.STRIPE_SECRET_KEY_LIVE ?? env.STRIPE_SECRET_KEY,
     webhookSecret: env.STRIPE_WEBHOOK_SECRET ?? '',
     priceId: env.STRIPE_PRICE_ID ?? '',
     connectWebhookSecret: env.STRIPE_CONNECT_WEBHOOK_SECRET ?? '',
     applicationFeePercent: parseFloat(env.STRIPE_APPLICATION_FEE_PERCENT),
     publishableKey: env.STRIPE_PUBLISHABLE_KEY ?? '',
+    publishableKeyLive: env.STRIPE_PUBLISHABLE_KEY_LIVE ?? env.STRIPE_PUBLISHABLE_KEY ?? '',
   },
 };

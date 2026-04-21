@@ -49,7 +49,7 @@ export const listInvites = asyncHandler(async (req: Request, res: Response) => {
 });
 
 export const verifyInvite = asyncHandler(async (req: Request, res: Response) => {
-  const { token } = req.params;
+  const token = req.params.token as string;
 
   const invite = await prisma.inviteToken.findUnique({ where: { token } });
 
@@ -64,7 +64,7 @@ export const verifyInvite = asyncHandler(async (req: Request, res: Response) => 
 });
 
 export const deleteInvite = asyncHandler(async (req: Request, res: Response) => {
-  const { id } = req.params;
+  const id = req.params.id as string;
 
   const invite = await prisma.inviteToken.findUnique({ where: { id } });
   if (!invite) throw new AppError(404, 'Invite not found');
@@ -75,7 +75,7 @@ export const deleteInvite = asyncHandler(async (req: Request, res: Response) => 
 });
 
 export const redeemInvite = asyncHandler(async (req: Request, res: Response) => {
-  const { token } = req.params;
+  const token = req.params.token as string;
   const { slug, adminPassword } = req.body;
 
   if (!slug?.trim()) throw new AppError(400, 'slug is required');

@@ -54,7 +54,7 @@ export const getFeedback = asyncHandler(async (req: Request, res: Response) => {
 
 export const getFeedbackById = asyncHandler(async (req: Request, res: Response) => {
   if (!req.user) throw new AppError(401, 'Not authenticated');
-  const submission = await feedbackService.getById(req.params.id, req.organization!.id);
+  const submission = await feedbackService.getById(req.params.id as string, req.organization!.id);
   res.status(200).json({ status: 'success', data: { submission } });
 });
 
@@ -62,6 +62,6 @@ export const updateFeedbackStatus = asyncHandler(async (req: Request, res: Respo
   if (!req.user) throw new AppError(401, 'Not authenticated');
   const { status } = req.body;
   if (!status || !VALID_STATUSES.includes(status)) throw new AppError(400, 'Invalid status');
-  const submission = await feedbackService.updateStatus(req.params.id, req.organization!.id, status);
+  const submission = await feedbackService.updateStatus(req.params.id as string, req.organization!.id, status);
   res.status(200).json({ status: 'success', data: { submission } });
 });

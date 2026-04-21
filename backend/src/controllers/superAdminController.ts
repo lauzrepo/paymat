@@ -238,7 +238,7 @@ export const promoteOrganizationToProduction = asyncHandler(async (req: Request,
 });
 
 export const deleteOrganization = asyncHandler(async (req: Request, res: Response) => {
-  const { id } = req.params;
+  const id = req.params.id as string;
 
   const org = await prisma.organization.findUnique({ where: { id } });
   if (!org) throw new AppError(404, 'Organization not found');
