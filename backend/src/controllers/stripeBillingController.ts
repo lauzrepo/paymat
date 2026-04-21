@@ -10,7 +10,7 @@ const ADMIN_PORTAL_URL = ADMIN_URL.replace('app.', 'admin.'); // https://admin.c
 // POST /super-admin/billing/send-checkout/:orgId
 // Creates (or reuses) a Stripe customer + checkout session and returns the URL
 export const sendCheckoutLink = asyncHandler(async (req: Request, res: Response) => {
-  const org = await prisma.organization.findUnique({ where: { id: req.params.orgId } });
+  const org = await prisma.organization.findUnique({ where: { id: req.params.orgId as string } });
   if (!org) throw new AppError(404, 'Organization not found');
 
   if (org.subscriptionStatus === 'active') {
@@ -43,7 +43,7 @@ export const sendCheckoutLink = asyncHandler(async (req: Request, res: Response)
 // POST /super-admin/billing/portal/:orgId
 // Returns a Stripe customer portal URL so the org can manage their own subscription
 export const getPortalLink = asyncHandler(async (req: Request, res: Response) => {
-  const org = await prisma.organization.findUnique({ where: { id: req.params.orgId } });
+  const org = await prisma.organization.findUnique({ where: { id: req.params.orgId as string } });
   if (!org) throw new AppError(404, 'Organization not found');
   if (!org.stripeCustomerId) throw new AppError(400, 'Organization has no billing account');
 

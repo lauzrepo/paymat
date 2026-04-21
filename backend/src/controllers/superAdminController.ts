@@ -7,6 +7,8 @@ import {
   verifySuperAdminRefreshToken,
 } from '../middleware/superAdminAuth';
 import { config } from '../config/environment';
+import stripeConnectService from '../services/stripeConnectService';
+import logger from '../utils/logger';
 
 // ---------------------------------------------------------------------------
 // Auth
@@ -95,7 +97,7 @@ export const listOrganizations = asyncHandler(async (req: Request, res: Response
 
 export const getOrganization = asyncHandler(async (req: Request, res: Response) => {
   const org = await prisma.organization.findUnique({
-    where: { id: req.params.id },
+    where: { id: req.params.id as string },
     include: {
       _count: { select: { contacts: true, families: true, programs: true, invoices: true, payments: true, users: true } },
       users: {
@@ -165,13 +167,13 @@ export const updateOrganization = asyncHandler(async (req: Request, res: Respons
 
   if (slug) {
     const conflict = await prisma.organization.findFirst({
-      where: { slug, NOT: { id: req.params.id } },
+      where: { slug, NOT: { id: req.params.id as string } },
     });
     if (conflict) throw new AppError(409, 'Slug already taken');
   }
 
   const org = await prisma.organization.update({
-    where: { id: req.params.id },
+    where: { id: req.params.id as string },
     data: { name, slug, type, timezone, logoUrl, primaryColor },
   });
 
@@ -181,10 +183,58 @@ export const updateOrganization = asyncHandler(async (req: Request, res: Respons
 export const setOrganizationActive = asyncHandler(async (req: Request, res: Response) => {
   const { active } = req.body as { active: boolean };
   const org = await prisma.organization.update({
-    where: { id: req.params.id },
+    where: { id: req.params.id as string },
     data: { isActive: active },
   });
   res.json({ status: 'success', data: { organization: org } });
+});
+
+// POST /super-admin/organizations/:id/promote
+// Promotes an org from sandbox (Stripe test) to production (Stripe live).
+// Clears the existing test Connect account so the org re-onboards on the live key.
+export const promoteOrganizationToProduction = asyncHandler(async (req: Request, res: Response) => {
+  const org = await prisma.organization.findUnique({ where: { id: req.params.id as string } });
+  if (!org) throw new AppError(404, 'Organization not found');
+  if (!org.sandboxMode) throw new AppError(400, 'Organization is already in production mode');
+
+  // Provision a new live Connect account for the org
+  const appUrl = config.email.appUrl;
+  let connectOnboardingUrl: string | null = null;
+
+  const liveConnectAccountId = await stripeConnectService.createConnectAccount(
+    org.id,
+    org.name,
+    // Use the admin email from the first user if available
+    (await prisma.user.findFirst({
+      where: { organizationId: org.id, role: 'admin', deletedAt: null },
+      select: { email: true },
+      orderBy: { createdAt: 'asc' },
+    }))?.email ?? `admin@${org.slug}.placeholder`,
+    false // live mode
+  );
+
+  connectOnboardingUrl = await stripeConnectService.createAccountOnboardingLink(
+    liveConnectAccountId,
+    `${appUrl}/onboarding?stripe=connected`,
+    `${appUrl}/onboarding?stripe=refresh`,
+    false // live mode
+  );
+
+  await prisma.organization.update({
+    where: { id: org.id },
+    data: {
+      sandboxMode: false,
+      stripeConnectAccountId: liveConnectAccountId,
+      stripeConnectOnboardingComplete: false,
+    },
+  });
+
+  logger.info(`[SuperAdmin] org ${org.id} promoted to production — new Connect account ${liveConnectAccountId}`);
+
+  res.json({
+    status: 'success',
+    data: { connectOnboardingUrl },
+  });
 });
 
 export const deleteOrganization = asyncHandler(async (req: Request, res: Response) => {

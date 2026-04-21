@@ -44,7 +44,7 @@ export const getPayments = asyncHandler(async (req: Request, res: Response) => {
 
 export const getPayment = asyncHandler(async (req: Request, res: Response) => {
   if (!req.user) throw new AppError(401, 'Not authenticated');
-  const payment = await paymentService.getPaymentById(req.params.id, req.organization!.id);
+  const payment = await paymentService.getPaymentById(req.params.id as string, req.organization!.id);
   res.status(200).json({ status: 'success', data: { payment } });
 });
 
@@ -52,7 +52,7 @@ export const refundPayment = asyncHandler(async (req: Request, res: Response) =>
   if (!req.user) throw new AppError(401, 'Not authenticated');
   const { amount, reason } = req.body;
 
-  await paymentService.refundPayment(req.params.id, req.organization!.id, amount, reason);
+  await paymentService.refundPayment(req.params.id as string, req.organization!.id, amount, reason);
 
   await prisma.auditLog.create({
     data: {
@@ -61,7 +61,7 @@ export const refundPayment = asyncHandler(async (req: Request, res: Response) =>
       action: 'PAYMENT_REFUNDED',
       ipAddress: req.ip,
       userAgent: req.headers['user-agent'],
-      metadata: { paymentId: req.params.id, amount, reason },
+      metadata: { paymentId: req.params.id as string, amount, reason },
     },
   });
 

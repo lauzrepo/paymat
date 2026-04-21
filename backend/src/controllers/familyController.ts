@@ -1,7 +1,6 @@
 import { Request, Response } from 'express';
 import familyService from '../services/familyService';
 import stripeConnectService from '../services/stripeConnectService';
-import { config } from '../config/environment';
 import prisma from '../config/database';
 import { asyncHandler, AppError } from '../middleware/errorHandler';
 
@@ -26,49 +25,52 @@ export const getFamilies = asyncHandler(async (req: Request, res: Response) => {
 
 export const getFamily = asyncHandler(async (req: Request, res: Response) => {
   if (!req.user) throw new AppError(401, 'Not authenticated');
-  const family = await familyService.getFamilyById(req.params.id, req.organization!.id);
+  const family = await familyService.getFamilyById(req.params.id as string, req.organization!.id);
   res.status(200).json({ status: 'success', data: { family } });
 });
 
 export const updateFamily = asyncHandler(async (req: Request, res: Response) => {
   if (!req.user) throw new AppError(401, 'Not authenticated');
   const { name, billingEmail } = req.body;
-  const family = await familyService.updateFamily(req.params.id, req.organization!.id, { name, billingEmail });
+  const family = await familyService.updateFamily(req.params.id as string, req.organization!.id, { name, billingEmail });
   res.status(200).json({ status: 'success', data: { family } });
 });
 
 export const deleteFamily = asyncHandler(async (req: Request, res: Response) => {
   if (!req.user) throw new AppError(401, 'Not authenticated');
-  await familyService.deleteFamily(req.params.id, req.organization!.id);
+  await familyService.deleteFamily(req.params.id as string, req.organization!.id);
   res.status(204).send();
 });
 
 export const initializeFamilyCardCheckout = asyncHandler(async (req: Request, res: Response) => {
   if (!req.user) throw new AppError(401, 'Not authenticated');
 
-  const family = await familyService.getFamilyById(req.params.id, req.organization!.id);
+  const family = await familyService.getFamilyById(req.params.id as string, req.organization!.id);
 
   const org = await prisma.organization.findUnique({
     where: { id: req.organization!.id },
-    select: { stripeConnectAccountId: true },
+    select: { stripeConnectAccountId: true, sandboxMode: true },
   });
   if (!org?.stripeConnectAccountId) throw new AppError(503, 'Payment processing not configured for this organization');
+
+  const { sandboxMode } = org;
 
   let stripeCustomerId = (family as { stripeCustomerId?: string | null }).stripeCustomerId ?? null;
   if (!stripeCustomerId) {
     stripeCustomerId = await stripeConnectService.createCustomer(
       org.stripeConnectAccountId,
       family.billingEmail ?? undefined,
-      family.name
+      family.name,
+      sandboxMode
     );
-    await prisma.family.update({ where: { id: req.params.id }, data: { stripeCustomerId } });
+    await prisma.family.update({ where: { id: req.params.id as string }, data: { stripeCustomerId } });
   }
 
-  const clientSecret = await stripeConnectService.createSetupIntent(org.stripeConnectAccountId, stripeCustomerId);
+  const clientSecret = await stripeConnectService.createSetupIntent(org.stripeConnectAccountId, stripeCustomerId, sandboxMode);
 
   res.status(200).json({
     status: 'success',
-    data: { clientSecret, connectAccountId: org.stripeConnectAccountId, publishableKey: config.stripe.publishableKey, customerId: stripeCustomerId },
+    data: { clientSecret, connectAccountId: org.stripeConnectAccountId, publishableKey: stripeConnectService.getPublishableKey(sandboxMode), customerId: stripeCustomerId },
   });
 });
 
@@ -77,9 +79,9 @@ export const saveFamilyCardToken = asyncHandler(async (req: Request, res: Respon
   const { stripeCustomerId, stripeDefaultPaymentMethodId } = req.body;
   if (!stripeCustomerId) throw new AppError(400, 'stripeCustomerId is required');
   if (!stripeDefaultPaymentMethodId) throw new AppError(400, 'stripeDefaultPaymentMethodId is required');
-  await familyService.getFamilyById(req.params.id, req.organization!.id);
+  await familyService.getFamilyById(req.params.id as string, req.organization!.id);
   const family = await prisma.family.update({
-    where: { id: req.params.id },
+    where: { id: req.params.id as string },
     data: { stripeCustomerId, stripeDefaultPaymentMethodId },
   });
   res.status(200).json({ status: 'success', data: { family } });

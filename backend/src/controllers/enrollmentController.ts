@@ -29,33 +29,33 @@ export const getEnrollments = asyncHandler(async (req: Request, res: Response) =
 
 export const getEnrollment = asyncHandler(async (req: Request, res: Response) => {
   if (!req.user) throw new AppError(401, 'Not authenticated');
-  const enrollment = await enrollmentService.getEnrollmentById(req.params.id, req.organization!.id);
+  const enrollment = await enrollmentService.getEnrollmentById(req.params.id as string, req.organization!.id);
   res.status(200).json({ status: 'success', data: { enrollment } });
 });
 
 export const unenroll = asyncHandler(async (req: Request, res: Response) => {
   if (!req.user) throw new AppError(401, 'Not authenticated');
   const { endDate } = req.body;
-  const enrollment = await enrollmentService.unenroll(req.params.id, req.organization!.id, endDate ? new Date(endDate) : undefined);
+  const enrollment = await enrollmentService.unenroll(req.params.id as string, req.organization!.id, endDate ? new Date(endDate) : undefined);
   res.status(200).json({ status: 'success', data: { enrollment } });
 });
 
 export const deleteEnrollment = asyncHandler(async (req: Request, res: Response) => {
   if (!req.user) throw new AppError(401, 'Not authenticated');
   await prisma.enrollment.deleteMany({
-    where: { id: req.params.id, program: { organizationId: req.organization!.id } },
+    where: { id: req.params.id as string, program: { organizationId: req.organization!.id } },
   });
   res.status(200).json({ status: 'success', data: {} });
 });
 
 export const pauseEnrollment = asyncHandler(async (req: Request, res: Response) => {
   if (!req.user) throw new AppError(401, 'Not authenticated');
-  const enrollment = await enrollmentService.pauseEnrollment(req.params.id, req.organization!.id);
+  const enrollment = await enrollmentService.pauseEnrollment(req.params.id as string, req.organization!.id);
   res.status(200).json({ status: 'success', data: { enrollment } });
 });
 
 export const resumeEnrollment = asyncHandler(async (req: Request, res: Response) => {
   if (!req.user) throw new AppError(401, 'Not authenticated');
-  const enrollment = await enrollmentService.resumeEnrollment(req.params.id, req.organization!.id);
+  const enrollment = await enrollmentService.resumeEnrollment(req.params.id as string, req.organization!.id);
   res.status(200).json({ status: 'success', data: { enrollment } });
 });

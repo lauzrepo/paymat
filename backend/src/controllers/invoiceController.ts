@@ -31,13 +31,13 @@ export const getInvoices = asyncHandler(async (req: Request, res: Response) => {
 
 export const getInvoice = asyncHandler(async (req: Request, res: Response) => {
   if (!req.user) throw new AppError(401, 'Not authenticated');
-  const invoice = await invoiceService.getInvoiceById(req.params.id, req.organization!.id);
+  const invoice = await invoiceService.getInvoiceById(req.params.id as string, req.organization!.id);
   res.status(200).json({ status: 'success', data: { invoice } });
 });
 
 export const markInvoicePaid = asyncHandler(async (req: Request, res: Response) => {
   if (!req.user) throw new AppError(401, 'Not authenticated');
-  const invoice = await invoiceService.markAsPaid(req.params.id, req.organization!.id);
+  const invoice = await invoiceService.markAsPaid(req.params.id as string, req.organization!.id);
 
   await prisma.auditLog.create({
     data: {
@@ -46,7 +46,7 @@ export const markInvoicePaid = asyncHandler(async (req: Request, res: Response) 
       action: 'INVOICE_MARKED_PAID',
       ipAddress: req.ip,
       userAgent: req.headers['user-agent'],
-      metadata: { invoiceId: req.params.id },
+      metadata: { invoiceId: req.params.id as string },
     },
   });
 
@@ -55,7 +55,7 @@ export const markInvoicePaid = asyncHandler(async (req: Request, res: Response) 
 
 export const voidInvoice = asyncHandler(async (req: Request, res: Response) => {
   if (!req.user) throw new AppError(401, 'Not authenticated');
-  const invoice = await invoiceService.voidInvoice(req.params.id, req.organization!.id);
+  const invoice = await invoiceService.voidInvoice(req.params.id as string, req.organization!.id);
   res.status(200).json({ status: 'success', data: { invoice } });
 });
 
