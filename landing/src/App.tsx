@@ -4,6 +4,7 @@ import Hero from './components/Hero';
 import ForWho from './components/ForWho';
 import Features from './components/Features';
 import HowItWorks from './components/HowItWorks';
+import Pricing from './components/Pricing';
 import CtaBanner from './components/CtaBanner';
 import Footer from './components/Footer';
 
@@ -23,6 +24,7 @@ export default function App() {
         <ForWho />
         <Features />
         <HowItWorks />
+        <Pricing />
         <CtaBanner />
       </main>
       <Footer />
