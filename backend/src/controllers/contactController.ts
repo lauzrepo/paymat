@@ -1,7 +1,6 @@
 import { Request, Response } from 'express';
 import contactService from '../services/contactService';
 import stripeConnectService from '../services/stripeConnectService';
-import { config } from '../config/environment';
 import prisma from '../config/database';
 import { asyncHandler, AppError } from '../middleware/errorHandler';
 
@@ -35,48 +34,51 @@ export const getContacts = asyncHandler(async (req: Request, res: Response) => {
 
 export const getContact = asyncHandler(async (req: Request, res: Response) => {
   if (!req.user) throw new AppError(401, 'Not authenticated');
-  const contact = await contactService.getContactById(req.params.id, req.organization!.id);
+  const contact = await contactService.getContactById(req.params.id as string, req.organization!.id);
   res.status(200).json({ status: 'success', data: { contact } });
 });
 
 export const updateContact = asyncHandler(async (req: Request, res: Response) => {
   if (!req.user) throw new AppError(401, 'Not authenticated');
-  const contact = await contactService.updateContact(req.params.id, req.organization!.id, req.body);
+  const contact = await contactService.updateContact(req.params.id as string, req.organization!.id, req.body);
   res.status(200).json({ status: 'success', data: { contact } });
 });
 
 export const deactivateContact = asyncHandler(async (req: Request, res: Response) => {
   if (!req.user) throw new AppError(401, 'Not authenticated');
-  const contact = await contactService.deactivateContact(req.params.id, req.organization!.id);
+  const contact = await contactService.deactivateContact(req.params.id as string, req.organization!.id);
   res.status(200).json({ status: 'success', data: { contact } });
 });
 
 export const initializeCardCheckout = asyncHandler(async (req: Request, res: Response) => {
   if (!req.user) throw new AppError(401, 'Not authenticated');
 
-  const contact = await contactService.getContactById(req.params.id, req.organization!.id);
+  const contact = await contactService.getContactById(req.params.id as string, req.organization!.id);
 
   const org = await prisma.organization.findUnique({
     where: { id: req.organization!.id },
-    select: { stripeConnectAccountId: true },
+    select: { stripeConnectAccountId: true, sandboxMode: true },
   });
   if (!org?.stripeConnectAccountId) throw new AppError(503, 'Payment processing not configured for this organization');
+
+  const { sandboxMode } = org;
 
   let stripeCustomerId = (contact as { stripeCustomerId?: string | null }).stripeCustomerId ?? null;
   if (!stripeCustomerId) {
     stripeCustomerId = await stripeConnectService.createCustomer(
       org.stripeConnectAccountId,
       contact.email ?? `${contact.firstName} ${contact.lastName}`,
-      `${contact.firstName ?? ''} ${contact.lastName ?? ''}`.trim()
+      `${contact.firstName ?? ''} ${contact.lastName ?? ''}`.trim(),
+      sandboxMode
     );
-    await prisma.contact.update({ where: { id: req.params.id }, data: { stripeCustomerId } });
+    await prisma.contact.update({ where: { id: req.params.id as string }, data: { stripeCustomerId } });
   }
 
-  const clientSecret = await stripeConnectService.createSetupIntent(org.stripeConnectAccountId, stripeCustomerId);
+  const clientSecret = await stripeConnectService.createSetupIntent(org.stripeConnectAccountId, stripeCustomerId, sandboxMode);
 
   res.status(200).json({
     status: 'success',
-    data: { clientSecret, connectAccountId: org.stripeConnectAccountId, publishableKey: config.stripe.publishableKey, customerId: stripeCustomerId },
+    data: { clientSecret, connectAccountId: org.stripeConnectAccountId, publishableKey: stripeConnectService.getPublishableKey(sandboxMode), customerId: stripeCustomerId },
   });
 });
 
@@ -85,9 +87,9 @@ export const saveCardToken = asyncHandler(async (req: Request, res: Response) =>
   const { stripeCustomerId, stripeDefaultPaymentMethodId } = req.body;
   if (!stripeCustomerId) throw new AppError(400, 'stripeCustomerId is required');
   if (!stripeDefaultPaymentMethodId) throw new AppError(400, 'stripeDefaultPaymentMethodId is required');
-  await contactService.getContactById(req.params.id, req.organization!.id);
+  await contactService.getContactById(req.params.id as string, req.organization!.id);
   const contact = await prisma.contact.update({
-    where: { id: req.params.id },
+    where: { id: req.params.id as string },
     data: { stripeCustomerId, stripeDefaultPaymentMethodId },
   });
   res.status(200).json({ status: 'success', data: { contact } });
@@ -95,12 +97,12 @@ export const saveCardToken = asyncHandler(async (req: Request, res: Response) =>
 
 export const reactivateContact = asyncHandler(async (req: Request, res: Response) => {
   if (!req.user) throw new AppError(401, 'Not authenticated');
-  const contact = await contactService.reactivateContact(req.params.id, req.organization!.id);
+  const contact = await contactService.reactivateContact(req.params.id as string, req.organization!.id);
   res.status(200).json({ status: 'success', data: { contact } });
 });
 
 export const deleteContact = asyncHandler(async (req: Request, res: Response) => {
   if (!req.user) throw new AppError(401, 'Not authenticated');
-  await contactService.deleteContact(req.params.id, req.organization!.id);
+  await contactService.deleteContact(req.params.id as string, req.organization!.id);
   res.status(204).send();
 });

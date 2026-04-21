@@ -5,7 +5,6 @@ import prisma from '../config/database';
 import { asyncHandler, AppError } from '../middleware/errorHandler';
 import stripeConnectService from '../services/stripeConnectService';
 import { sendPaymentReceived } from '../services/emailService';
-import { config } from '../config/environment';
 import logger from '../utils/logger';
 
 // GET /api/client/me
@@ -105,7 +104,7 @@ export const getMyInvoice = asyncHandler(async (req: Request, res: Response) => 
 
   const invoice = await prisma.invoice.findFirst({
     where: {
-      id: req.params.id,
+      id: req.params.id as string,
       organizationId: req.organization!.id,
       OR: [
         { contactId: user.contactId },
@@ -135,7 +134,7 @@ export const initializeInvoicePayment = asyncHandler(async (req: Request, res: R
 
   const invoice = await prisma.invoice.findFirst({
     where: {
-      id: req.params.id,
+      id: req.params.id as string,
       organizationId: req.organization!.id,
       status: { in: ['draft', 'sent', 'overdue'] },
       OR: [
@@ -152,11 +151,13 @@ export const initializeInvoicePayment = asyncHandler(async (req: Request, res: R
 
   const org = await prisma.organization.findUnique({
     where: { id: req.organization!.id },
-    select: { stripeConnectAccountId: true, platformFeePercent: true },
+    select: { stripeConnectAccountId: true, platformFeePercent: true, sandboxMode: true },
   });
   if (!org?.stripeConnectAccountId) {
     throw new AppError(503, 'Payment processing is not yet configured for this organization');
   }
+
+  const { sandboxMode } = org;
 
   // Get or create a Stripe customer for this contact on the connected account
   const contact = await prisma.contact.findUnique({
@@ -169,7 +170,8 @@ export const initializeInvoicePayment = asyncHandler(async (req: Request, res: R
     stripeCustomerId = await stripeConnectService.createCustomer(
       org.stripeConnectAccountId,
       contact.email,
-      `${contact.firstName ?? ''} ${contact.lastName ?? ''}`.trim()
+      `${contact.firstName ?? ''} ${contact.lastName ?? ''}`.trim(),
+      sandboxMode
     );
     await prisma.contact.update({
       where: { id: user.contactId! },
@@ -183,7 +185,8 @@ export const initializeInvoicePayment = asyncHandler(async (req: Request, res: R
     invoice.currency,
     stripeCustomerId,
     { invoiceId: invoice.id, invoiceNumber: invoice.invoiceNumber },
-    org.platformFeePercent
+    org.platformFeePercent,
+    sandboxMode
   );
 
   res.json({
@@ -192,7 +195,7 @@ export const initializeInvoicePayment = asyncHandler(async (req: Request, res: R
       clientSecret,
       paymentIntentId,
       connectAccountId: org.stripeConnectAccountId,
-      publishableKey: config.stripe.publishableKey,
+      publishableKey: stripeConnectService.getPublishableKey(sandboxMode),
       amountCents: Math.round(amountDue * 100),
       currency: invoice.currency,
     },
@@ -220,7 +223,7 @@ export const confirmInvoicePayment = asyncHandler(async (req: Request, res: Resp
 
   const invoice = await prisma.invoice.findFirst({
     where: {
-      id: req.params.id,
+      id: req.params.id as string,
       organizationId: req.organization!.id,
       OR: [
         { contactId: user.contactId },
@@ -237,14 +240,15 @@ export const confirmInvoicePayment = asyncHandler(async (req: Request, res: Resp
 
   const org = await prisma.organization.findUnique({
     where: { id: req.organization!.id },
-    select: { stripeConnectAccountId: true, name: true },
+    select: { stripeConnectAccountId: true, name: true, sandboxMode: true },
   });
   if (!org?.stripeConnectAccountId) throw new AppError(503, 'Payment processing not configured');
 
   // Retrieve and verify the PaymentIntent from Stripe
   const intent = await stripeConnectService.retrievePaymentIntent(
     org.stripeConnectAccountId,
-    paymentIntentId
+    paymentIntentId,
+    org.sandboxMode
   );
 
   if (intent.status !== 'succeeded') {

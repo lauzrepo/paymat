@@ -28,24 +28,24 @@ export const getPrograms = asyncHandler(async (req: Request, res: Response) => {
 
 export const getProgram = asyncHandler(async (req: Request, res: Response) => {
   if (!req.user) throw new AppError(401, 'Not authenticated');
-  const program = await programService.getProgramById(req.params.id, req.organization!.id);
+  const program = await programService.getProgramById(req.params.id as string, req.organization!.id);
   res.status(200).json({ status: 'success', data: { program } });
 });
 
 export const updateProgram = asyncHandler(async (req: Request, res: Response) => {
   if (!req.user) throw new AppError(401, 'Not authenticated');
-  const program = await programService.updateProgram(req.params.id, req.organization!.id, req.body);
+  const program = await programService.updateProgram(req.params.id as string, req.organization!.id, req.body);
   res.status(200).json({ status: 'success', data: { program } });
 });
 
 export const deleteProgram = asyncHandler(async (req: Request, res: Response) => {
   if (!req.user) throw new AppError(401, 'Not authenticated');
   const count = await prisma.enrollment.count({
-    where: { programId: req.params.id, status: 'active' },
+    where: { programId: req.params.id as string, status: 'active' },
   });
   if (count > 0) throw new AppError(400, 'Cannot delete a program with active enrollments. Deactivate it instead.');
   await prisma.program.deleteMany({
-    where: { id: req.params.id, organizationId: req.organization!.id },
+    where: { id: req.params.id as string, organizationId: req.organization!.id },
   });
   res.status(200).json({ status: 'success', data: {} });
 });
