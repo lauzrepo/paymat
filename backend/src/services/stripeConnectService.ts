@@ -3,19 +3,27 @@ import { config } from '../config/environment';
 import logger from '../utils/logger';
 
 class StripeConnectService {
-  private _client: Stripe | null = null;
+  private _testClient: Stripe | null = null;
+  private _liveClient: Stripe | null = null;
 
-  private get client(): Stripe {
-    if (!this._client) {
-      this._client = new Stripe(config.stripe.secretKey);
+  private getClient(sandboxMode: boolean): Stripe {
+    if (sandboxMode) {
+      if (!this._testClient) this._testClient = new Stripe(config.stripe.secretKey);
+      return this._testClient;
+    } else {
+      if (!this._liveClient) this._liveClient = new Stripe(config.stripe.secretKeyLive);
+      return this._liveClient;
     }
-    return this._client;
+  }
+
+  getPublishableKey(sandboxMode: boolean): string {
+    return sandboxMode ? config.stripe.publishableKey : config.stripe.publishableKeyLive;
   }
 
   // ── Account provisioning ────────────────────────────────────────────────
 
-  async createConnectAccount(orgId: string, orgName: string, email: string): Promise<string> {
-    const account = await this.client.accounts.create({
+  async createConnectAccount(orgId: string, orgName: string, email: string, sandboxMode = true): Promise<string> {
+    const account = await this.getClient(sandboxMode).accounts.create({
       type: 'express',
       email,
       business_profile: { name: orgName },
@@ -25,12 +33,12 @@ class StripeConnectService {
         transfers: { requested: true },
       },
     });
-    logger.info(`[StripeConnect] created Express account ${account.id} for org ${orgId}`);
+    logger.info(`[StripeConnect] created Express account ${account.id} for org ${orgId} (sandbox=${sandboxMode})`);
     return account.id;
   }
 
-  async createAccountOnboardingLink(connectAccountId: string, returnUrl: string, refreshUrl: string): Promise<string> {
-    const link = await this.client.accountLinks.create({
+  async createAccountOnboardingLink(connectAccountId: string, returnUrl: string, refreshUrl: string, sandboxMode = true): Promise<string> {
+    const link = await this.getClient(sandboxMode).accountLinks.create({
       account: connectAccountId,
       type: 'account_onboarding',
       return_url: returnUrl,
@@ -39,13 +47,13 @@ class StripeConnectService {
     return link.url;
   }
 
-  async createAccountLoginLink(connectAccountId: string): Promise<string> {
-    const link = await this.client.accounts.createLoginLink(connectAccountId);
+  async createAccountLoginLink(connectAccountId: string, sandboxMode = true): Promise<string> {
+    const link = await this.getClient(sandboxMode).accounts.createLoginLink(connectAccountId);
     return link.url;
   }
 
-  async getAccountStatus(connectAccountId: string): Promise<{ chargesEnabled: boolean; detailsSubmitted: boolean }> {
-    const account = await this.client.accounts.retrieve(connectAccountId);
+  async getAccountStatus(connectAccountId: string, sandboxMode = true): Promise<{ chargesEnabled: boolean; detailsSubmitted: boolean }> {
+    const account = await this.getClient(sandboxMode).accounts.retrieve(connectAccountId);
     return {
       chargesEnabled: account.charges_enabled,
       detailsSubmitted: account.details_submitted,
@@ -54,8 +62,8 @@ class StripeConnectService {
 
   // ── Customer management (per connected account) ──────────────────────────
 
-  async createCustomer(connectAccountId: string, email: string | undefined, name: string): Promise<string> {
-    const customer = await this.client.customers.create(
+  async createCustomer(connectAccountId: string, email: string | undefined, name: string, sandboxMode = true): Promise<string> {
+    const customer = await this.getClient(sandboxMode).customers.create(
       { ...(email ? { email } : {}), name },
       { stripeAccount: connectAccountId }
     );
@@ -65,14 +73,14 @@ class StripeConnectService {
 
   // ── Payment intents ──────────────────────────────────────────────────────
 
-  /** Create a PaymentIntent for portal self-serve payment (returns clientSecret to frontend). */
   async createPaymentIntent(
     connectAccountId: string,
     amountCents: number,
     currency: string,
     customerId: string | null,
     metadata: Record<string, string> = {},
-    feePercent?: number
+    feePercent?: number,
+    sandboxMode = true
   ): Promise<{ clientSecret: string; paymentIntentId: string }> {
     const params: Stripe.PaymentIntentCreateParams = {
       amount: amountCents,
@@ -83,17 +91,14 @@ class StripeConnectService {
     };
 
     const rate = feePercent ?? config.stripe.applicationFeePercent;
-    const appFee = rate > 0
-      ? Math.round(amountCents * (rate / 100))
-      : undefined;
+    const appFee = rate > 0 ? Math.round(amountCents * (rate / 100)) : undefined;
     if (appFee) params.application_fee_amount = appFee;
 
-    const intent = await this.client.paymentIntents.create(params, { stripeAccount: connectAccountId });
+    const intent = await this.getClient(sandboxMode).paymentIntents.create(params, { stripeAccount: connectAccountId });
     logger.info(`[StripeConnect] created PaymentIntent ${intent.id} on account ${connectAccountId}`);
     return { clientSecret: intent.client_secret!, paymentIntentId: intent.id };
   }
 
-  /** Auto-charge a saved card (off-session) for recurring billing. */
   async chargeCustomer(opts: {
     connectAccountId: string;
     customerId: string;
@@ -104,15 +109,14 @@ class StripeConnectService {
     idempotencyKey: string;
     metadata?: Record<string, string>;
     feePercent?: number;
+    sandboxMode?: boolean;
   }): Promise<{ paymentIntentId: string; chargeId: string; status: string }> {
-    const { connectAccountId, customerId, paymentMethodId, amountCents, currency, description, idempotencyKey, metadata, feePercent } = opts;
+    const { connectAccountId, customerId, paymentMethodId, amountCents, currency, description, idempotencyKey, metadata, feePercent, sandboxMode = true } = opts;
 
     const rate = feePercent ?? config.stripe.applicationFeePercent;
-    const appFee = rate > 0
-      ? Math.round(amountCents * (rate / 100))
-      : undefined;
+    const appFee = rate > 0 ? Math.round(amountCents * (rate / 100)) : undefined;
 
-    const intent = await this.client.paymentIntents.create(
+    const intent = await this.getClient(sandboxMode).paymentIntents.create(
       {
         amount: amountCents,
         currency: currency.toLowerCase(),
@@ -124,10 +128,7 @@ class StripeConnectService {
         metadata: metadata ?? {},
         ...(appFee && { application_fee_amount: appFee }),
       },
-      {
-        stripeAccount: connectAccountId,
-        idempotencyKey,
-      }
+      { stripeAccount: connectAccountId, idempotencyKey }
     );
 
     const chargeId = typeof intent.latest_charge === 'string'
@@ -144,8 +145,8 @@ class StripeConnectService {
 
   // ── Refunds ──────────────────────────────────────────────────────────────
 
-  async refundCharge(connectAccountId: string, chargeId: string, amountCents?: number): Promise<void> {
-    await this.client.refunds.create(
+  async refundCharge(connectAccountId: string, chargeId: string, amountCents?: number, sandboxMode = true): Promise<void> {
+    await this.getClient(sandboxMode).refunds.create(
       { charge: chargeId, ...(amountCents !== undefined && { amount: amountCents }) },
       { stripeAccount: connectAccountId }
     );
@@ -154,8 +155,8 @@ class StripeConnectService {
 
   // ── Setup intents (save card without charging) ───────────────────────────
 
-  async createSetupIntent(connectAccountId: string, customerId: string): Promise<string> {
-    const setup = await this.client.setupIntents.create(
+  async createSetupIntent(connectAccountId: string, customerId: string, sandboxMode = true): Promise<string> {
+    const setup = await this.getClient(sandboxMode).setupIntents.create(
       { customer: customerId, automatic_payment_methods: { enabled: true } },
       { stripeAccount: connectAccountId }
     );
@@ -164,14 +165,17 @@ class StripeConnectService {
 
   // ── Payment intent retrieval ─────────────────────────────────────────────
 
-  async retrievePaymentIntent(connectAccountId: string, paymentIntentId: string): Promise<Stripe.PaymentIntent> {
-    return this.client.paymentIntents.retrieve(paymentIntentId, {}, { stripeAccount: connectAccountId });
+  async retrievePaymentIntent(connectAccountId: string, paymentIntentId: string, sandboxMode = true): Promise<Stripe.PaymentIntent> {
+    return this.getClient(sandboxMode).paymentIntents.retrieve(paymentIntentId, {}, { stripeAccount: connectAccountId });
   }
 
   // ── Webhooks ─────────────────────────────────────────────────────────────
 
   constructWebhookEvent(rawBody: Buffer, signature: string, secret: string): Stripe.Event {
-    return this.client.webhooks.constructEvent(rawBody, signature, secret);
+    // Try test client first; webhook construction doesn't depend on mode
+    return this._testClient
+      ? this._testClient.webhooks.constructEvent(rawBody, signature, secret)
+      : new Stripe(config.stripe.secretKey).webhooks.constructEvent(rawBody, signature, secret);
   }
 }
 
