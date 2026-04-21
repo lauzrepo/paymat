@@ -53,3 +53,13 @@ export function useDeleteOrganization() {
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['organizations'] }),
   });
 }
+
+export function usePromoteToProduction(id: string) {
+  return useMutation({
+    mutationFn: () => api.promoteToProduction(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['organizations', id] });
+      queryClient.invalidateQueries({ queryKey: ['organizations'] });
+    },
+  });
+}
