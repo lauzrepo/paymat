@@ -5,7 +5,7 @@
   "main": "dist/server.js",
   "scripts": {
     "dev": "nodemon src/server.ts",
-    "build": "prisma generate && tsc",
+    "build": "prisma migrate deploy && prisma generate && tsc",
     "start": "node dist/server.js",
     "postinstall": "prisma generate",
     "test": "jest --coverage",
