@@ -4,12 +4,14 @@ import {
   superAdminLogin,
   superAdminRefreshToken,
   getSuperAdminMe,
+  changeSuperAdminPassword,
   listOrganizations,
   getOrganization,
   createOrganization,
   updateOrganization,
   setOrganizationActive,
   deleteOrganization,
+  promoteOrganizationToProduction,
 } from '../controllers/superAdminController';
 import { createInvite, listInvites, verifyInvite, redeemInvite, deleteInvite } from '../controllers/inviteController';
 import { sendCheckoutLink, getPortalLink } from '../controllers/stripeBillingController';
@@ -22,6 +24,7 @@ router.post('/auth/refresh-token', superAdminRefreshToken);
 
 // Auth — protected
 router.get('/auth/me', authenticateSuperAdmin, getSuperAdminMe);
+router.post('/auth/change-password', authenticateSuperAdmin, changeSuperAdminPassword);
 
 // Organizations — all protected
 router.get('/organizations', authenticateSuperAdmin, listOrganizations);
@@ -29,6 +32,7 @@ router.post('/organizations', authenticateSuperAdmin, createOrganization);
 router.get('/organizations/:id', authenticateSuperAdmin, getOrganization);
 router.put('/organizations/:id', authenticateSuperAdmin, updateOrganization);
 router.patch('/organizations/:id/status', authenticateSuperAdmin, setOrganizationActive);
+router.post('/organizations/:id/promote', authenticateSuperAdmin, promoteOrganizationToProduction);
 router.delete('/organizations/:id', authenticateSuperAdmin, deleteOrganization);
 
 // Stripe billing — protected

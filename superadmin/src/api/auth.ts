@@ -9,3 +9,6 @@ export const login = (email: string, password: string): Promise<{
 
 export const getMe = (): Promise<SuperAdminUser> =>
   apiClient.get('/auth/me').then((r) => r.data.data.superAdmin);
+
+export const changePassword = (currentPassword: string, newPassword: string): Promise<void> =>
+  apiClient.post('/auth/change-password', { currentPassword, newPassword }).then(() => undefined);

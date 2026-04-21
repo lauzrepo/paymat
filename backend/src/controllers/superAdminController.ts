@@ -63,6 +63,23 @@ export const getSuperAdminMe = asyncHandler(async (req: Request, res: Response) 
   res.json({ status: 'success', data: { superAdmin: admin } });
 });
 
+export const changeSuperAdminPassword = asyncHandler(async (req: Request, res: Response) => {
+  const { currentPassword, newPassword } = req.body;
+  if (!currentPassword || !newPassword) throw new AppError(400, 'currentPassword and newPassword are required');
+  if (newPassword.length < 8) throw new AppError(400, 'New password must be at least 8 characters');
+
+  const admin = await prisma.superAdmin.findUnique({ where: { id: req.superAdmin!.superAdminId } });
+  if (!admin) throw new AppError(404, 'Not found');
+
+  const valid = await bcrypt.compare(currentPassword, admin.passwordHash);
+  if (!valid) throw new AppError(401, 'Current password is incorrect');
+
+  const passwordHash = await bcrypt.hash(newPassword, config.security.bcryptRounds);
+  await prisma.superAdmin.update({ where: { id: admin.id }, data: { passwordHash } });
+
+  res.json({ status: 'success', data: { message: 'Password updated successfully' } });
+});
+
 // ---------------------------------------------------------------------------
 // Organizations
 // ---------------------------------------------------------------------------
