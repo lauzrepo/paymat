@@ -55,6 +55,7 @@ export function OrganizationsPage() {
                   <th className="px-6 py-3 text-left">Contacts</th>
                   <th className="px-6 py-3 text-left">Users</th>
                   <th className="px-6 py-3 text-left">Status</th>
+                  <th className="px-6 py-3 text-left">Mode</th>
                   <th className="px-6 py-3 text-left">Created</th>
                 </tr>
               </thead>
@@ -73,6 +74,11 @@ export function OrganizationsPage() {
                     <td className="px-6 py-3">
                       <Badge variant={org.isActive ? 'green' : 'red'}>
                         {org.isActive ? 'Active' : 'Inactive'}
+                      </Badge>
+                    </td>
+                    <td className="px-6 py-3">
+                      <Badge variant={org.sandboxMode !== false ? 'yellow' : 'blue'}>
+                        {org.sandboxMode !== false ? 'Sandbox' : 'Production'}
                       </Badge>
                     </td>
                     <td className="px-6 py-3 text-gray-500 dark:text-gray-400">{formatDate(org.createdAt)}</td>

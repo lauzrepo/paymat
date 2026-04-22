@@ -36,6 +36,9 @@ export const setOrganizationActive = (id: string, active: boolean): Promise<Orga
 export const deleteOrganization = (id: string): Promise<void> =>
   apiClient.delete(`/organizations/${id}`).then(() => undefined);
 
+export const promoteToProduction = (id: string): Promise<{ connectOnboardingUrl: string | null }> =>
+  apiClient.post(`/organizations/${id}/promote`).then((r) => r.data.data);
+
 export const sendBillingCheckout = (orgId: string): Promise<{ url: string }> =>
   apiClient.post(`/billing/send-checkout/${orgId}`).then((r) => r.data.data);
 

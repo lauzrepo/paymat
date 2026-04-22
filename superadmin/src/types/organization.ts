@@ -33,4 +33,7 @@ export interface Organization {
   stripeCustomerId?: string | null;
   stripeSubscriptionId?: string | null;
   subscriptionStatus?: string;
+  stripeConnectAccountId?: string | null;
+  stripeConnectOnboardingComplete?: boolean;
+  sandboxMode?: boolean;
 }

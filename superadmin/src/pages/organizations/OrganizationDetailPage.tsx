@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
-import { ChevronLeft, CreditCard, ExternalLink } from 'lucide-react';
-import { useOrganization, useUpdateOrganization, useSetOrganizationActive, useDeleteOrganization } from '../../hooks/useOrganizations';
+import { ChevronLeft, CreditCard, ExternalLink, Rocket } from 'lucide-react';
+import { useOrganization, useUpdateOrganization, useSetOrganizationActive, useDeleteOrganization, usePromoteToProduction } from '../../hooks/useOrganizations';
 import { sendBillingCheckout, getBillingPortalLink } from '../../api/organizations';
 import { Card, CardHeader, CardBody } from '../../components/ui/Card';
 import { Button } from '../../components/ui/Button';
@@ -24,10 +24,12 @@ export function OrganizationDetailPage() {
   const update = useUpdateOrganization(id!);
   const setActive = useSetOrganizationActive();
   const deleteOrg = useDeleteOrganization();
+  const promote = usePromoteToProduction(id!);
 
   const [editing, setEditing] = useState(false);
   const [billingLoading, setBillingLoading] = useState(false);
   const [billingMsg, setBillingMsg] = useState('');
+  const [promoteMsg, setPromoteMsg] = useState('');
 
   const handleSendCheckout = async () => {
     if (!org) return;
@@ -88,6 +90,26 @@ export function OrganizationDetailPage() {
     await setActive.mutateAsync({ id: org.id, active: !org.isActive });
   };
 
+  const handlePromote = async () => {
+    if (!org) return;
+    if (!window.confirm(
+      `Promote "${org.name}" to production?\n\nThis will create a new live Stripe Connect account. The org must complete onboarding again. Existing test data (customers, payment methods) cannot be transferred.`
+    )) return;
+    setPromoteMsg('');
+    try {
+      const { connectOnboardingUrl } = await promote.mutateAsync();
+      if (connectOnboardingUrl) {
+        await navigator.clipboard.writeText(connectOnboardingUrl);
+        setPromoteMsg('Promoted to production. Onboarding link copied to clipboard.');
+      } else {
+        setPromoteMsg('Promoted to production.');
+      }
+    } catch (err: unknown) {
+      const msg = (err as { response?: { data?: { message?: string } } })?.response?.data?.message;
+      setPromoteMsg(msg ?? 'Failed to promote organization.');
+    }
+  };
+
   const handleDelete = async () => {
     if (!org) return;
     if (!window.confirm(
@@ -113,6 +135,9 @@ export function OrganizationDetailPage() {
         </Link>
         <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">{org.name}</h1>
         <Badge variant={org.isActive ? 'green' : 'red'}>{org.isActive ? 'Active' : 'Inactive'}</Badge>
+        <Badge variant={org.sandboxMode !== false ? 'yellow' : 'blue'}>
+          {org.sandboxMode !== false ? 'Sandbox' : 'Production'}
+        </Badge>
       </div>
 
       {/* Stats */}
@@ -283,6 +308,41 @@ export function OrganizationDetailPage() {
           </div>
         </CardBody>
       </Card>
+
+      {/* Sandbox → Production */}
+      {org.sandboxMode !== false && (
+        <Card>
+          <CardHeader className="flex items-center gap-2">
+            <Rocket className="h-4 w-4 text-gray-500 dark:text-gray-400" />
+            <h2 className="text-base font-semibold text-gray-900 dark:text-gray-100">Promote to Production</h2>
+          </CardHeader>
+          <CardBody className="flex items-start justify-between gap-4">
+            <div className="flex-1">
+              <p className="text-sm text-gray-700 dark:text-gray-300">
+                This organization is in <span className="font-semibold text-yellow-700 dark:text-yellow-400">sandbox mode</span>.
+                All Stripe activity uses test keys. When the org is ready to accept real payments, promote it to production.
+              </p>
+              <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                This creates a new live Stripe Connect account. The org admin will need to complete onboarding again.
+                Existing test customers and payment methods are not transferred.
+              </p>
+              {promoteMsg && (
+                <p className={`text-xs mt-2 ${promoteMsg.includes('Failed') ? 'text-red-600' : 'text-green-600 dark:text-green-400'}`}>
+                  {promoteMsg}
+                </p>
+              )}
+            </div>
+            <Button
+              size="sm"
+              loading={promote.isPending}
+              onClick={handlePromote}
+              className="flex-shrink-0"
+            >
+              <Rocket className="h-3.5 w-3.5 mr-1" /> Promote to production
+            </Button>
+          </CardBody>
+        </Card>
+      )}
 
       {/* Danger zone */}
       <Card>
