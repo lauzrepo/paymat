@@ -8,6 +8,7 @@ import {
 } from '../middleware/superAdminAuth';
 import { config } from '../config/environment';
 import stripeConnectService from '../services/stripeConnectService';
+import { sendStripeOnboardingEmail } from '../services/emailService';
 import logger from '../utils/logger';
 
 // ---------------------------------------------------------------------------
@@ -218,15 +219,18 @@ export const promoteOrganizationToProduction = asyncHandler(async (req: Request,
   const appUrl = config.email.appUrl;
   let connectOnboardingUrl: string | null = null;
 
+  const adminUser = await prisma.user.findFirst({
+    where: { organizationId: org.id, role: 'admin', deletedAt: null },
+    select: { email: true, firstName: true, lastName: true },
+    orderBy: { createdAt: 'asc' },
+  });
+  const adminEmail = adminUser?.email ?? `admin@${org.slug}.placeholder`;
+  const adminName = adminUser ? `${adminUser.firstName} ${adminUser.lastName}`.trim() || adminEmail : adminEmail;
+
   const liveConnectAccountId = await stripeConnectService.createConnectAccount(
     org.id,
     org.name,
-    // Use the admin email from the first user if available
-    (await prisma.user.findFirst({
-      where: { organizationId: org.id, role: 'admin', deletedAt: null },
-      select: { email: true },
-      orderBy: { createdAt: 'asc' },
-    }))?.email ?? `admin@${org.slug}.placeholder`,
+    adminEmail,
     false // live mode
   );
 
@@ -246,11 +250,17 @@ export const promoteOrganizationToProduction = asyncHandler(async (req: Request,
     },
   });
 
-  logger.info(`[SuperAdmin] org ${org.id} promoted to production — new Connect account ${liveConnectAccountId}`);
+  await sendStripeOnboardingEmail(adminEmail, {
+    recipientName: adminName,
+    orgName: org.name,
+    onboardingUrl: connectOnboardingUrl,
+  });
+
+  logger.info(`[SuperAdmin] org ${org.id} promoted to production — new Connect account ${liveConnectAccountId}, onboarding email sent to ${adminEmail}`);
 
   res.json({
     status: 'success',
-    data: { connectOnboardingUrl },
+    data: { emailSentTo: adminEmail },
   });
 });
 
