@@ -25,3 +25,11 @@ export const paymentLimiter = rateLimit({
   standardHeaders: true,
   legacyHeaders: false,
 });
+
+export const webhookLimiter = rateLimit({
+  windowMs: 60 * 1000, // 1 minute
+  max: 100, // generous — webhooks come from provider IPs, not end users
+  message: 'Too many webhook requests',
+  standardHeaders: true,
+  legacyHeaders: false,
+});
