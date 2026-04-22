@@ -97,13 +97,8 @@ export function OrganizationDetailPage() {
     )) return;
     setPromoteMsg('');
     try {
-      const { connectOnboardingUrl } = await promote.mutateAsync();
-      if (connectOnboardingUrl) {
-        await navigator.clipboard.writeText(connectOnboardingUrl);
-        setPromoteMsg('Promoted to production. Onboarding link copied to clipboard.');
-      } else {
-        setPromoteMsg('Promoted to production.');
-      }
+      const { emailSentTo } = await promote.mutateAsync();
+      setPromoteMsg(`Promoted to production. Onboarding email sent to ${emailSentTo}.`);
     } catch (err: unknown) {
       const msg = (err as { response?: { data?: { message?: string } } })?.response?.data?.message;
       setPromoteMsg(msg ?? 'Failed to promote organization.');

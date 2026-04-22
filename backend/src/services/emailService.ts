@@ -173,6 +173,34 @@ export async function sendInviteEmail(invite: {
   });
 }
 
+export async function sendStripeOnboardingEmail(to: string, details: {
+  recipientName: string;
+  orgName: string;
+  onboardingUrl: string;
+}) {
+  await resend.emails.send({
+    from: FROM,
+    to,
+    subject: `Action required: complete Stripe onboarding for ${details.orgName}`,
+    html: `
+      <div style="font-family:sans-serif;max-width:600px;margin:0 auto">
+        <div style="background:#7c3aed;padding:24px;border-radius:8px 8px 0 0;text-align:center">
+          <h1 style="color:#fff;margin:0;font-size:24px">You're going live!</h1>
+        </div>
+        <div style="background:#fff;border:1px solid #e5e7eb;border-top:none;border-radius:0 0 8px 8px;padding:32px">
+          <p style="font-size:16px;color:#111827">Hi ${details.recipientName},</p>
+          <p style="color:#6b7280"><strong>${details.orgName}</strong> has been approved to accept real payments on Cliqpaymat. To get started, you'll need to complete your Stripe onboarding — this takes about 5–10 minutes and requires your business and bank details.</p>
+          <div style="text-align:center;margin:32px 0">
+            <a href="${details.onboardingUrl}" style="background:#7c3aed;color:#fff;padding:14px 28px;border-radius:8px;text-decoration:none;font-size:16px;font-weight:600">Complete Stripe Onboarding</a>
+          </div>
+          <p style="color:#6b7280;font-size:14px">This link is unique to your account. Once onboarding is complete, your organization will be able to accept live payments immediately.</p>
+          <p style="color:#9ca3af;font-size:12px">If you didn't expect this email, please contact support.</p>
+        </div>
+      </div>
+    `,
+  });
+}
+
 export async function sendPasswordReset(to: string, details: {
   recipientName: string;
   resetUrl: string;
