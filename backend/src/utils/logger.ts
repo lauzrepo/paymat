@@ -41,13 +41,10 @@ const logger = winston.createLogger({
   ],
 });
 
-// Console logging for non-production
-if (!config.app.isProduction) {
-  logger.add(
-    new winston.transports.Console({
-      format: consoleFormat,
-    })
-  );
-}
+logger.add(
+  new winston.transports.Console({
+    format: config.app.isProduction ? logFormat : consoleFormat,
+  })
+);
 
 export default logger;
