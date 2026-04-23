@@ -2,10 +2,11 @@ import { useState, useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import axios from 'axios';
 import { authStore } from '../../store/authStore';
+import { getTenantBranding, getStripeOnboardingLink } from '../../api/tenant';
 
 const API_BASE = import.meta.env.VITE_API_URL ?? '';
 
-type Step = 'loading' | 'invalid' | 'setup' | 'connect' | 'done';
+type Step = 'loading' | 'invalid' | 'setup' | 'connect' | 'done' | 'stripe-incomplete';
 
 interface InviteInfo {
   email: string;
@@ -26,12 +27,21 @@ export function OnboardingPage() {
   const [submitting, setSubmitting] = useState(false);
   const [formError, setFormError] = useState('');
   const [connectOnboardingUrl, setConnectOnboardingUrl] = useState<string | null>(null);
+  const [resumeLoading, setResumeLoading] = useState(false);
 
   useEffect(() => {
     // Handle return from Stripe Connect onboarding
     const stripeParam = searchParams.get('stripe');
     if (stripeParam === 'connected') {
-      setStep('done');
+      getTenantBranding()
+        .then((branding) => {
+          if (branding.stripeConnectOnboardingComplete === false) {
+            setStep('stripe-incomplete');
+          } else {
+            setStep('done');
+          }
+        })
+        .catch(() => setStep('done'));
       return;
     }
     if (stripeParam === 'refresh' && token) {
@@ -159,6 +169,57 @@ export function OnboardingPage() {
     );
   }
 
+  async function handleResumeOnboarding() {
+    if (!authStore.isAuthenticated()) {
+      navigate('/login');
+      return;
+    }
+    setResumeLoading(true);
+    try {
+      const { url } = await getStripeOnboardingLink();
+      window.location.href = url;
+    } catch {
+      setResumeLoading(false);
+    }
+  }
+
+  if (step === 'stripe-incomplete') {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900">
+        <div className="max-w-md w-full bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-orange-200 dark:border-orange-700 p-8 text-center">
+          <div className="h-12 w-12 rounded-full bg-orange-100 dark:bg-orange-900/40 flex items-center justify-center mx-auto mb-4">
+            <span className="text-orange-600 dark:text-orange-400 text-xl">!</span>
+          </div>
+          <h1 className="text-xl font-bold text-gray-900 dark:text-gray-100 mb-2">Stripe setup not completed</h1>
+          <p className="text-gray-500 dark:text-gray-400 text-sm mb-5">
+            Your account is ready, but you haven't finished connecting your bank account and verifying your business with Stripe.
+          </p>
+          <div className="bg-orange-50 dark:bg-orange-900/20 border border-orange-100 dark:border-orange-800 rounded-lg p-4 mb-6 text-left">
+            <p className="text-xs font-semibold text-orange-700 dark:text-orange-400 uppercase tracking-wide mb-2">Until setup is complete, you can't:</p>
+            <ul className="space-y-1.5 text-sm text-orange-800 dark:text-orange-300">
+              <li className="flex items-start gap-2"><span className="mt-0.5 shrink-0">✕</span>Accept live payments from members</li>
+              <li className="flex items-start gap-2"><span className="mt-0.5 shrink-0">✕</span>Receive payouts to your bank account</li>
+              <li className="flex items-start gap-2"><span className="mt-0.5 shrink-0">✕</span>Process real invoices</li>
+            </ul>
+          </div>
+          <button
+            onClick={handleResumeOnboarding}
+            disabled={resumeLoading}
+            className="w-full bg-orange-600 hover:bg-orange-700 disabled:opacity-60 text-white py-2.5 rounded-lg text-sm font-semibold transition-colors mb-3"
+          >
+            {resumeLoading ? 'Loading…' : 'Complete Stripe Setup'}
+          </button>
+          <button
+            onClick={() => navigate('/login')}
+            className="text-xs text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 transition-colors"
+          >
+            Do it later — go to login
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   if (step === 'done') {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900">
@@ -168,7 +229,7 @@ export function OnboardingPage() {
           </div>
           <h1 className="text-xl font-bold text-gray-900 dark:text-gray-100 mb-2">You're all set!</h1>
           <p className="text-gray-500 dark:text-gray-400 text-sm mb-6">
-            Your account, organization, and payment processing are ready. Log in to get started.
+            Your account and payment processing are fully connected. Log in to get started.
           </p>
           <button
             onClick={() => navigate('/login')}
