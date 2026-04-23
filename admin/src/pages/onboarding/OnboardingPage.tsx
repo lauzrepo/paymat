@@ -210,10 +210,10 @@ export function OnboardingPage() {
             {resumeLoading ? 'Loading…' : 'Complete Stripe Setup'}
           </button>
           <button
-            onClick={() => navigate('/login')}
+            onClick={() => navigate(authStore.isAuthenticated() ? '/' : '/login')}
             className="text-xs text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 transition-colors"
           >
-            Do it later — go to login
+            {authStore.isAuthenticated() ? 'Do it later — go to dashboard' : 'Do it later — go to login'}
           </button>
         </div>
       </div>
