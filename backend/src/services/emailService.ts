@@ -162,6 +162,13 @@ export async function sendInviteEmail(invite: {
         <div style="background:#fff;border:1px solid #e5e7eb;border-top:none;border-radius:0 0 8px 8px;padding:32px">
           <p style="font-size:16px;color:#111827">Hi ${invite.recipientName},</p>
           <p style="color:#6b7280">You've been invited to set up <strong>${invite.orgName}</strong> on Cliqpaymat — the all-in-one platform for managing memberships, billing, and payments — built for your business.</p>
+
+          <div style="background:#f5f3ff;border:1px solid #ddd6fe;border-left:4px solid #7c3aed;border-radius:6px;padding:20px;margin:24px 0">
+            <p style="margin:0 0 6px;font-size:13px;font-weight:700;color:#6d28d9;text-transform:uppercase;letter-spacing:0.05em">Founding Member Pricing — Soft Launch Offer</p>
+            <p style="margin:0 0 12px;font-size:15px;color:#111827">As a founding member, you're locked in at a <strong>0.5% platform fee</strong> — for life.</p>
+            <p style="margin:0;font-size:13px;color:#6b7280">That's our lowest rate ever, well below the standard 2% charged to new organizations after launch. This rate is tied to your account permanently, regardless of how the pricing changes in the future.</p>
+          </div>
+
           <p style="color:#6b7280">Click the button below to get started. You'll be guided through creating your account and configuring your organization. This link expires in 7 days.</p>
           <div style="text-align:center;margin:32px 0">
             <a href="${onboardingUrl}" style="background:#7c3aed;color:#fff;padding:14px 28px;border-radius:8px;text-decoration:none;font-size:16px;font-weight:600">Set Up My Account</a>
