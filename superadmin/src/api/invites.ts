@@ -15,6 +15,7 @@ export interface CreateInviteInput {
   email: string;
   recipientName: string;
   orgName: string;
+  platformFeePercent?: number;
 }
 
 export const createInvite = (input: CreateInviteInput): Promise<InviteToken> =>
