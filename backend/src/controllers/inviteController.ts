@@ -5,7 +5,7 @@ import { sendInviteEmail } from '../services/emailService';
 import stripeConnectService from '../services/stripeConnectService';
 
 export const createInvite = asyncHandler(async (req: Request, res: Response) => {
-  const { email, recipientName, orgName } = req.body;
+  const { email, recipientName, orgName, platformFeePercent } = req.body;
 
   if (!email?.trim()) throw new AppError(400, 'email is required');
   if (!recipientName?.trim()) throw new AppError(400, 'recipientName is required');
@@ -27,6 +27,7 @@ export const createInvite = asyncHandler(async (req: Request, res: Response) => 
     recipientEmail: invite.email,
     recipientName: invite.recipientName,
     orgName: invite.orgName,
+    platformFeePercent: typeof platformFeePercent === 'number' ? platformFeePercent : undefined,
   });
 
   res.status(201).json({ status: 'success', data: { invite } });

@@ -32,7 +32,7 @@ export function InvitesPage() {
   const createInvite = useCreateInvite();
   const deleteInvite = useDeleteInvite();
 
-  const [form, setForm] = useState({ email: '', recipientName: '', orgName: '' });
+  const [form, setForm] = useState({ email: '', recipientName: '', orgName: '', platformFeePercent: 0.5 });
   const [error, setError] = useState('');
   const [sent, setSent] = useState(false);
 
@@ -42,7 +42,7 @@ export function InvitesPage() {
     setSent(false);
     try {
       await createInvite.mutateAsync(form);
-      setForm({ email: '', recipientName: '', orgName: '' });
+      setForm({ email: '', recipientName: '', orgName: '', platformFeePercent: 0.5 });
       setSent(true);
     } catch (err: unknown) {
       const msg = (err as { response?: { data?: { message?: string } } })?.response?.data?.message;
@@ -63,7 +63,7 @@ export function InvitesPage() {
         </CardHeader>
         <CardBody>
           <form onSubmit={handleSubmit} className="space-y-4">
-            <div className="grid grid-cols-3 gap-4">
+            <div className="grid grid-cols-4 gap-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Contact Name</label>
                 <input
@@ -96,6 +96,18 @@ export function InvitesPage() {
                   className="w-full text-sm border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-violet-500"
                   placeholder="jane@acmestudio.com"
                 />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Pricing Tier</label>
+                <select
+                  value={form.platformFeePercent}
+                  onChange={(e) => setForm({ ...form, platformFeePercent: parseFloat(e.target.value) })}
+                  className="w-full text-sm border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-violet-500"
+                >
+                  <option value={0.5}>Founding Member — 0.5%</option>
+                  <option value={1}>Early Adopter — 1%</option>
+                  <option value={2}>Standard — 2%</option>
+                </select>
               </div>
             </div>
 
