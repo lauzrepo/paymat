@@ -181,7 +181,7 @@ export function InvitesPage() {
                               </span>
                             ) : (
                               <button
-                                onClick={() => { setResending(invite.id); setResendTier(0.5); }}
+                                onClick={() => { setResending(invite.id); setResendTier(0.05); }}
                                 disabled={resendInvite.isPending}
                                 className="text-gray-400 hover:text-violet-500 transition-colors disabled:opacity-50"
                                 title="Resend invite"
