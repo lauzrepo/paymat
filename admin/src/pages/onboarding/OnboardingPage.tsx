@@ -81,16 +81,28 @@ export function OnboardingPage() {
     e.preventDefault();
     setFormError('');
 
-    if (form.password.length < 8) {
-      setFormError('Password must be at least 8 characters.');
-      return;
-    }
-    if (form.password !== form.confirmPassword) {
-      setFormError('Passwords do not match.');
+    if (!form.slug.trim()) {
+      setFormError('Organization slug is required.');
       return;
     }
     if (!/^[a-z0-9-]+$/.test(form.slug)) {
       setFormError('Slug must contain only lowercase letters, numbers, and hyphens.');
+      return;
+    }
+    if (!form.password) {
+      setFormError('Password is required.');
+      return;
+    }
+    if (form.password.length < 8) {
+      setFormError('Password must be at least 8 characters.');
+      return;
+    }
+    if (!form.confirmPassword) {
+      setFormError('Please confirm your password.');
+      return;
+    }
+    if (form.password !== form.confirmPassword) {
+      setFormError('Passwords do not match.');
       return;
     }
 
@@ -255,7 +267,7 @@ export function OnboardingPage() {
           </p>
         </div>
 
-        <form onSubmit={handleSubmit} className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6 space-y-5">
+        <form onSubmit={handleSubmit} noValidate className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6 space-y-5">
           <div>
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Email</label>
             <input

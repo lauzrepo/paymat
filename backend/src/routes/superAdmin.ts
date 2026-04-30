@@ -14,7 +14,7 @@ import {
   deleteOrganization,
   promoteOrganizationToProduction,
 } from '../controllers/superAdminController';
-import { createInvite, listInvites, verifyInvite, redeemInvite, deleteInvite } from '../controllers/inviteController';
+import { createInvite, listInvites, verifyInvite, redeemInvite, resendInvite, deleteInvite } from '../controllers/inviteController';
 import { sendCheckoutLink, getPortalLink } from '../controllers/stripeBillingController';
 
 const router = Router();
@@ -46,6 +46,7 @@ router.post('/invites/redeem/:token', authLimiter, redeemInvite);
 // Invites management — protected
 router.get('/invites', apiLimiter, authenticateSuperAdmin, listInvites);
 router.post('/invites', apiLimiter, authenticateSuperAdmin, createInvite);
+router.post('/invites/:id/resend', apiLimiter, authenticateSuperAdmin, resendInvite);
 router.delete('/invites/:id', apiLimiter, authenticateSuperAdmin, deleteInvite);
 
 export default router;

@@ -24,5 +24,8 @@ export const createInvite = (input: CreateInviteInput): Promise<InviteToken> =>
 export const listInvites = (params?: { page?: number }): Promise<{ items: InviteToken[]; total: number }> =>
   apiClient.get('/invites', { params }).then((r) => r.data.data);
 
+export const resendInvite = (id: string, platformFeePercent?: number): Promise<void> =>
+  apiClient.post(`/invites/${id}/resend`, { platformFeePercent }).then(() => undefined);
+
 export const deleteInvite = (id: string): Promise<void> =>
   apiClient.delete(`/invites/${id}`).then(() => undefined);
