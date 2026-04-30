@@ -169,6 +169,32 @@ class StripeConnectService {
     return this.getClient(sandboxMode).paymentIntents.retrieve(paymentIntentId, {}, { stripeAccount: connectAccountId });
   }
 
+  // ── Charge fee breakdown ─────────────────────────────────────────────────
+  // Returns exact Stripe processing fee and net payout from the connected
+  // account's balance transaction. Returns null if unavailable.
+
+  async getChargeFees(chargeId: string, connectAccountId: string, sandboxMode = true): Promise<{
+    stripeFee: number;
+    net: number;
+  } | null> {
+    try {
+      const charge = await this.getClient(sandboxMode).charges.retrieve(
+        chargeId,
+        { expand: ['balance_transaction'] },
+        { stripeAccount: connectAccountId }
+      );
+      const bt = charge.balance_transaction;
+      if (!bt || typeof bt === 'string') return null;
+      return {
+        stripeFee: bt.fee / 100,
+        net: bt.net / 100,
+      };
+    } catch (err) {
+      logger.warn(`[StripeConnect] could not retrieve charge fees for ${chargeId}: ${(err as Error).message}`);
+      return null;
+    }
+  }
+
   // ── Webhooks ─────────────────────────────────────────────────────────────
 
   constructWebhookEvent(rawBody: Buffer, signature: string, secret: string): Stripe.Event {

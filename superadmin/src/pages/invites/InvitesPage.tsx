@@ -33,11 +33,11 @@ export function InvitesPage() {
   const resendInvite = useResendInvite();
   const deleteInvite = useDeleteInvite();
 
-  const [form, setForm] = useState({ email: '', recipientName: '', orgName: '', platformFeePercent: 0.5 });
+  const [form, setForm] = useState({ email: '', recipientName: '', orgName: '', platformFeePercent: 0.05 });
   const [error, setError] = useState('');
   const [sent, setSent] = useState(false);
   const [resending, setResending] = useState<string | null>(null); // invite id being resent
-  const [resendTier, setResendTier] = useState(0.5);
+  const [resendTier, setResendTier] = useState(0.05);
   const [resendSuccess, setResendSuccess] = useState<string | null>(null);
 
   const handleResend = async (id: string) => {
@@ -57,7 +57,7 @@ export function InvitesPage() {
     setSent(false);
     try {
       await createInvite.mutateAsync(form);
-      setForm({ email: '', recipientName: '', orgName: '', platformFeePercent: 0.5 });
+      setForm({ email: '', recipientName: '', orgName: '', platformFeePercent: 0.05 });
       setSent(true);
     } catch (err: unknown) {
       const msg = (err as { response?: { data?: { message?: string } } })?.response?.data?.message;
@@ -119,7 +119,7 @@ export function InvitesPage() {
                   onChange={(e) => setForm({ ...form, platformFeePercent: parseFloat(e.target.value) })}
                   className="w-full text-sm border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-violet-500"
                 >
-                  <option value={0.5}>Founding Member — 0.5%</option>
+                  <option value={0.05}>Founding Member — 0.05%</option>
                   <option value={1}>Early Adopter — 1%</option>
                   <option value={2}>Standard — 2%</option>
                 </select>
@@ -181,7 +181,7 @@ export function InvitesPage() {
                               </span>
                             ) : (
                               <button
-                                onClick={() => { setResending(invite.id); setResendTier(0.5); }}
+                                onClick={() => { setResending(invite.id); setResendTier(0.05); }}
                                 disabled={resendInvite.isPending}
                                 className="text-gray-400 hover:text-violet-500 transition-colors disabled:opacity-50"
                                 title="Resend invite"
@@ -215,7 +215,7 @@ export function InvitesPage() {
                               onChange={(e) => setResendTier(parseFloat(e.target.value))}
                               className="text-sm border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 rounded-lg px-2 py-1 focus:outline-none focus:ring-2 focus:ring-violet-500"
                             >
-                              <option value={0.5}>Founding Member — 0.5%</option>
+                              <option value={0.05}>Founding Member — 0.05%</option>
                               <option value={1}>Early Adopter — 1%</option>
                               <option value={2}>Standard — 2%</option>
                             </select>

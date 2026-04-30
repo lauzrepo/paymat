@@ -3,7 +3,7 @@ const Decimal = Prisma.Decimal;
 type Decimal = Prisma.Decimal;
 import prisma from '../config/database';
 import stripeConnectService from './stripeConnectService';
-import { sendInvoiceGenerated, sendPaymentReceived, sendPaymentFailed } from './emailService';
+import { sendInvoiceGenerated, sendPaymentReceived, sendPaymentFailed, sendOrgPaymentReceipt } from './emailService';
 import { config } from '../config/environment';
 import logger from '../utils/logger';
 
@@ -52,6 +52,7 @@ type EnrollmentWithRelations = Awaited<
       name: string;
       stripeConnectAccountId: string | null;
       platformFeePercent: number;
+      sandboxMode: boolean;
     } | null;
   };
   program: {
@@ -114,6 +115,7 @@ class BillingService {
                 name: true,
                 stripeConnectAccountId: true,
                 platformFeePercent: true,
+                sandboxMode: true,
               },
             },
           },
@@ -248,6 +250,7 @@ class BillingService {
             idempotencyKey: `billing-family-${invoice.id}`,
             metadata: { invoiceId: invoice.id, invoiceNumber },
             feePercent: groupEnrollments[0].contact.organization?.platformFeePercent,
+            sandboxMode: groupEnrollments[0].contact.organization?.sandboxMode ?? true,
           });
 
           await prisma.payment.create({
@@ -291,6 +294,29 @@ class BillingService {
               amount: totalAmount,
               currency: 'USD',
             }).catch((err) => logger.error('Failed to send family payment received email', { err }));
+          }
+
+          // Org admin receipt with exact fee breakdown
+          const platformFee = totalAmount * ((groupEnrollments[0].contact.organization?.platformFeePercent ?? 0) / 100);
+          const fees = stripeTx.chargeId && connectAccountId
+            ? await stripeConnectService.getChargeFees(stripeTx.chargeId, connectAccountId, groupEnrollments[0].contact.organization?.sandboxMode ?? true).catch(() => null)
+            : null;
+          const orgAdmins = await prisma.user.findMany({
+            where: { organizationId: orgId, role: 'admin', deletedAt: null },
+            select: { email: true, firstName: true },
+          });
+          for (const admin of orgAdmins) {
+            sendOrgPaymentReceipt(admin.email, {
+              orgAdminName: admin.firstName ?? 'there',
+              orgName,
+              memberName: family.name,
+              invoiceNumber,
+              grossAmount: totalAmount,
+              platformFee,
+              stripeFee: fees?.stripeFee ?? null,
+              netAmount: fees?.net ?? null,
+              currency: 'USD',
+            }).catch((err) => logger.error('Failed to send org payment receipt', { err }));
           }
         } catch (chargeErr) {
           logger.warn(
@@ -402,6 +428,7 @@ class BillingService {
               idempotencyKey: `billing-${invoice.id}`,
               metadata: { invoiceId: invoice.id, invoiceNumber },
               feePercent: enrollment.contact.organization?.platformFeePercent,
+              sandboxMode: enrollment.contact.organization?.sandboxMode ?? true,
             });
 
             await prisma.payment.create({
@@ -434,6 +461,29 @@ class BillingService {
                 amount,
                 currency: 'USD',
               }).catch((err) => logger.error('Failed to send payment received email', { err }));
+            }
+
+            // Org admin receipt with exact fee breakdown
+            const platformFee = amount * ((enrollment.contact.organization?.platformFeePercent ?? 0) / 100);
+            const fees = stripeTx.chargeId && connectAccountId
+              ? await stripeConnectService.getChargeFees(stripeTx.chargeId, connectAccountId, enrollment.contact.organization?.sandboxMode ?? true).catch(() => null)
+              : null;
+            const orgAdmins = await prisma.user.findMany({
+              where: { organizationId: orgId, role: 'admin', deletedAt: null },
+              select: { email: true, firstName: true },
+            });
+            for (const admin of orgAdmins) {
+              sendOrgPaymentReceipt(admin.email, {
+                orgAdminName: admin.firstName ?? 'there',
+                orgName,
+                memberName: contactName,
+                invoiceNumber,
+                grossAmount: amount,
+                platformFee,
+                stripeFee: fees?.stripeFee ?? null,
+                netAmount: fees?.net ?? null,
+                currency: 'USD',
+              }).catch((err) => logger.error('Failed to send org payment receipt', { err }));
             }
           } catch (chargeErr) {
             logger.warn(`Billing: auto-charge failed for ${invoiceNumber} — ${(chargeErr as Error).message}`);
