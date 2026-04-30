@@ -78,7 +78,7 @@ export function InvitesPage() {
         </CardHeader>
         <CardBody>
           <form onSubmit={handleSubmit} className="space-y-4">
-            <div className="grid grid-cols-4 gap-4">
+            <div className="grid grid-cols-[1fr_1fr_1fr_1.5fr] gap-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Contact Name</label>
                 <input
