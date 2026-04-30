@@ -1,6 +1,6 @@
 import { useState } from 'react';
-import { Send, CheckCircle, Clock, XCircle, Trash2 } from 'lucide-react';
-import { useInviteList, useCreateInvite, useDeleteInvite } from '../../hooks/useInvites';
+import { Send, CheckCircle, Clock, XCircle, Trash2, RefreshCw } from 'lucide-react';
+import { useInviteList, useCreateInvite, useResendInvite, useDeleteInvite } from '../../hooks/useInvites';
 import { Card, CardHeader, CardBody } from '../../components/ui/Card';
 import { Button } from '../../components/ui/Button';
 import type { InviteToken } from '../../api/invites';
@@ -30,11 +30,26 @@ function InviteStatusBadge({ invite }: { invite: InviteToken }) {
 export function InvitesPage() {
   const { data, isLoading } = useInviteList();
   const createInvite = useCreateInvite();
+  const resendInvite = useResendInvite();
   const deleteInvite = useDeleteInvite();
 
   const [form, setForm] = useState({ email: '', recipientName: '', orgName: '', platformFeePercent: 0.5 });
   const [error, setError] = useState('');
   const [sent, setSent] = useState(false);
+  const [resending, setResending] = useState<string | null>(null); // invite id being resent
+  const [resendTier, setResendTier] = useState(0.5);
+  const [resendSuccess, setResendSuccess] = useState<string | null>(null);
+
+  const handleResend = async (id: string) => {
+    try {
+      await resendInvite.mutateAsync({ id, platformFeePercent: resendTier });
+      setResendSuccess(id);
+      setResending(null);
+      setTimeout(() => setResendSuccess(null), 3000);
+    } catch {
+      // error visible via mutation state
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -150,27 +165,78 @@ export function InvitesPage() {
               </thead>
               <tbody className="divide-y divide-gray-50 dark:divide-gray-700">
                 {data.items.map((invite) => (
-                  <tr key={invite.id} className="hover:bg-gray-50 dark:hover:bg-gray-700/30">
-                    <td className="px-6 py-3 font-medium text-gray-900 dark:text-gray-100">{invite.recipientName}</td>
-                    <td className="px-6 py-3 text-gray-600 dark:text-gray-400">{invite.orgName}</td>
-                    <td className="px-6 py-3 text-gray-600 dark:text-gray-400">{invite.email}</td>
-                    <td className="px-6 py-3"><InviteStatusBadge invite={invite} /></td>
-                    <td className="px-6 py-3 text-gray-400 dark:text-gray-500">{new Date(invite.createdAt).toLocaleDateString()}</td>
-                    <td className="px-6 py-3">
-                      <button
-                        onClick={() => {
-                          if (window.confirm(`Delete the invite for ${invite.recipientName} (${invite.orgName})?`)) {
-                            deleteInvite.mutate(invite.id);
-                          }
-                        }}
-                        disabled={deleteInvite.isPending}
-                        className="text-gray-400 hover:text-red-500 transition-colors disabled:opacity-50"
-                        title="Delete invite"
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </button>
-                    </td>
-                  </tr>
+                  <>
+                    <tr key={invite.id} className="hover:bg-gray-50 dark:hover:bg-gray-700/30">
+                      <td className="px-6 py-3 font-medium text-gray-900 dark:text-gray-100">{invite.recipientName}</td>
+                      <td className="px-6 py-3 text-gray-600 dark:text-gray-400">{invite.orgName}</td>
+                      <td className="px-6 py-3 text-gray-600 dark:text-gray-400">{invite.email}</td>
+                      <td className="px-6 py-3"><InviteStatusBadge invite={invite} /></td>
+                      <td className="px-6 py-3 text-gray-400 dark:text-gray-500">{new Date(invite.createdAt).toLocaleDateString()}</td>
+                      <td className="px-6 py-3">
+                        <div className="flex items-center gap-2">
+                          {!invite.usedAt && (
+                            resendSuccess === invite.id ? (
+                              <span className="text-xs text-green-600 dark:text-green-400 flex items-center gap-1">
+                                <CheckCircle className="h-3.5 w-3.5" /> Sent
+                              </span>
+                            ) : (
+                              <button
+                                onClick={() => { setResending(invite.id); setResendTier(0.5); }}
+                                disabled={resendInvite.isPending}
+                                className="text-gray-400 hover:text-violet-500 transition-colors disabled:opacity-50"
+                                title="Resend invite"
+                              >
+                                <RefreshCw className="h-4 w-4" />
+                              </button>
+                            )
+                          )}
+                          <button
+                            onClick={() => {
+                              if (window.confirm(`Delete the invite for ${invite.recipientName} (${invite.orgName})?`)) {
+                                deleteInvite.mutate(invite.id);
+                              }
+                            }}
+                            disabled={deleteInvite.isPending}
+                            className="text-gray-400 hover:text-red-500 transition-colors disabled:opacity-50"
+                            title="Delete invite"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                    {resending === invite.id && (
+                      <tr key={`${invite.id}-resend`} className="bg-violet-50 dark:bg-violet-900/20">
+                        <td colSpan={6} className="px-6 py-3">
+                          <div className="flex items-center gap-3">
+                            <span className="text-sm text-gray-700 dark:text-gray-300 shrink-0">Resend as:</span>
+                            <select
+                              value={resendTier}
+                              onChange={(e) => setResendTier(parseFloat(e.target.value))}
+                              className="text-sm border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 rounded-lg px-2 py-1 focus:outline-none focus:ring-2 focus:ring-violet-500"
+                            >
+                              <option value={0.5}>Founding Member — 0.5%</option>
+                              <option value={1}>Early Adopter — 1%</option>
+                              <option value={2}>Standard — 2%</option>
+                            </select>
+                            <button
+                              onClick={() => handleResend(invite.id)}
+                              disabled={resendInvite.isPending}
+                              className="text-sm font-medium bg-violet-600 hover:bg-violet-700 disabled:opacity-60 text-white px-3 py-1 rounded-lg transition-colors"
+                            >
+                              {resendInvite.isPending ? 'Sending…' : 'Send'}
+                            </button>
+                            <button
+                              onClick={() => setResending(null)}
+                              className="text-sm text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors"
+                            >
+                              Cancel
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    )}
+                  </>
                 ))}
               </tbody>
             </table>

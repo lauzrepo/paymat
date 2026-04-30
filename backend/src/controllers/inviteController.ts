@@ -64,6 +64,29 @@ export const verifyInvite = asyncHandler(async (req: Request, res: Response) => 
   });
 });
 
+export const resendInvite = asyncHandler(async (req: Request, res: Response) => {
+  const id = req.params.id as string;
+  const { platformFeePercent } = req.body;
+
+  const invite = await prisma.inviteToken.findUnique({ where: { id } });
+  if (!invite) throw new AppError(404, 'Invite not found');
+  if (invite.usedAt) throw new AppError(410, 'Invite has already been accepted');
+
+  // Refresh expiry to 7 days from now
+  const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
+  await prisma.inviteToken.update({ where: { id }, data: { expiresAt } });
+
+  await sendInviteEmail({
+    token: invite.token,
+    recipientEmail: invite.email,
+    recipientName: invite.recipientName,
+    orgName: invite.orgName,
+    platformFeePercent: typeof platformFeePercent === 'number' ? platformFeePercent : undefined,
+  });
+
+  res.json({ status: 'success', data: { message: 'Invite resent successfully' } });
+});
+
 export const deleteInvite = asyncHandler(async (req: Request, res: Response) => {
   const id = req.params.id as string;
 
