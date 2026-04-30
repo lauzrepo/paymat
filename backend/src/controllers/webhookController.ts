@@ -6,7 +6,7 @@ import prisma from '../config/database';
 import helcimService from '../services/helcimService';
 import stripeService from '../services/stripeService';
 import stripeConnectService from '../services/stripeConnectService';
-import { sendPaymentReceived, sendPaymentFailed } from '../services/emailService';
+import { sendPaymentReceived, sendPaymentFailed, sendOrgPaymentReceipt } from '../services/emailService';
 import { config } from '../config/environment';
 import logger from '../utils/logger';
 
@@ -243,10 +243,17 @@ export const handleStripeConnectWebhook = async (req: Request, res: Response): P
           });
         }
 
-        const orgName = (await prisma.organization.findUnique({
+        const org = await prisma.organization.findUnique({
           where: { id: invoice.organizationId },
-          select: { name: true },
-        }))?.name ?? 'your organization';
+          select: {
+            name: true,
+            sandboxMode: true,
+            platformFeePercent: true,
+            stripeConnectAccountId: true,
+            users: { where: { role: 'admin', deletedAt: null }, select: { email: true, firstName: true, lastName: true } },
+          },
+        });
+        const orgName = org?.name ?? 'your organization';
 
         const recipientEmail = invoice.family?.billingEmail ?? invoice.contact?.email ?? null;
         const recipientName = invoice.family?.name
@@ -260,6 +267,28 @@ export const handleStripeConnectWebhook = async (req: Request, res: Response): P
             amount,
             currency: intent.currency.toUpperCase(),
           }).catch((err) => logger.error('Failed to send payment received email', { err }));
+        }
+
+        // Org admin receipt with fee breakdown
+        if (org?.users.length) {
+          const platformFee = amount * ((org.platformFeePercent ?? 0) / 100);
+          const fees = chargeId && org.stripeConnectAccountId
+            ? await stripeConnectService.getChargeFees(chargeId, org.stripeConnectAccountId, org.sandboxMode ?? true).catch(() => null)
+            : null;
+
+          for (const admin of org.users) {
+            sendOrgPaymentReceipt(admin.email, {
+              orgAdminName: admin.firstName ?? 'there',
+              orgName,
+              memberName: recipientName || 'Member',
+              invoiceNumber,
+              grossAmount: amount,
+              platformFee,
+              stripeFee: fees?.stripeFee ?? null,
+              netAmount: fees?.net ?? null,
+              currency: intent.currency.toUpperCase(),
+            }).catch((err) => logger.error('Failed to send org payment receipt', { err }));
+          }
         }
 
         logger.info(`Stripe Connect: invoice ${invoiceId} payment succeeded ($${amount})`);

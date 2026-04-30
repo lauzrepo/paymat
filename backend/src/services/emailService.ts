@@ -197,6 +197,54 @@ export async function sendInviteEmail(invite: {
   });
 }
 
+export async function sendOrgPaymentReceipt(to: string, details: {
+  orgAdminName: string;
+  orgName: string;
+  memberName: string;
+  invoiceNumber: string;
+  grossAmount: number;
+  platformFee: number;
+  stripeFee: number | null;
+  netAmount: number | null;
+  currency: string;
+}) {
+  const fmt = (n: number) => `$${n.toFixed(2)} ${details.currency}`;
+  const stripeFeeRow = details.stripeFee !== null
+    ? `<tr><td style="padding:4px 0;color:#6b7280;width:160px">Stripe processing fee</td><td style="color:#dc2626">−${fmt(details.stripeFee)}</td></tr>`
+    : `<tr><td style="padding:4px 0;color:#6b7280;width:160px">Stripe processing fee</td><td style="color:#6b7280">~${fmt(details.grossAmount * 0.029 + 0.30)} (est.)</td></tr>`;
+  const netRow = details.netAmount !== null
+    ? `<tr style="border-top:1px solid #e5e7eb"><td style="padding:8px 0 4px;color:#111827;font-weight:600">Net to your account</td><td style="font-weight:700;color:#059669;font-size:16px">${fmt(details.netAmount)}</td></tr>`
+    : '';
+
+  await resend.emails.send({
+    from: FROM,
+    to,
+    subject: `Payment received — ${details.invoiceNumber} (${details.orgName})`,
+    html: `
+      <div style="font-family:sans-serif;max-width:600px;margin:0 auto">
+        <div style="background:#059669;padding:24px;border-radius:8px 8px 0 0;text-align:center">
+          <h1 style="color:#fff;margin:0;font-size:22px">Payment Received</h1>
+        </div>
+        <div style="background:#fff;border:1px solid #e5e7eb;border-top:none;border-radius:0 0 8px 8px;padding:32px">
+          <p style="font-size:16px;color:#111827">Hi ${details.orgAdminName},</p>
+          <p style="color:#6b7280">A payment has been collected for <strong>${details.orgName}</strong>. Here's the full breakdown:</p>
+          <div style="background:#f9fafb;border-radius:8px;padding:20px;margin:24px 0">
+            <table style="width:100%;border-collapse:collapse">
+              <tr><td style="padding:4px 0;color:#6b7280;width:160px">Member</td><td style="color:#111827">${details.memberName}</td></tr>
+              <tr><td style="padding:4px 0;color:#6b7280">Invoice</td><td style="font-weight:600;color:#111827">${details.invoiceNumber}</td></tr>
+              <tr style="border-top:1px solid #e5e7eb"><td style="padding:8px 0 4px;color:#6b7280">Gross payment</td><td style="font-weight:700;color:#111827;font-size:16px">${fmt(details.grossAmount)}</td></tr>
+              <tr><td style="padding:4px 0;color:#6b7280">Cliqpaymat fee</td><td style="color:#dc2626">−${fmt(details.platformFee)}</td></tr>
+              ${stripeFeeRow}
+              ${netRow}
+            </table>
+          </div>
+          <p style="color:#9ca3af;font-size:12px">This breakdown is for your records only and is not visible to your members.</p>
+        </div>
+      </div>
+    `,
+  });
+}
+
 export async function sendStripeOnboardingEmail(to: string, details: {
   recipientName: string;
   orgName: string;
