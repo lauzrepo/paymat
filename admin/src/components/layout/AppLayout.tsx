@@ -1,16 +1,31 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Outlet } from 'react-router-dom';
 import { Sidebar } from './Sidebar';
 import { Header } from './Header';
+import { TipsPanel } from './TipsPanel';
 import { useTenantBranding } from '../../hooks/useTenant';
 import { getStripeOnboardingLink } from '../../api/tenant';
 
 export function AppLayout() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [tipsOpen, setTipsOpen] = useState(false);
   const [onboardingLoading, setOnboardingLoading] = useState(false);
   const { data: branding } = useTenantBranding();
   const isSandbox = branding?.sandboxMode !== false;
   const needsStripeOnboarding = branding?.sandboxMode === false && branding?.stripeConnectOnboardingComplete === false;
+
+  useEffect(() => {
+    if (branding?.sandboxMode === true && !localStorage.getItem('tips-dismissed')) {
+      setTipsOpen(true);
+    }
+  }, [branding?.sandboxMode]);
+
+  function handleTipsClose() {
+    setTipsOpen(false);
+    if (branding?.sandboxMode === true) {
+      localStorage.setItem('tips-dismissed', '1');
+    }
+  }
 
   async function handleCompleteOnboarding() {
     setOnboardingLoading(true);
@@ -35,7 +50,11 @@ export function AppLayout() {
       <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
 
       <div className="flex-1 flex flex-col min-w-0">
-        <Header onMenuClick={() => setSidebarOpen(true)} />
+        <Header
+          onMenuClick={() => setSidebarOpen(true)}
+          onTipsClick={() => (tipsOpen ? handleTipsClose() : setTipsOpen(true))}
+          tipsOpen={tipsOpen}
+        />
         {isSandbox && (
           <div className="bg-yellow-50 dark:bg-yellow-900/30 border-b border-yellow-200 dark:border-yellow-700 px-4 py-2 text-center text-xs font-medium text-yellow-800 dark:text-yellow-300">
             Sandbox mode — using Stripe test keys. No real payments will be processed.
@@ -59,6 +78,7 @@ export function AppLayout() {
           <Outlet />
         </main>
       </div>
+      <TipsPanel open={tipsOpen} onClose={handleTipsClose} />
     </div>
   );
 }
