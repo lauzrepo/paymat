@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Plus, Search, CreditCard } from 'lucide-react';
+import { Plus, Search, CreditCard, Upload } from 'lucide-react';
 import { useContacts, useCreateContact, useDeactivateContact, useReactivateContact, useDeleteContact } from '../../hooks/useContacts';
 import { useFamilies } from '../../hooks/useFamilies';
 import { Card, CardHeader, CardBody } from '../../components/ui/Card';
@@ -9,11 +9,13 @@ import { Input } from '../../components/ui/Input';
 import { Badge } from '../../components/ui/Badge';
 import { Spinner } from '../../components/ui/Spinner';
 import { formatDate } from '../../lib/utils';
+import { BulkImportModal } from './BulkImportModal';
 
 export function ContactsPage() {
   const [search, setSearch] = useState('');
   const [status, setStatus] = useState('');
   const [showForm, setShowForm] = useState(false);
+  const [showImport, setShowImport] = useState(false);
   const [form, setForm] = useState({ firstName: '', lastName: '', email: '', phone: '', familyId: '' });
   const [addCard, setAddCard] = useState(false);
   const navigate = useNavigate();
@@ -38,9 +40,14 @@ export function ContactsPage() {
     <div className="space-y-6">
       <div className="flex items-center justify-between gap-2 flex-wrap">
         <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">Contacts</h1>
-        <Button onClick={() => setShowForm(true)}>
-          <Plus className="h-4 w-4 mr-1" /> Add Contact
-        </Button>
+        <div className="flex gap-2">
+          <Button variant="secondary" onClick={() => setShowImport(true)}>
+            <Upload className="h-4 w-4 mr-1" /> Import
+          </Button>
+          <Button onClick={() => setShowForm(true)}>
+            <Plus className="h-4 w-4 mr-1" /> Add Contact
+          </Button>
+        </div>
       </div>
 
       {showForm && (
@@ -210,6 +217,8 @@ export function ContactsPage() {
           )}
         </CardBody>
       </Card>
+
+      {showImport && <BulkImportModal onClose={() => setShowImport(false)} />}
     </div>
   );
 }

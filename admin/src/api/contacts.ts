@@ -29,3 +29,20 @@ export const initializeCardCheckout = (id: string): Promise<{ clientSecret: stri
 
 export const saveCardToken = (id: string, stripeCustomerId: string, stripeDefaultPaymentMethodId: string): Promise<Contact> =>
   apiClient.post(`/contacts/${id}/card/token`, { stripeCustomerId, stripeDefaultPaymentMethodId }).then((r) => r.data.data.contact);
+
+export interface BulkImportRow {
+  firstName: string;
+  lastName: string;
+  email?: string;
+  phone?: string;
+  dateOfBirth?: string;
+  notes?: string;
+}
+
+export interface BulkImportResult {
+  created: Contact[];
+  errors: { row: number; data: BulkImportRow; error: string }[];
+}
+
+export const bulkImportContacts = (contacts: BulkImportRow[]): Promise<BulkImportResult> =>
+  apiClient.post('/contacts/bulk-import', { contacts }).then((r) => r.data.data.results);

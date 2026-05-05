@@ -54,3 +54,10 @@ export function useDeleteContact() {
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['contacts'] }),
   });
 }
+
+export function useBulkImportContacts() {
+  return useMutation({
+    mutationFn: api.bulkImportContacts,
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['contacts'] }),
+  });
+}

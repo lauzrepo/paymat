@@ -24,6 +24,15 @@ export interface UpdateContactData {
   helcimToken?: string;
 }
 
+export interface BulkImportContactRow {
+  firstName: string;
+  lastName: string;
+  email?: string;
+  phone?: string;
+  dateOfBirth?: string;
+  notes?: string;
+}
+
 class ContactService {
   async createContact(data: CreateContactData) {
     return prisma.contact.create({
@@ -105,6 +114,33 @@ class ContactService {
       where: { id: contactId },
       data: { status: 'active' },
     });
+  }
+
+  async bulkImportContacts(organizationId: string, rows: BulkImportContactRow[]) {
+    const created: object[] = [];
+    const errors: { row: number; data: BulkImportContactRow; error: string }[] = [];
+
+    for (let i = 0; i < rows.length; i++) {
+      const row = rows[i];
+      try {
+        if (!row.firstName?.trim()) throw new Error('firstName is required');
+        if (!row.lastName?.trim()) throw new Error('lastName is required');
+        const contact = await this.createContact({
+          organizationId,
+          firstName: row.firstName.trim(),
+          lastName: row.lastName.trim(),
+          email: row.email?.trim() || undefined,
+          phone: row.phone?.trim() || undefined,
+          dateOfBirth: row.dateOfBirth?.trim() ? new Date(row.dateOfBirth.trim()) : undefined,
+          notes: row.notes?.trim() || undefined,
+        });
+        created.push(contact);
+      } catch (err) {
+        errors.push({ row: i + 2, data: row, error: err instanceof Error ? err.message : 'Unknown error' });
+      }
+    }
+
+    return { created, errors };
   }
 
   async deleteContact(contactId: string, organizationId: string) {

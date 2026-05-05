@@ -1,15 +1,18 @@
 import { useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
-import { Plus, DollarSign, FileText, AlertCircle, CheckCircle } from 'lucide-react';
+import { Plus, DollarSign, FileText, AlertCircle, CheckCircle, Download } from 'lucide-react';
+import { pdf } from '@react-pdf/renderer';
 import { useInvoices, useInvoiceStats, useCreateInvoice, useVoidInvoice } from '../../hooks/useInvoices';
 import { useProcessPayment } from '../../hooks/usePayments';
 import { useContacts } from '../../hooks/useContacts';
 import { useEnrollments } from '../../hooks/useEnrollments';
+import { useTenantBranding } from '../../hooks/useTenant';
 import { Card, CardHeader, CardBody } from '../../components/ui/Card';
 import { Button } from '../../components/ui/Button';
 import { Badge } from '../../components/ui/Badge';
 import { Spinner } from '../../components/ui/Spinner';
 import { StatCard } from '../../components/shared/StatCard';
+import { BulkInvoicePDF } from '../../components/BulkInvoicePDF';
 import { formatCurrency, formatDate } from '../../lib/utils';
 
 const STATUS_VARIANT: Record<string, 'green' | 'red' | 'gray' | 'blue' | 'yellow'> = {
@@ -25,8 +28,11 @@ export function InvoicesPage() {
 
   const [paymentModal, setPaymentModal] = useState<{ invoiceId: string; invoiceNumber: string; amountDue: number } | null>(null);
   const [paymentForm, setPaymentForm] = useState({ amount: '', method: 'cash', notes: '' });
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [downloading, setDownloading] = useState(false);
 
   const invoices = useInvoices({ status: status || undefined, contactId: searchParams.get('contactId') ?? undefined });
+  const branding = useTenantBranding();
   const stats = useInvoiceStats();
   const contacts = useContacts();
   const enrollments = useEnrollments({ contactId: form.contactId || undefined, status: 'active' });
@@ -67,6 +73,32 @@ export function InvoicesPage() {
     setShowForm(false);
     setForm({ contactId: '', dueDate: '', notes: '' });
     setLineItems([{ enrollmentId: '', description: '', quantity: 1, unitPrice: '' }]);
+  };
+
+  const toggleSelect = (id: string) =>
+    setSelectedIds((prev) => { const next = new Set(prev); next.has(id) ? next.delete(id) : next.add(id); return next; });
+
+  const allIds = invoices.data?.items.map((i) => i.id) ?? [];
+  const allSelected = allIds.length > 0 && allIds.every((id) => selectedIds.has(id));
+  const toggleSelectAll = () =>
+    setSelectedIds(allSelected ? new Set() : new Set(allIds));
+
+  const handleBulkDownload = async () => {
+    const selected = (invoices.data?.items ?? []).filter((inv) => selectedIds.has(inv.id));
+    if (!selected.length) return;
+    setDownloading(true);
+    try {
+      const orgName = branding.data?.name ?? 'Organization';
+      const blob = await pdf(<BulkInvoicePDF invoices={selected} orgName={orgName} />).toBlob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = selected.length === 1 ? `${selected[0].invoiceNumber}.pdf` : `invoices-${selected.length}.pdf`;
+      a.click();
+      URL.revokeObjectURL(url);
+    } finally {
+      setDownloading(false);
+    }
   };
 
   const selectCls = 'appearance-none bg-white dark:bg-gray-700 dark:border-gray-600 dark:text-gray-100 w-full text-sm border border-gray-300 rounded-lg px-3 py-2 pr-8 focus:outline-none focus:ring-2 focus:ring-indigo-500';
@@ -225,7 +257,7 @@ export function InvoicesPage() {
 
       <Card>
         <CardHeader>
-          <div className="flex items-center gap-3">
+          <div className="flex flex-wrap items-center gap-3">
             <select value={status} onChange={(e) => setStatus(e.target.value)}
               className="appearance-none bg-white dark:bg-gray-700 dark:border-gray-600 dark:text-gray-100 text-sm border border-gray-300 rounded-lg px-3 py-2 pr-8 focus:outline-none focus:ring-2 focus:ring-indigo-500">
               <option value="">All statuses</option>
@@ -235,7 +267,18 @@ export function InvoicesPage() {
               <option value="overdue">Overdue</option>
               <option value="void">Void</option>
             </select>
-            <span className="text-sm text-gray-500 dark:text-gray-400 ml-auto">{invoices.data?.total ?? 0} invoices</span>
+            {selectedIds.size > 0 ? (
+              <div className="hidden md:flex items-center gap-3 ml-auto">
+                <span className="text-sm text-gray-600 dark:text-gray-400">{selectedIds.size} selected</span>
+                <Button size="sm" onClick={handleBulkDownload} loading={downloading}>
+                  <Download className="h-3.5 w-3.5 mr-1" /> Download PDFs
+                </Button>
+                <button onClick={() => setSelectedIds(new Set())} className="text-xs text-gray-400 hover:text-gray-600 dark:hover:text-gray-200">
+                  Clear
+                </button>
+              </div>
+            ) : null}
+            <span className="text-sm text-gray-500 dark:text-gray-400 ml-auto md:ml-0">{invoices.data?.total ?? 0} invoices</span>
           </div>
         </CardHeader>
         <CardBody className="p-0">
@@ -247,12 +290,28 @@ export function InvoicesPage() {
             <>
               {/* Mobile cards */}
               <div className="md:hidden divide-y divide-gray-100 dark:divide-gray-700">
+                <div className="px-4 py-2 flex items-center justify-between border-b border-gray-100 dark:border-gray-700 bg-gray-50 dark:bg-gray-700/30">
+                  <button onClick={toggleSelectAll} className="text-xs font-medium text-indigo-600 dark:text-indigo-400">
+                    {allSelected ? 'Deselect all' : 'Select all'}
+                  </button>
+                  {selectedIds.size > 0 && (
+                    <span className="text-xs text-gray-500 dark:text-gray-400">{selectedIds.size} selected</span>
+                  )}
+                </div>
                 {invoices.data.items.map((inv) => (
-                  <div key={inv.id} className="px-4 py-3 space-y-2">
+                  <div key={inv.id} className={`px-4 py-3 space-y-2 ${selectedIds.has(inv.id) ? 'bg-indigo-50 dark:bg-indigo-900/10' : ''}`}>
                     <div className="flex items-center justify-between gap-2">
-                      <Link to={`/invoices/${inv.id}`} className="text-sm font-semibold text-indigo-600 dark:text-indigo-400">
-                        {inv.invoiceNumber}
-                      </Link>
+                      <div className="flex items-center gap-2 min-w-0">
+                        <input
+                          type="checkbox"
+                          checked={selectedIds.has(inv.id)}
+                          onChange={() => toggleSelect(inv.id)}
+                          className="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500 shrink-0"
+                        />
+                        <Link to={`/invoices/${inv.id}`} className="text-sm font-semibold text-indigo-600 dark:text-indigo-400 truncate">
+                          {inv.invoiceNumber}
+                        </Link>
+                      </div>
                       <Badge variant={STATUS_VARIANT[inv.status] ?? 'gray'}>{inv.status}</Badge>
                     </div>
                     <div className="text-xs text-gray-500 dark:text-gray-400 space-y-0.5">
@@ -274,27 +333,43 @@ export function InvoicesPage() {
                 <table className="w-full text-sm">
                   <thead className="bg-gray-50 dark:bg-gray-700/50 text-xs text-gray-500 dark:text-gray-400 uppercase">
                     <tr>
-                      <th className="px-6 py-3 text-left">Invoice</th>
-                      <th className="px-6 py-3 text-left">Billed to</th>
-                      <th className="px-6 py-3 text-left">Amount</th>
-                      <th className="px-6 py-3 text-left">Status</th>
-                      <th className="px-6 py-3 text-left">Due</th>
-                      <th className="px-6 py-3 text-left"></th>
+                      <th className="pl-4 pr-2 py-3 w-8">
+                        <input
+                          type="checkbox"
+                          checked={allSelected}
+                          onChange={toggleSelectAll}
+                          className="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
+                        />
+                      </th>
+                      <th className="px-4 py-3 text-left">Invoice</th>
+                      <th className="px-4 py-3 text-left">Billed to</th>
+                      <th className="px-4 py-3 text-left">Amount</th>
+                      <th className="px-4 py-3 text-left">Status</th>
+                      <th className="px-4 py-3 text-left">Due</th>
+                      <th className="px-4 py-3 text-left"></th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-gray-100 dark:divide-gray-700">
                     {invoices.data.items.map((inv) => (
-                      <tr key={inv.id} className="hover:bg-gray-50 dark:hover:bg-gray-700/30">
-                        <td className="px-6 py-3 font-medium">
+                      <tr key={inv.id} className={`hover:bg-gray-50 dark:hover:bg-gray-700/30 ${selectedIds.has(inv.id) ? 'bg-indigo-50 dark:bg-indigo-900/10' : ''}`}>
+                        <td className="pl-4 pr-2 py-3">
+                          <input
+                            type="checkbox"
+                            checked={selectedIds.has(inv.id)}
+                            onChange={() => toggleSelect(inv.id)}
+                            className="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
+                          />
+                        </td>
+                        <td className="px-4 py-3 font-medium">
                           <Link to={`/invoices/${inv.id}`} className="text-indigo-600 dark:text-indigo-400 hover:underline">{inv.invoiceNumber}</Link>
                         </td>
-                        <td className="px-6 py-3 text-gray-700 dark:text-gray-300">
+                        <td className="px-4 py-3 text-gray-700 dark:text-gray-300">
                           {inv.contact ? `${inv.contact.firstName} ${inv.contact.lastName}` : inv.family?.name ?? '—'}
                         </td>
-                        <td className="px-6 py-3 font-medium dark:text-gray-100">{formatCurrency(inv.amountDue)}</td>
-                        <td className="px-6 py-3"><Badge variant={STATUS_VARIANT[inv.status] ?? 'gray'}>{inv.status}</Badge></td>
-                        <td className="px-6 py-3 text-gray-500 dark:text-gray-400">{formatDate(inv.dueDate)}</td>
-                        <td className="px-6 py-3">
+                        <td className="px-4 py-3 font-medium dark:text-gray-100">{formatCurrency(inv.amountDue)}</td>
+                        <td className="px-4 py-3"><Badge variant={STATUS_VARIANT[inv.status] ?? 'gray'}>{inv.status}</Badge></td>
+                        <td className="px-4 py-3 text-gray-500 dark:text-gray-400">{formatDate(inv.dueDate)}</td>
+                        <td className="px-4 py-3">
                           <div className="flex gap-1">
                             {inv.status !== 'paid' && inv.status !== 'void' && (
                               <>
@@ -358,6 +433,21 @@ export function InvoicesPage() {
               </div>
             </form>
           </div>
+        </div>
+      )}
+
+      {/* Mobile sticky bottom bar — shown only when items are selected */}
+      {selectedIds.size > 0 && (
+        <div className="md:hidden fixed bottom-0 left-0 right-0 z-40 bg-white dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700 px-4 py-3 flex items-center justify-between gap-3 shadow-lg">
+          <div className="flex items-center gap-3">
+            <span className="text-sm font-medium text-gray-700 dark:text-gray-200">{selectedIds.size} selected</span>
+            <button onClick={() => setSelectedIds(new Set())} className="text-xs text-gray-400 hover:text-gray-600 dark:hover:text-gray-200">
+              Clear
+            </button>
+          </div>
+          <Button onClick={handleBulkDownload} loading={downloading}>
+            <Download className="h-4 w-4 mr-1.5" /> Download PDFs
+          </Button>
         </div>
       )}
     </div>

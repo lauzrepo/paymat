@@ -106,3 +106,12 @@ export const deleteContact = asyncHandler(async (req: Request, res: Response) =>
   await contactService.deleteContact(req.params.id as string, req.organization!.id);
   res.status(204).send();
 });
+
+export const bulkImportContacts = asyncHandler(async (req: Request, res: Response) => {
+  if (!req.user) throw new AppError(401, 'Not authenticated');
+  const { contacts } = req.body;
+  if (!Array.isArray(contacts) || contacts.length === 0) throw new AppError(400, 'contacts array is required and must not be empty');
+  if (contacts.length > 500) throw new AppError(400, 'Maximum 500 contacts per import');
+  const results = await contactService.bulkImportContacts(req.organization!.id, contacts);
+  res.status(200).json({ status: 'success', data: { results } });
+});

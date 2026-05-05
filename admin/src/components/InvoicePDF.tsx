@@ -88,12 +88,12 @@ function fmtDate(d: string) {
   return new Intl.DateTimeFormat('en-US', { dateStyle: 'medium' }).format(new Date(d));
 }
 
-interface Props {
+interface PageProps {
   invoice: Invoice;
   orgName: string;
 }
 
-export function InvoicePDF({ invoice, orgName }: Props) {
+export function InvoicePage({ invoice, orgName }: PageProps) {
   const billTo = invoice.contact
     ? `${invoice.contact.firstName} ${invoice.contact.lastName}`
     : invoice.family?.name ?? '—';
@@ -102,8 +102,7 @@ export function InvoicePDF({ invoice, orgName }: Props) {
   const statusColor = STATUS_COLOR[invoice.status] ?? c.gray500;
 
   return (
-    <Document title={`${invoice.invoiceNumber} — ${orgName}`} author={orgName}>
-      <Page size="LETTER" style={s.page}>
+    <Page size="LETTER" style={s.page}>
 
         {/* ── Header ── */}
         <View style={s.header}>
@@ -198,6 +197,18 @@ export function InvoicePDF({ invoice, orgName }: Props) {
         </View>
 
       </Page>
+  );
+}
+
+interface Props {
+  invoice: Invoice;
+  orgName: string;
+}
+
+export function InvoicePDF({ invoice, orgName }: Props) {
+  return (
+    <Document title={`${invoice.invoiceNumber} — ${orgName}`} author={orgName}>
+      <InvoicePage invoice={invoice} orgName={orgName} />
     </Document>
   );
 }
