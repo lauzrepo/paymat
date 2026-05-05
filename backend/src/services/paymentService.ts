@@ -101,12 +101,12 @@ class PaymentService {
 
     const org = await prisma.organization.findUnique({
       where: { id: organizationId },
-      select: { stripeConnectAccountId: true },
+      select: { stripeConnectAccountId: true, sandboxMode: true },
     });
     if (!org?.stripeConnectAccountId) throw new AppError(400, 'Organization payment processing not configured');
 
     const amountCents = amount !== undefined ? Math.round(amount * 100) : undefined;
-    await stripeConnectService.refundCharge(org.stripeConnectAccountId, payment.stripeChargeId, amountCents);
+    await stripeConnectService.refundCharge(org.stripeConnectAccountId, payment.stripeChargeId, amountCents, org.sandboxMode);
 
     await prisma.payment.update({
       where: { id: paymentId },

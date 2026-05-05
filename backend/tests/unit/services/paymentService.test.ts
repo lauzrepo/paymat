@@ -226,7 +226,7 @@ describe('paymentService.getPaymentById', () => {
 describe('paymentService.refundPayment', () => {
   beforeEach(() => {
     (prisma.payment.findFirst as jest.Mock).mockResolvedValue({ ...basePayment });
-    (prisma.organization.findUnique as jest.Mock).mockResolvedValue({ stripeConnectAccountId: 'acct_test' });
+    (prisma.organization.findUnique as jest.Mock).mockResolvedValue({ stripeConnectAccountId: 'acct_test', sandboxMode: true });
     (stripeConnectService.refundCharge as jest.Mock).mockResolvedValue(undefined);
     (prisma.payment.update as jest.Mock).mockResolvedValue({});
   });
@@ -254,10 +254,20 @@ describe('paymentService.refundPayment', () => {
     });
   });
 
-  it('calls stripeConnectService.refundCharge with the charge ID', async () => {
+  it('calls stripeConnectService.refundCharge with the charge ID and sandboxMode', async () => {
     await paymentService.refundPayment(PAYMENT_ID, ORG_ID);
 
-    expect(stripeConnectService.refundCharge).toHaveBeenCalledWith('acct_test', 'ch_test', undefined);
+    expect(stripeConnectService.refundCharge).toHaveBeenCalledWith('acct_test', 'ch_test', undefined, true);
+  });
+
+  it('passes sandboxMode=false when org is in production mode', async () => {
+    (prisma.organization.findUnique as jest.Mock).mockResolvedValue({
+      stripeConnectAccountId: 'acct_live', sandboxMode: false,
+    });
+
+    await paymentService.refundPayment(PAYMENT_ID, ORG_ID);
+
+    expect(stripeConnectService.refundCharge).toHaveBeenCalledWith('acct_live', 'ch_test', undefined, false);
   });
 
   it('updates payment status to refunded', async () => {

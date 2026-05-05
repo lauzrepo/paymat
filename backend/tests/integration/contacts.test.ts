@@ -15,11 +15,12 @@ jest.mock('../../src/services/emailService', () => ({
   sendPaymentReceived: jest.fn().mockResolvedValue(undefined),
   sendPaymentFailed: jest.fn().mockResolvedValue(undefined),
 }));
-jest.mock('../../src/services/helcimService', () => ({
+jest.mock('../../src/services/stripeConnectService', () => ({
   __esModule: true,
   default: {
-    initializeCheckout: jest.fn().mockResolvedValue({ checkoutToken: 'tok_test', secretToken: 'sec_test' }),
-    processPayment: jest.fn(),
+    createCustomer: jest.fn().mockResolvedValue('cus_test'),
+    createSetupIntent: jest.fn().mockResolvedValue('seti_test_secret'),
+    getPublishableKey: jest.fn().mockReturnValue('pk_test_placeholder'),
   },
 }));
 
@@ -185,8 +186,12 @@ describe('POST /api/contacts/:id/reactivate', () => {
 });
 
 describe('POST /api/contacts/:id/card/initialize', () => {
-  it('returns 200 with checkout token', async () => {
+  it('returns 200 with Stripe Setup Intent clientSecret', async () => {
     (prisma.contact.findFirst as jest.Mock).mockResolvedValue(mockContact());
+    (prisma.organization.findUnique as jest.Mock).mockResolvedValue({
+      ...ORG, stripeConnectAccountId: 'acct_test', sandboxMode: true,
+    });
+    (prisma.contact.findUnique as jest.Mock).mockResolvedValue(mockContact());
 
     const res = await request(app)
       .post('/api/contacts/contact-1/card/initialize')
@@ -194,7 +199,20 @@ describe('POST /api/contacts/:id/card/initialize', () => {
       .set('x-organization-slug', 'test-org');
 
     expect(res.status).toBe(200);
-    expect(res.body.data.checkoutToken).toBe('tok_test');
+    expect(res.body.data.clientSecret).toBe('seti_test_secret');
+    expect(res.body.data.connectAccountId).toBe('acct_test');
+  });
+
+  it('returns 503 when org has no Connect account', async () => {
+    (prisma.contact.findFirst as jest.Mock).mockResolvedValue(mockContact());
+    (prisma.organization.findUnique as jest.Mock).mockResolvedValue({ ...ORG, stripeConnectAccountId: null });
+
+    const res = await request(app)
+      .post('/api/contacts/contact-1/card/initialize')
+      .set('Authorization', `Bearer ${adminToken()}`)
+      .set('x-organization-slug', 'test-org');
+
+    expect(res.status).toBe(503);
   });
 });
 

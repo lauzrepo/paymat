@@ -31,9 +31,11 @@ const prismaMock = {
   invoice: {
     findMany: jest.fn(),
     findFirst: jest.fn(),
+    findUnique: jest.fn(),
     create: jest.fn(),
     update: jest.fn(),
     updateMany: jest.fn(),
+    deleteMany: jest.fn(),
     count: jest.fn(),
     aggregate: jest.fn(),
   },
@@ -63,6 +65,8 @@ const prismaMock = {
     findUnique: jest.fn(),
     create: jest.fn(),
     update: jest.fn(),
+    updateMany: jest.fn(),
+    deleteMany: jest.fn(),
   },
   organization: {
     findMany: jest.fn(),

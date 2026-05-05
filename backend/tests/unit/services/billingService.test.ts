@@ -213,7 +213,7 @@ describe('BillingService.generateDueInvoices()', () => {
           stripeCustomerId: 'cus_test',
           stripeDefaultPaymentMethodId: 'pm_test',
           family: null,
-          organization: { slug: 'test-org', name: 'Test Org', stripeConnectAccountId: 'acct_test', platformFeePercent: 0 },
+          organization: { slug: 'test-org', name: 'Test Org', stripeConnectAccountId: 'acct_test', platformFeePercent: 0, sandboxMode: true },
         },
       });
 
@@ -235,7 +235,7 @@ describe('BillingService.generateDueInvoices()', () => {
 
       expect(result.autoCharged).toBe(1);
       expect(stripeConnectService.chargeCustomer as jest.Mock).toHaveBeenCalledWith(
-        expect.objectContaining({ customerId: 'cus_test', paymentMethodId: 'pm_test', amountCents: 10000 }),
+        expect.objectContaining({ customerId: 'cus_test', paymentMethodId: 'pm_test', amountCents: 10000, sandboxMode: true }),
       );
       expect(prisma.invoice.update as jest.Mock).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -285,7 +285,7 @@ describe('BillingService.generateDueInvoices()', () => {
             stripeDefaultPaymentMethodId: 'pm_fam_test',
             billingEmail: 'johnson.family@example.com',
           },
-          organization: { slug: 'test-org', name: 'Test Org', stripeConnectAccountId: 'acct_test', platformFeePercent: 0 },
+          organization: { slug: 'test-org', name: 'Test Org', stripeConnectAccountId: 'acct_test', platformFeePercent: 0, sandboxMode: true },
         },
         program: {
           id: 'prog-1',
@@ -319,7 +319,7 @@ describe('BillingService.generateDueInvoices()', () => {
             stripeDefaultPaymentMethodId: 'pm_fam_test',
             billingEmail: 'johnson.family@example.com',
           },
-          organization: { slug: 'test-org', name: 'Test Org', stripeConnectAccountId: 'acct_test', platformFeePercent: 0 },
+          organization: { slug: 'test-org', name: 'Test Org', stripeConnectAccountId: 'acct_test', platformFeePercent: 0, sandboxMode: true },
         },
         program: {
           id: 'prog-2',
@@ -402,7 +402,7 @@ describe('BillingService.generateDueInvoices()', () => {
             stripeDefaultPaymentMethodId: 'pm_fam_test',
             billingEmail: null,
           },
-          organization: { slug: 'test-org', name: 'Test Org', stripeConnectAccountId: 'acct_test', platformFeePercent: 0 },
+          organization: { slug: 'test-org', name: 'Test Org', stripeConnectAccountId: 'acct_test', platformFeePercent: 0, sandboxMode: true },
         },
         program: {
           id: 'prog-2',
@@ -431,7 +431,7 @@ describe('BillingService.generateDueInvoices()', () => {
 
       expect(result.autoCharged).toBe(1);
       expect(stripeConnectService.chargeCustomer as jest.Mock).toHaveBeenCalledWith(
-        expect.objectContaining({ customerId: 'cus_fam_test', amountCents: 27000 }),
+        expect.objectContaining({ customerId: 'cus_fam_test', amountCents: 27000, sandboxMode: true }),
       );
     });
 
@@ -480,7 +480,7 @@ describe('BillingService.generateDueInvoices()', () => {
             stripeDefaultPaymentMethodId: null,
             billingEmail: null,
           },
-          organization: { slug: 'test-org', name: 'Test Org', stripeConnectAccountId: null, platformFeePercent: 0 },
+          organization: { slug: 'test-org', name: 'Test Org', stripeConnectAccountId: null, platformFeePercent: 0, sandboxMode: true },
         },
       });
 
@@ -514,7 +514,7 @@ describe('BillingService.generateDueInvoices()', () => {
           stripeCustomerId: 'cus_bad',
           stripeDefaultPaymentMethodId: 'pm_bad',
           family: null,
-          organization: { slug: 'test-org', name: 'Test Org', stripeConnectAccountId: 'acct_test', platformFeePercent: 0 },
+          organization: { slug: 'test-org', name: 'Test Org', stripeConnectAccountId: 'acct_test', platformFeePercent: 0, sandboxMode: true },
         },
       });
 
@@ -594,6 +594,76 @@ describe('BillingService.generateDueInvoices()', () => {
     });
   });
 
+  describe('sandboxMode threading', () => {
+    it('passes sandboxMode=false from org to chargeCustomer when org is in production', async () => {
+      const enrollment = makeEnrollment({
+        contact: {
+          id: 'contact-1',
+          organizationId: 'org-1',
+          firstName: 'Jane',
+          lastName: 'Doe',
+          email: 'jane@example.com',
+          stripeCustomerId: 'cus_live',
+          stripeDefaultPaymentMethodId: 'pm_live',
+          family: null,
+          organization: { slug: 'test-org', name: 'Test Org', stripeConnectAccountId: 'acct_live', platformFeePercent: 0, sandboxMode: false },
+        },
+      });
+
+      (prisma.enrollment.count as jest.Mock).mockResolvedValue(1);
+      (prisma.enrollment.findMany as jest.Mock).mockResolvedValue([enrollment]);
+      (prisma.invoice.count as jest.Mock).mockResolvedValue(0);
+      (prisma.invoice.create as jest.Mock).mockResolvedValue(makeInvoice({ id: 'invoice-live' }));
+      (prisma.payment.create as jest.Mock).mockResolvedValue({});
+      (prisma.invoice.update as jest.Mock).mockResolvedValue({});
+      (prisma.enrollment.update as jest.Mock).mockResolvedValue({});
+      (prisma.invoice.updateMany as jest.Mock).mockResolvedValue({ count: 0 });
+      (stripeConnectService.chargeCustomer as jest.Mock).mockResolvedValue({
+        paymentIntentId: 'pi_live', chargeId: 'ch_live', status: 'succeeded',
+      });
+
+      await billingService.generateDueInvoices();
+
+      expect(stripeConnectService.chargeCustomer as jest.Mock).toHaveBeenCalledWith(
+        expect.objectContaining({ sandboxMode: false }),
+      );
+    });
+
+    it('defaults sandboxMode to true when org.sandboxMode is undefined', async () => {
+      const enrollment = makeEnrollment({
+        contact: {
+          id: 'contact-1',
+          organizationId: 'org-1',
+          firstName: 'Jane',
+          lastName: 'Doe',
+          email: 'jane@example.com',
+          stripeCustomerId: 'cus_test',
+          stripeDefaultPaymentMethodId: 'pm_test',
+          family: null,
+          organization: { slug: 'test-org', name: 'Test Org', stripeConnectAccountId: 'acct_test', platformFeePercent: 0, sandboxMode: undefined },
+        },
+      });
+
+      (prisma.enrollment.count as jest.Mock).mockResolvedValue(1);
+      (prisma.enrollment.findMany as jest.Mock).mockResolvedValue([enrollment]);
+      (prisma.invoice.count as jest.Mock).mockResolvedValue(0);
+      (prisma.invoice.create as jest.Mock).mockResolvedValue(makeInvoice({ id: 'invoice-1' }));
+      (prisma.payment.create as jest.Mock).mockResolvedValue({});
+      (prisma.invoice.update as jest.Mock).mockResolvedValue({});
+      (prisma.enrollment.update as jest.Mock).mockResolvedValue({});
+      (prisma.invoice.updateMany as jest.Mock).mockResolvedValue({ count: 0 });
+      (stripeConnectService.chargeCustomer as jest.Mock).mockResolvedValue({
+        paymentIntentId: 'pi_test', chargeId: 'ch_test', status: 'succeeded',
+      });
+
+      await billingService.generateDueInvoices();
+
+      expect(stripeConnectService.chargeCustomer as jest.Mock).toHaveBeenCalledWith(
+        expect.objectContaining({ sandboxMode: true }),
+      );
+    });
+  });
+
   describe('UTC midnight date comparison', () => {
     it('uses UTC midnight for the today date boundary', async () => {
       (prisma.enrollment.count as jest.Mock).mockResolvedValue(0);
@@ -648,7 +718,7 @@ describe('BillingService.generateDueInvoices()', () => {
           stripeCustomerId: 'cus_test',
           stripeDefaultPaymentMethodId: 'pm_test',
           family: null,
-          organization: { slug: 'test-org', name: 'Test Org', stripeConnectAccountId: 'acct_test', platformFeePercent: 0 },
+          organization: { slug: 'test-org', name: 'Test Org', stripeConnectAccountId: 'acct_test', platformFeePercent: 0, sandboxMode: true },
         },
       });
 

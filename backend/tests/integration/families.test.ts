@@ -13,10 +13,12 @@ jest.mock('../../src/services/emailService', () => ({
   sendFeedbackNotification: jest.fn().mockResolvedValue(undefined),
   sendInvoiceGenerated: jest.fn().mockResolvedValue(undefined),
 }));
-jest.mock('../../src/services/helcimService', () => ({
+jest.mock('../../src/services/stripeConnectService', () => ({
   __esModule: true,
   default: {
-    initializeCheckout: jest.fn().mockResolvedValue({ checkoutToken: 'tok_test', secretToken: 'sec_test' }),
+    createCustomer: jest.fn().mockResolvedValue('cus_fam_test'),
+    createSetupIntent: jest.fn().mockResolvedValue('seti_fam_test_secret'),
+    getPublishableKey: jest.fn().mockReturnValue('pk_test_placeholder'),
   },
 }));
 
@@ -160,8 +162,11 @@ describe('DELETE /api/families/:id', () => {
 });
 
 describe('POST /api/families/:id/card/initialize', () => {
-  it('returns 200 with checkout token', async () => {
+  it('returns 200 with Stripe Setup Intent clientSecret', async () => {
     (prisma.family.findFirst as jest.Mock).mockResolvedValue(mockFamily());
+    (prisma.organization.findUnique as jest.Mock).mockResolvedValue({
+      ...ORG, stripeConnectAccountId: 'acct_test', sandboxMode: true,
+    });
 
     const res = await request(app)
       .post('/api/families/fam-1/card/initialize')
@@ -169,7 +174,20 @@ describe('POST /api/families/:id/card/initialize', () => {
       .set('x-organization-slug', 'test-org');
 
     expect(res.status).toBe(200);
-    expect(res.body.data.checkoutToken).toBe('tok_test');
+    expect(res.body.data.clientSecret).toBe('seti_fam_test_secret');
+    expect(res.body.data.connectAccountId).toBe('acct_test');
+  });
+
+  it('returns 503 when org has no Connect account', async () => {
+    (prisma.family.findFirst as jest.Mock).mockResolvedValue(mockFamily());
+    (prisma.organization.findUnique as jest.Mock).mockResolvedValue({ ...ORG, stripeConnectAccountId: null });
+
+    const res = await request(app)
+      .post('/api/families/fam-1/card/initialize')
+      .set('Authorization', `Bearer ${adminToken()}`)
+      .set('x-organization-slug', 'test-org');
+
+    expect(res.status).toBe(503);
   });
 });
 

@@ -5,6 +5,6 @@ export function useTenantBranding() {
   return useQuery({
     queryKey: ['tenant', 'branding'],
     queryFn: getTenantBranding,
-    staleTime: 1000 * 60 * 60, // 1 hour — branding rarely changes
+    staleTime: 1000 * 60 * 5, // 5 min — sandboxMode can change after promotion
   });
 }

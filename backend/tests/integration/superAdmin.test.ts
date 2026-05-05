@@ -17,6 +17,13 @@ jest.mock('bcrypt', () => ({
   hash: jest.fn().mockResolvedValue('hashed'),
   compare: jest.fn(),
 }));
+jest.mock('../../src/services/stripeConnectService', () => ({
+  __esModule: true,
+  default: {
+    createConnectAccount: jest.fn().mockResolvedValue('acct_live_new'),
+    createAccountOnboardingLink: jest.fn().mockResolvedValue('https://connect.stripe.com/onboard/live'),
+  },
+}));
 
 const SUPER_ADMIN_SECRET = 'test-super-admin-jwt-secret-at-least-32-chars';
 const SUPER_ADMIN_REFRESH_SECRET = 'test-super-admin-refresh-secret-32-chars-ok';
@@ -210,5 +217,75 @@ describe('PATCH /super-admin/organizations/:id/status', () => {
       .send({ isActive: false });
 
     expect(res.status).toBe(200);
+  });
+});
+
+describe('POST /super-admin/organizations/:id/promote', () => {
+  const stripeConnect = require('../../src/services/stripeConnectService').default;
+
+  beforeEach(() => {
+    (prisma.organization.findUnique as jest.Mock).mockResolvedValue(mockOrg({ sandboxMode: true }));
+    (prisma.user.findFirst as jest.Mock).mockResolvedValue({ email: 'admin@test.com' });
+    (prisma.organization.update as jest.Mock).mockResolvedValue(mockOrg({ sandboxMode: false }));
+  });
+
+  it('returns 200 with connectOnboardingUrl for a sandbox org', async () => {
+    const res = await request(app)
+      .post('/super-admin/organizations/org-1/promote')
+      .set('Authorization', `Bearer ${superAdminToken()}`);
+
+    expect(res.status).toBe(200);
+    expect(res.body.data.connectOnboardingUrl).toBe('https://connect.stripe.com/onboard/live');
+  });
+
+  it('creates a live Connect account (sandboxMode=false)', async () => {
+    await request(app)
+      .post('/super-admin/organizations/org-1/promote')
+      .set('Authorization', `Bearer ${superAdminToken()}`);
+
+    expect(stripeConnect.createConnectAccount as jest.Mock).toHaveBeenCalledWith(
+      'org-1', 'Test Org', 'admin@test.com', false,
+    );
+  });
+
+  it('sets sandboxMode=false and clears onboarding complete on the org', async () => {
+    await request(app)
+      .post('/super-admin/organizations/org-1/promote')
+      .set('Authorization', `Bearer ${superAdminToken()}`);
+
+    expect(prisma.organization.update as jest.Mock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: { id: 'org-1' },
+        data: expect.objectContaining({
+          sandboxMode: false,
+          stripeConnectOnboardingComplete: false,
+        }),
+      }),
+    );
+  });
+
+  it('returns 400 if org is already in production', async () => {
+    (prisma.organization.findUnique as jest.Mock).mockResolvedValue(mockOrg({ sandboxMode: false }));
+
+    const res = await request(app)
+      .post('/super-admin/organizations/org-1/promote')
+      .set('Authorization', `Bearer ${superAdminToken()}`);
+
+    expect(res.status).toBe(400);
+  });
+
+  it('returns 404 if org not found', async () => {
+    (prisma.organization.findUnique as jest.Mock).mockResolvedValue(null);
+
+    const res = await request(app)
+      .post('/super-admin/organizations/org-1/promote')
+      .set('Authorization', `Bearer ${superAdminToken()}`);
+
+    expect(res.status).toBe(404);
+  });
+
+  it('returns 401 without token', async () => {
+    const res = await request(app).post('/super-admin/organizations/org-1/promote');
+    expect(res.status).toBe(401);
   });
 });
