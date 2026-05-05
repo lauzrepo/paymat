@@ -34,16 +34,16 @@ export const PAGE_TIPS: Record<string, Tip[]> = {
   ],
   '/families': [
     {
-      title: 'Families simplify billing',
-      body: 'Assign a primary billing contact to a family so all invoices for family members roll up to one payer.',
+      title: 'Save a card for the whole family',
+      body: "Store a payment card at the family level so all members' Stripe invoices can be charged to the same card automatically.",
     },
     {
-      title: 'Enroll an entire family',
-      body: 'From a family record, you can enrol all members into a program at once instead of enrolling each contact individually.',
+      title: 'Billing email is separate from contacts',
+      body: "The billing email on a family is used for payment-related communications and can be different from any individual member's email address.",
     },
     {
-      title: 'Family balance overview',
-      body: 'The family detail page shows a combined balance across all members — great for spotting who has outstanding invoices.',
+      title: 'Members link to contact profiles',
+      body: "Each name in the members list links to that contact's detail page — click through to view their enrollments, invoices, and card status.",
     },
   ],
   '/programs': [
