@@ -1,13 +1,15 @@
-import { Menu, Sun, Moon } from 'lucide-react';
+import { Menu, Sun, Moon, HelpCircle } from 'lucide-react';
 import { useCurrentUser, useLogout } from '../../hooks/useAuth';
 import { useTheme } from '../../hooks/useTheme';
 import { Button } from '../ui/Button';
 
 interface HeaderProps {
   onMenuClick: () => void;
+  onTipsClick: () => void;
+  tipsOpen: boolean;
 }
 
-export function Header({ onMenuClick }: HeaderProps) {
+export function Header({ onMenuClick, onTipsClick, tipsOpen }: HeaderProps) {
   const { data: user } = useCurrentUser();
   const logout = useLogout();
   const { dark, toggle } = useTheme();
@@ -19,6 +21,14 @@ export function Header({ onMenuClick }: HeaderProps) {
       </button>
       <div className="hidden md:block" />
       <div className="flex items-center gap-3">
+        <button
+          onClick={onTipsClick}
+          aria-label="Toggle tips panel"
+          aria-expanded={tipsOpen}
+          className="p-2 rounded-lg text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+        >
+          <HelpCircle className="h-4 w-4" />
+        </button>
         <button
           onClick={toggle}
           aria-label="Toggle dark mode"
