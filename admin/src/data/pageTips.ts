@@ -20,16 +20,16 @@ export const PAGE_TIPS: Record<string, Tip[]> = {
   ],
   '/contacts': [
     {
-      title: 'Import contacts in bulk',
-      body: 'Use the CSV import button to upload hundreds of contacts at once. Download the template first to get the right column format.',
+      title: 'Collect a card when adding a contact',
+      body: 'Check "Add card on file after saving" in the new contact form to collect their payment details in a single step.',
     },
     {
-      title: 'Link contacts to families',
-      body: 'Open a contact record and use "Add to family" to group parents and children together for unified billing.',
+      title: "View a contact's full history",
+      body: "Click any contact's name to open their detail page — you'll see all their enrollments, recent invoices, and card status in one place.",
     },
     {
       title: 'Search and filter',
-      body: 'The search bar matches on name, email, and phone. Use the status filter to narrow results to active, inactive, or archived contacts.',
+      body: 'The search bar matches on name, email, and phone. Use the status filter to narrow results to active or inactive contacts.',
     },
   ],
   '/families': [
