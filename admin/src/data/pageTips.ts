@@ -6,16 +6,16 @@ export interface Tip {
 export const PAGE_TIPS: Record<string, Tip[]> = {
   '/': [
     {
-      title: 'Check your revenue at a glance',
-      body: 'The dashboard shows total collected payments, pending invoices, and active enrollments for the current month.',
+      title: 'Key metrics at a glance',
+      body: 'The dashboard shows active members, revenue this month, overdue invoices, and total collected — all updated each time you visit.',
     },
     {
-      title: 'Recent activity feed',
-      body: 'The activity feed highlights the latest payments and new contacts added to your organisation.',
+      title: 'Act on overdue invoices fast',
+      body: 'The overdue invoices table shows exactly who owes what. Click any row to open the invoice and record a payment directly.',
     },
     {
-      title: 'Sandbox vs. live mode',
-      body: "While in sandbox mode, all payment amounts are test data. Switch to live mode from the Settings page when you're ready to go live.",
+      title: 'Invoice summary by status',
+      body: 'The Invoice Summary card breaks your invoices into Draft, Paid, Overdue, and Total so you always know the state of your billing at a glance.',
     },
   ],
   '/contacts': [
@@ -56,100 +56,100 @@ export const PAGE_TIPS: Record<string, Tip[]> = {
       body: 'Programs with a recurring billing cycle will automatically generate invoices on each cycle date for all active enrollees.',
     },
     {
-      title: 'Archive vs. delete',
-      body: 'Archiving a program keeps its enrollment and payment history intact. Deletion is permanent — archive first if in doubt.',
+      title: 'Cap billing with max payments',
+      body: 'Set Max payments on a program to automatically stop billing after a fixed number of cycles — ideal for term-based courses.',
     },
     {
-      title: 'Custom fields',
-      body: 'Attach custom fields to programs to capture program-specific information from families during enrollment.',
+      title: 'Delete with care',
+      body: 'Deleting a program is permanent and cannot be undone. Unenroll active contacts first to avoid leaving orphaned enrollment records.',
     },
   ],
   '/invoices': [
     {
-      title: 'Send reminders automatically',
-      body: 'Enable auto-reminders in Settings to have Paymat send email nudges 7 and 3 days before an invoice due date.',
+      title: 'Record offline payments',
+      body: 'Use Record Payment on any outstanding invoice to log cash, cheque, or bank transfer payments — not just Stripe transactions.',
     },
     {
       title: 'Partial payments',
-      body: 'Contacts can pay invoices in multiple instalments. The invoice detail page shows all partial payments received so far.',
+      body: 'Enter any amount in the Record Payment form to log a partial payment. The invoice stays open until the full balance is covered.',
     },
     {
-      title: 'Bulk void',
-      body: 'Select multiple invoices and use the bulk action menu to void them all at once — useful when a program is cancelled.',
+      title: 'Void to cancel cleanly',
+      body: 'Voiding an invoice cancels it without removing the record. Use this when a service is cancelled or an invoice was raised in error.',
     },
     {
-      title: 'PDF export',
-      body: 'Each invoice has a "Download PDF" option you can share directly with parents who prefer paper records.',
+      title: 'Filter by status',
+      body: 'Use the status dropdown to drill into Draft, Sent, Paid, Overdue, or Void invoices — useful for chasing specific payments.',
     },
   ],
   '/payments': [
     {
-      title: 'Filter by date range',
-      body: 'Use the date-range picker to export or review payments for a specific pay period or reporting window.',
+      title: 'Filter by payment status',
+      body: 'Use the status filter to view only succeeded, failed, or refunded payments — useful for reconciliation or following up on failed charges.',
     },
     {
-      title: 'Refund from this page',
-      body: 'Click any payment row to open its detail view, then use the Refund button to issue a full or partial refund through Stripe.',
+      title: 'Track your totals',
+      body: 'The stat cards show your total payment count, number of successful charges, and total amount collected at a glance.',
     },
     {
-      title: 'Stripe fee breakdown',
-      body: "Each payment row shows the gross amount, Stripe fee, and your net payout so you always know exactly what you'll receive.",
+      title: 'See how each payment was made',
+      body: 'The Method column shows whether a payment came through Stripe or was recorded manually (cash, cheque, bank transfer, etc.).',
     },
   ],
   '/enrollments': [
     {
-      title: 'Enrollment status lifecycle',
-      body: 'Enrollments move from Pending → Active → Completed (or Cancelled). Only Active enrollments generate recurring invoices.',
+      title: 'Enrollment statuses explained',
+      body: 'Enrollments are Active, Paused, or Cancelled. Active enrollments generate invoices on each billing cycle; Paused ones do not.',
     },
     {
-      title: 'Bulk enrol from a program',
-      body: 'Navigate to a program and use "Enrol contacts" to add multiple people at once rather than one at a time.',
+      title: 'Pause instead of unenrolling',
+      body: 'Use Pause to temporarily stop billing without losing the enrollment record. Resume it later to pick up where you left off.',
     },
     {
-      title: 'Cancel vs. withdraw',
-      body: 'Cancelling an enrollment voids future invoices. Withdrawing marks the enrollment as ended but keeps billing history.',
+      title: 'Start date drives billing',
+      body: 'The start date you set when enrolling a contact determines when the first invoice is generated for that program.',
     },
   ],
   '/billing': [
     {
-      title: 'Upgrade at any time',
-      body: 'You can upgrade your plan mid-cycle — the price difference is prorated automatically for the remainder of the billing period.',
+      title: 'Run billing manually',
+      body: 'The Run billing now button triggers invoice generation for all active enrollments — use it if the automatic cycle missed a run or you need an off-cycle bill.',
     },
     {
       title: 'Founding member rate',
       body: "Early accounts are locked in at the founding member rate of 0.05%. This rate is preserved as long as your subscription stays active.",
     },
     {
-      title: 'Download invoices',
-      body: 'All past Paymat subscription invoices are available to download as PDFs from the Billing page for your records.',
+      title: 'Manage your subscription',
+      body: 'Click Manage subscription to open the Stripe billing portal where you can update your payment method, view past invoices, and change your plan.',
     },
   ],
   '/settings': [
-    {
-      title: 'Go live when ready',
-      body: "Flip the sandbox toggle off in Settings once you've finished testing. You'll be prompted to complete Stripe onboarding to start accepting real payments.",
-    },
     {
       title: 'Branding customisation',
       body: 'Upload your organisation logo and set a primary colour. These appear on invoices and payment pages your families see.',
     },
     {
-      title: 'Notification preferences',
-      body: 'Choose which events trigger email notifications to you and to your contacts — new invoices, payment confirmations, and reminders.',
+      title: 'Set the right business type',
+      body: 'Your business type helps Paymat tailor terminology and defaults. Choose the closest match from the dropdown — it can be changed at any time.',
+    },
+    {
+      title: 'Timezone matters for billing',
+      body: "Set your organisation's timezone to ensure invoice due dates and billing schedules display correctly for your region.",
     },
   ],
   '/feedback': [
     {
-      title: 'Feedback from families',
-      body: 'Families can submit feedback directly from their portal. All submissions appear here so you can review and respond.',
+      title: 'Send feedback to Paymat',
+      body: 'Use Submit Feedback to send feature requests, bug reports, or questions directly to the Paymat team. We read every submission.',
     },
     {
-      title: 'Mark as reviewed',
-      body: "Click a feedback item to open it, then mark it as reviewed once you've addressed it so your team knows it's been handled.",
+      title: 'Track progress with statuses',
+      body: 'Update the status on each submission as you monitor it — Open, In Progress, Resolved, or Closed — so you have a clear record of what has been addressed.',
     },
     {
-      title: 'Filter by status',
-      body: 'Use the status filter to see only unreviewed items and stay on top of new feedback without losing older entries.',
+      title: 'Filter by type or status',
+      body: 'Use the type and status filters together to focus on unresolved bug reports or open questions without losing other entries.',
     },
   ],
 };
