@@ -119,10 +119,15 @@ export function InvitesPage() {
                   onChange={(e) => setForm({ ...form, platformFeePercent: parseFloat(e.target.value) })}
                   className="w-full text-sm border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-violet-500"
                 >
-                  <option value={0.05}>Founding Member — 0.05%</option>
+                  <option value={0.05}>Founding Member — 0.05% (closes May 31)</option>
                   <option value={1}>Early Adopter — 1%</option>
                   <option value={2}>Standard — 2%</option>
                 </select>
+                {form.platformFeePercent === 0.05 && (
+                  <p className="mt-1.5 text-xs text-amber-600 dark:text-amber-400">
+                    Founding Member rate closes June 1, 2026. Use Early Adopter (1%) for new invites after that date.
+                  </p>
+                )}
               </div>
             </div>
 
@@ -215,7 +220,7 @@ export function InvitesPage() {
                               onChange={(e) => setResendTier(parseFloat(e.target.value))}
                               className="text-sm border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 rounded-lg px-2 py-1 focus:outline-none focus:ring-2 focus:ring-violet-500"
                             >
-                              <option value={0.05}>Founding Member — 0.05%</option>
+                              <option value={0.05}>Founding Member — 0.05% (closes May 31)</option>
                               <option value={1}>Early Adopter — 1%</option>
                               <option value={2}>Standard — 2%</option>
                             </select>

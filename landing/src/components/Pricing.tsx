@@ -31,7 +31,7 @@ export default function Pricing() {
               }}
             >
               <span className="w-1.5 h-1.5 rounded-full bg-white/80" />
-              Early Beta
+              Founding Member · Closes June 1
             </div>
 
             <div className="mt-2 mb-6">
@@ -44,7 +44,7 @@ export default function Pricing() {
                 </span>
               </div>
               <p className="text-sm" style={{ color: 'var(--color-muted)' }}>
-                Locked in for life — never increases as long as your account is active.
+                Locked in for life — offer closes June 1, 2026.
               </p>
             </div>
 
@@ -90,7 +90,7 @@ export default function Pricing() {
               Join early access
             </a>
             <p className="mt-3 text-xs text-center" style={{ color: 'var(--color-muted)' }}>
-              Limited spots. No credit card required.
+              Limited spots · Offer ends May 31 · No credit card required.
             </p>
           </div>
 

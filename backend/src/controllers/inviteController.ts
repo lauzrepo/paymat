@@ -10,6 +10,9 @@ export const createInvite = asyncHandler(async (req: Request, res: Response) => 
   if (!email?.trim()) throw new AppError(400, 'email is required');
   if (!recipientName?.trim()) throw new AppError(400, 'recipientName is required');
   if (!orgName?.trim()) throw new AppError(400, 'orgName is required');
+  if (platformFeePercent === 0.05 && new Date() >= new Date('2026-06-01')) {
+    throw new AppError(400, 'The Founding Member rate closed on June 1, 2026. Use Early Adopter (1%) or Standard (2%).');
+  }
 
   const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000); // 7 days
 
@@ -71,6 +74,9 @@ export const resendInvite = asyncHandler(async (req: Request, res: Response) => 
   const invite = await prisma.inviteToken.findUnique({ where: { id } });
   if (!invite) throw new AppError(404, 'Invite not found');
   if (invite.usedAt) throw new AppError(410, 'Invite has already been accepted');
+  if (platformFeePercent === 0.05 && new Date() >= new Date('2026-06-01')) {
+    throw new AppError(400, 'The Founding Member rate closed on June 1, 2026. Use Early Adopter (1%) or Standard (2%).');
+  }
 
   // Refresh expiry to 7 days from now
   const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);

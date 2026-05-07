@@ -146,9 +146,9 @@ function invitePricingCallout(platformFeePercent?: number): string {
   if (platformFeePercent === 0.05) {
     return `
       <div style="background:#f5f3ff;border:1px solid #ddd6fe;border-left:4px solid #7c3aed;border-radius:6px;padding:20px;margin:24px 0">
-        <p style="margin:0 0 6px;font-size:13px;font-weight:700;color:#6d28d9;text-transform:uppercase;letter-spacing:0.05em">Founding Member Pricing — Soft Launch Offer</p>
+        <p style="margin:0 0 6px;font-size:13px;font-weight:700;color:#6d28d9;text-transform:uppercase;letter-spacing:0.05em">Founding Member Pricing — Closes June 1, 2026</p>
         <p style="margin:0 0 12px;font-size:15px;color:#111827">As a founding member, you're locked in at a <strong>0.05% platform fee + Stripe's transaction fee</strong> — for life.</p>
-        <p style="margin:0;font-size:13px;color:#6b7280">That's our lowest rate ever, well below the standard 2% charged to new organizations after launch. This rate is tied to your account permanently, regardless of how the pricing changes in the future.</p>
+        <p style="margin:0;font-size:13px;color:#6b7280">This is our lowest rate ever — well below the standard 2% after launch. The founding member offer closes June 1, 2026 to new organizations, but your rate is tied to your account permanently and will never increase.</p>
       </div>`;
   }
   if (platformFeePercent === 1) {
