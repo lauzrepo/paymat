@@ -16,13 +16,15 @@ A separate **platform subscription fee** may apply to the organization's Cliqpay
 
 Each organization is assigned a `platformFeePercent` at the time they are invited. This rate is locked in permanently and does not change as standard pricing evolves.
 
-| Tier | Rate | Who Gets It |
-|------|------|-------------|
-| **Founding Member** | 0.05% | Soft-launch organizations — lowest rate ever offered, locked for life |
-| **Early Adopter** | 1% | Limited cohort of early-growth organizations, locked for life |
-| **Standard** | 2% | All new organizations after launch |
+| Tier | Rate | Who Gets It | Availability |
+|------|------|-------------|-------------|
+| **Founding Member** | 0.05% | Soft-launch organizations — lowest rate ever offered, locked for life | **Closes June 1, 2026** |
+| **Early Adopter** | 1% | Limited cohort of early-growth organizations, locked for life | Limited availability |
+| **Standard** | 2% | All new organizations after launch | Always available |
 
 The default rate applied to new organizations is **2%** (stored as `platformFeePercent = 2.0` on the Organization record).
+
+> **Note:** The Founding Member rate (0.05%) is no longer assignable to new invites on or after June 1, 2026. Existing founding member organizations keep their rate permanently.
 
 ---
 
@@ -70,7 +72,7 @@ cliqpaymat_revenue = payment_amount × (platformFeePercent / 100)
 ```
 
 | Monthly Volume | Standard (2%) | Early Adopter (1%) | Founding (0.05%) |
-|---------------|---------------|-------------------|-----------------|
+|---------------|---------------|-------------------|--------------------|
 | $5,000 | $100 | $50 | $2.50 |
 | $10,000 | $200 | $100 | $5.00 |
 | $25,000 | $500 | $250 | $12.50 |
