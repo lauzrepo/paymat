@@ -1,10 +1,12 @@
 import Stripe from 'stripe';
 import { config } from '../config/environment';
 
-class StripeService {
-  private _client: Stripe | null = null;
+type StripeClient = Stripe.Stripe;
 
-  private get client(): Stripe {
+class StripeService {
+  private _client: StripeClient | null = null;
+
+  private get client(): StripeClient {
     if (!this._client) {
       if (!config.stripe.secretKey) throw new Error('Stripe is not configured');
       this._client = new Stripe(config.stripe.secretKey);

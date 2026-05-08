@@ -2,11 +2,13 @@ import Stripe from 'stripe';
 import { config } from '../config/environment';
 import logger from '../utils/logger';
 
-class StripeConnectService {
-  private _testClient: Stripe | null = null;
-  private _liveClient: Stripe | null = null;
+type StripeClient = Stripe.Stripe;
 
-  private getClient(sandboxMode: boolean): Stripe {
+class StripeConnectService {
+  private _testClient: StripeClient | null = null;
+  private _liveClient: StripeClient | null = null;
+
+  private getClient(sandboxMode: boolean): StripeClient {
     if (sandboxMode) {
       if (!this._testClient) this._testClient = new Stripe(config.stripe.secretKey);
       return this._testClient;
@@ -82,7 +84,7 @@ class StripeConnectService {
     feePercent?: number,
     sandboxMode = true
   ): Promise<{ clientSecret: string; paymentIntentId: string }> {
-    const params: Stripe.PaymentIntentCreateParams = {
+    const params: Parameters<StripeClient['paymentIntents']['create']>[0] = {
       amount: amountCents,
       currency: currency.toLowerCase(),
       automatic_payment_methods: { enabled: true },
@@ -133,7 +135,7 @@ class StripeConnectService {
 
     const chargeId = typeof intent.latest_charge === 'string'
       ? intent.latest_charge
-      : (intent.latest_charge as Stripe.Charge | null)?.id ?? '';
+      : (intent.latest_charge as { id: string } | null)?.id ?? '';
 
     logger.info(`[StripeConnect] charged ${amountCents} on account ${connectAccountId} — intent ${intent.id}`);
     return {
@@ -165,7 +167,7 @@ class StripeConnectService {
 
   // ── Payment intent retrieval ─────────────────────────────────────────────
 
-  async retrievePaymentIntent(connectAccountId: string, paymentIntentId: string, sandboxMode = true): Promise<Stripe.PaymentIntent> {
+  async retrievePaymentIntent(connectAccountId: string, paymentIntentId: string, sandboxMode = true) {
     return this.getClient(sandboxMode).paymentIntents.retrieve(paymentIntentId, {}, { stripeAccount: connectAccountId });
   }
 
@@ -197,7 +199,7 @@ class StripeConnectService {
 
   // ── Webhooks ─────────────────────────────────────────────────────────────
 
-  constructWebhookEvent(rawBody: Buffer, signature: string, secret: string): Stripe.Event {
+  constructWebhookEvent(rawBody: Buffer, signature: string, secret: string) {
     // Try test client first; webhook construction doesn't depend on mode
     return this._testClient
       ? this._testClient.webhooks.constructEvent(rawBody, signature, secret)
