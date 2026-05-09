@@ -73,3 +73,6 @@ tmp/
 *.key
 *.crt
 .vercel
+
+# Claude Code
+.claude/settings.local.json
