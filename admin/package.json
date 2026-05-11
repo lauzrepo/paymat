@@ -19,7 +19,7 @@
     "@stripe/stripe-js": "^9.1.0",
     "@tanstack/react-query": "^5.100.10",
     "axios": "^1.15.2",
-    "lucide-react": "^0.577.0",
+    "lucide-react": "^1.14.0",
     "react": "^19.2.6",
     "react-dom": "^19.2.6",
     "react-hook-form": "^7.71.2",
