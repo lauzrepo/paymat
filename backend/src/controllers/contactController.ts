@@ -57,9 +57,10 @@ export const initializeCardCheckout = asyncHandler(async (req: Request, res: Res
 
   const org = await prisma.organization.findUnique({
     where: { id: req.organization!.id },
-    select: { stripeConnectAccountId: true, sandboxMode: true },
+    select: { stripeConnectAccountId: true, sandboxMode: true, stripeConnectOnboardingComplete: true },
   });
   if (!org?.stripeConnectAccountId) throw new AppError(503, 'Payment processing not configured for this organization');
+  if (!org.sandboxMode && !org.stripeConnectOnboardingComplete) throw new AppError(503, 'Stripe account setup is not complete — please finish onboarding before saving payment methods');
 
   const { sandboxMode } = org;
 
