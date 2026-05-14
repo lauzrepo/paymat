@@ -8,6 +8,10 @@ import {
   initializeInvoicePayment,
   confirmInvoicePayment,
   getMyPayments,
+  getAutopayStatus,
+  setupAutopay,
+  saveAutopay,
+  removeAutopay,
 } from '../controllers/clientController';
 
 const router = Router();
@@ -22,5 +26,9 @@ router.get('/invoices/:id', getMyInvoice);
 router.post('/invoices/:id/initialize-payment', initializeInvoicePayment);
 router.post('/invoices/:id/confirm-payment', confirmInvoicePayment);
 router.get('/payments', getMyPayments);
+router.get('/autopay', getAutopayStatus);
+router.post('/autopay/setup', setupAutopay);
+router.post('/autopay/save', saveAutopay);
+router.delete('/autopay', removeAutopay);
 
 export default router;

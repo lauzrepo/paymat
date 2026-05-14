@@ -19,6 +19,7 @@ import { InvoiceDetailPage } from './pages/invoices/InvoiceDetailPage';
 import { PaymentHistoryPage } from './pages/payments/PaymentHistoryPage';
 import { FeedbackListPage } from './pages/feedback/FeedbackListPage';
 import { FeedbackFormPage } from './pages/feedback/FeedbackFormPage';
+import { AutopayPage } from './pages/autopay/AutopayPage';
 
 function OrgRoutes() {
   const { orgSlug = '' } = useParams<{ orgSlug: string }>();
@@ -47,6 +48,7 @@ function OrgRoutes() {
           <Route path="invoices" element={<InvoicesPage />} />
           <Route path="invoices/:id" element={<InvoiceDetailPage />} />
           <Route path="payments" element={<PaymentHistoryPage />} />
+          <Route path="autopay" element={<AutopayPage />} />
           <Route path="feedback" element={<FeedbackListPage />} />
           <Route path="feedback/new" element={<FeedbackFormPage />} />
         </Route>

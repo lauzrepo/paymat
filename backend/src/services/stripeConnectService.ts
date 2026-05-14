@@ -171,6 +171,18 @@ class StripeConnectService {
     return this.getClient(sandboxMode).paymentIntents.retrieve(paymentIntentId, {}, { stripeAccount: connectAccountId });
   }
 
+  // ── Setup intent retrieval ───────────────────────────────────────────────
+
+  async retrieveSetupIntent(connectAccountId: string, setupIntentId: string, sandboxMode = true) {
+    return this.getClient(sandboxMode).setupIntents.retrieve(setupIntentId, {}, { stripeAccount: connectAccountId });
+  }
+
+  // ── Payment method retrieval ─────────────────────────────────────────────
+
+  async retrievePaymentMethod(connectAccountId: string, paymentMethodId: string, sandboxMode = true) {
+    return this.getClient(sandboxMode).paymentMethods.retrieve(paymentMethodId, { stripeAccount: connectAccountId });
+  }
+
   // ── Charge fee breakdown ─────────────────────────────────────────────────
   // Returns exact Stripe processing fee and net payout from the connected
   // account's balance transaction. Returns null if unavailable.

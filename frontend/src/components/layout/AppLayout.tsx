@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Outlet, NavLink, useNavigate } from 'react-router-dom';
-import { LayoutDashboard, BookOpen, FileText, Receipt, MessageSquare, User, LogOut, Menu, X, Sun, Moon } from 'lucide-react';
+import { LayoutDashboard, BookOpen, FileText, Receipt, MessageSquare, User, LogOut, Menu, X, Sun, Moon, RefreshCw } from 'lucide-react';
 import { cn } from '../../lib/utils';
 import { useMe, useLogout } from '../../hooks/useAuth';
 import { useOrgSlug } from '../../context/OrgSlugContext';
@@ -21,6 +21,7 @@ export function AppLayout() {
     { to: `${base}/enrollments`,  label: 'My Programs',     icon: BookOpen },
     { to: `${base}/invoices`,     label: 'Invoices',        icon: FileText },
     { to: `${base}/payments`,     label: 'Payment History', icon: Receipt },
+    { to: `${base}/autopay`,      label: 'Autopay',         icon: RefreshCw },
     { to: `${base}/feedback`,     label: 'Support',         icon: MessageSquare },
     { to: `${base}/account`,      label: 'My Account',      icon: User },
   ];
