@@ -1,4 +1,4 @@
-import { useQuery, useMutation } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
   getMe,
   getMyEnrollments,
@@ -6,6 +6,10 @@ import {
   getMyInvoice,
   initializeInvoicePayment,
   getMyPayments,
+  getAutopayStatus,
+  initializeAutopay,
+  confirmAutopay,
+  removeAutopay,
 } from '../api/client';
 
 export const useClientMe = () =>
@@ -25,4 +29,26 @@ export const useInitializeInvoicePayment = () =>
 
 export const useMyPayments = (page = 1) =>
   useQuery({ queryKey: ['client', 'payments', page], queryFn: () => getMyPayments(page) });
+
+export const useAutopayStatus = () =>
+  useQuery({ queryKey: ['client', 'autopay'], queryFn: getAutopayStatus });
+
+export const useInitializeAutopay = () =>
+  useMutation({ mutationFn: initializeAutopay });
+
+export const useConfirmAutopay = () => {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (setupIntentId: string) => confirmAutopay(setupIntentId),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['client', 'autopay'] }),
+  });
+};
+
+export const useRemoveAutopay = () => {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: removeAutopay,
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['client', 'autopay'] }),
+  });
+};
 

@@ -24,6 +24,7 @@ export function RegisterPage() {
   const registerMutation = useRegister();
   const { register, handleSubmit, formState: { errors } } = useForm<FormData>({
     resolver: zodResolver(schema),
+    mode: 'onBlur',
   });
 
   const onSubmit = (data: FormData) => registerMutation.mutate(data);
@@ -41,7 +42,14 @@ export function RegisterPage() {
           <Input label="First name" id="firstName" {...register('firstName')} error={errors.firstName?.message} />
           <Input label="Last name" id="lastName" {...register('lastName')} error={errors.lastName?.message} />
         </div>
-        <Input label="Email" id="email" type="email" {...register('email')} error={errors.email?.message} />
+        <Input
+          label="Email"
+          id="email"
+          type="email"
+          {...register('email')}
+          error={errors.email?.message}
+          hint="Enter a valid email address — this is used to log in and receive billing notifications."
+        />
         <Input label="Password" id="password" type="password" {...register('password')} error={errors.password?.message} />
         <Button type="submit" className="w-full" loading={registerMutation.isPending}>
           Create account

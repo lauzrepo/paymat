@@ -114,3 +114,33 @@ export const getMyPayments = (page = 1) =>
     (r) => r.data.data as { payments: Payment[]; total: number; page: number }
   );
 
+export interface AutopayCard {
+  brand: string;
+  last4: string;
+  expMonth: number;
+  expYear: number;
+}
+
+export interface AutopayStatus {
+  enabled: boolean;
+  card: AutopayCard | null;
+}
+
+export interface AutopayInitData {
+  clientSecret: string;
+  connectAccountId: string;
+  publishableKey: string;
+}
+
+export const getAutopayStatus = () =>
+  apiClient.get('/client/autopay').then((r) => r.data.data as AutopayStatus);
+
+export const initializeAutopay = () =>
+  apiClient.post('/client/autopay/initialize').then((r) => r.data.data as AutopayInitData);
+
+export const confirmAutopay = (setupIntentId: string) =>
+  apiClient.post('/client/autopay/confirm', { setupIntentId }).then((r) => r.data.data);
+
+export const removeAutopay = () =>
+  apiClient.delete('/client/autopay').then((r) => r.data.data);
+

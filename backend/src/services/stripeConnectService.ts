@@ -197,6 +197,29 @@ class StripeConnectService {
     }
   }
 
+  // ── Payment method management ────────────────────────────────────────────
+
+  async getPaymentMethod(paymentMethodId: string, connectAccountId: string, sandboxMode = true) {
+    return this.getClient(sandboxMode).paymentMethods.retrieve(
+      paymentMethodId,
+      { stripeAccount: connectAccountId }
+    );
+  }
+
+  async detachPaymentMethod(paymentMethodId: string, connectAccountId: string, sandboxMode = true) {
+    return this.getClient(sandboxMode).paymentMethods.detach(
+      paymentMethodId,
+      { stripeAccount: connectAccountId }
+    );
+  }
+
+  async retrieveSetupIntent(setupIntentId: string, connectAccountId: string, sandboxMode = true) {
+    return this.getClient(sandboxMode).setupIntents.retrieve(
+      setupIntentId,
+      { stripeAccount: connectAccountId }
+    );
+  }
+
   // ── Webhooks ─────────────────────────────────────────────────────────────
 
   constructWebhookEvent(rawBody: Buffer, signature: string, secret: string) {
