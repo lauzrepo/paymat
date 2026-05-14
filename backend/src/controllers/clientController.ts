@@ -326,6 +326,166 @@ export const confirmInvoicePayment = asyncHandler(async (req: Request, res: Resp
   res.json({ status: 'success', data: { invoice: updatedInvoice } });
 });
 
+// ── Auto-pay ──────────────────────────────────────────────────────────────────
+
+// GET /api/client/autopay
+export const getAutopayStatus = asyncHandler(async (req: Request, res: Response) => {
+  if (!req.user) throw new AppError(401, 'Not authenticated');
+
+  const user = await prisma.user.findUnique({ where: { id: req.user.userId } });
+  if (!user?.contactId) { res.json({ status: 'success', data: { enabled: false } }); return; }
+
+  const contact = await prisma.contact.findUnique({
+    where: { id: user.contactId },
+    select: { stripeDefaultPaymentMethodId: true, stripeCustomerId: true },
+  });
+
+  if (!contact?.stripeDefaultPaymentMethodId) {
+    res.json({ status: 'success', data: { enabled: false } }); return;
+  }
+
+  const org = await prisma.organization.findUnique({
+    where: { id: req.organization!.id },
+    select: { stripeConnectAccountId: true, sandboxMode: true },
+  });
+
+  let card: { brand: string; last4: string; expMonth: number; expYear: number } | null = null;
+  if (org?.stripeConnectAccountId) {
+    try {
+      const pm = await stripeConnectService.getPaymentMethod(
+        contact.stripeDefaultPaymentMethodId,
+        org.stripeConnectAccountId,
+        org.sandboxMode ?? true
+      );
+      if (pm.card) {
+        card = { brand: pm.card.brand, last4: pm.card.last4, expMonth: pm.card.exp_month, expYear: pm.card.exp_year };
+      }
+    } catch { /* return enabled=true without card details if Stripe is unavailable */ }
+  }
+
+  res.json({ status: 'success', data: { enabled: true, card } });
+});
+
+// POST /api/client/autopay/initialize
+export const initializeAutopay = asyncHandler(async (req: Request, res: Response) => {
+  if (!req.user) throw new AppError(401, 'Not authenticated');
+
+  const user = await prisma.user.findUnique({ where: { id: req.user.userId } });
+  if (!user?.contactId) throw new AppError(400, 'No contact linked to this account');
+
+  const contact = await prisma.contact.findUnique({
+    where: { id: user.contactId },
+    select: { stripeCustomerId: true, email: true, firstName: true, lastName: true },
+  });
+  if (!contact) throw new AppError(404, 'Contact not found');
+
+  const org = await prisma.organization.findUnique({
+    where: { id: req.organization!.id },
+    select: { stripeConnectAccountId: true, sandboxMode: true, stripeConnectOnboardingComplete: true },
+  });
+  if (!org?.stripeConnectAccountId) throw new AppError(503, 'Payment processing not configured');
+  if (!org.sandboxMode && !org.stripeConnectOnboardingComplete) throw new AppError(503, 'Stripe account setup is not complete');
+
+  const { sandboxMode } = org;
+
+  let stripeCustomerId = contact.stripeCustomerId ?? null;
+  if (!stripeCustomerId) {
+    stripeCustomerId = await stripeConnectService.createCustomer(
+      org.stripeConnectAccountId,
+      contact.email ?? undefined,
+      `${contact.firstName ?? ''} ${contact.lastName ?? ''}`.trim(),
+      sandboxMode
+    );
+    await prisma.contact.update({ where: { id: user.contactId }, data: { stripeCustomerId } });
+  }
+
+  const clientSecret = await stripeConnectService.createSetupIntent(
+    org.stripeConnectAccountId,
+    stripeCustomerId,
+    sandboxMode
+  );
+
+  res.json({
+    status: 'success',
+    data: {
+      clientSecret,
+      connectAccountId: org.stripeConnectAccountId,
+      publishableKey: stripeConnectService.getPublishableKey(sandboxMode),
+    },
+  });
+});
+
+// POST /api/client/autopay/confirm
+export const confirmAutopay = asyncHandler(async (req: Request, res: Response) => {
+  if (!req.user) throw new AppError(401, 'Not authenticated');
+
+  const { setupIntentId } = req.body as { setupIntentId?: string };
+  if (!setupIntentId) throw new AppError(400, 'setupIntentId is required');
+
+  const user = await prisma.user.findUnique({ where: { id: req.user.userId } });
+  if (!user?.contactId) throw new AppError(400, 'No contact linked to this account');
+
+  const org = await prisma.organization.findUnique({
+    where: { id: req.organization!.id },
+    select: { stripeConnectAccountId: true, sandboxMode: true },
+  });
+  if (!org?.stripeConnectAccountId) throw new AppError(503, 'Payment processing not configured');
+
+  const si = await stripeConnectService.retrieveSetupIntent(
+    setupIntentId,
+    org.stripeConnectAccountId,
+    org.sandboxMode ?? true
+  );
+
+  if (si.status !== 'succeeded') throw new AppError(400, 'Card setup did not complete successfully');
+
+  const paymentMethodId = typeof si.payment_method === 'string' ? si.payment_method : si.payment_method?.id;
+  if (!paymentMethodId) throw new AppError(400, 'No payment method found on setup intent');
+
+  await prisma.contact.update({
+    where: { id: user.contactId },
+    data: { stripeDefaultPaymentMethodId: paymentMethodId },
+  });
+
+  logger.info(`[ClientAPI] auto-pay enabled for contact ${user.contactId}`);
+  res.json({ status: 'success', data: { message: 'Auto-pay enabled' } });
+});
+
+// DELETE /api/client/autopay
+export const removeAutopay = asyncHandler(async (req: Request, res: Response) => {
+  if (!req.user) throw new AppError(401, 'Not authenticated');
+
+  const user = await prisma.user.findUnique({ where: { id: req.user.userId } });
+  if (!user?.contactId) throw new AppError(400, 'No contact linked to this account');
+
+  const contact = await prisma.contact.findUnique({
+    where: { id: user.contactId },
+    select: { stripeDefaultPaymentMethodId: true },
+  });
+
+  if (contact?.stripeDefaultPaymentMethodId) {
+    const org = await prisma.organization.findUnique({
+      where: { id: req.organization!.id },
+      select: { stripeConnectAccountId: true, sandboxMode: true },
+    });
+    if (org?.stripeConnectAccountId) {
+      stripeConnectService.detachPaymentMethod(
+        contact.stripeDefaultPaymentMethodId,
+        org.stripeConnectAccountId,
+        org.sandboxMode ?? true
+      ).catch(() => {}); // best-effort
+    }
+  }
+
+  await prisma.contact.update({
+    where: { id: user.contactId },
+    data: { stripeDefaultPaymentMethodId: null },
+  });
+
+  logger.info(`[ClientAPI] auto-pay removed for contact ${user.contactId}`);
+  res.json({ status: 'success', data: { message: 'Auto-pay removed' } });
+});
+
 // GET /api/client/payments
 export const getMyPayments = asyncHandler(async (req: Request, res: Response) => {
   if (!req.user) throw new AppError(401, 'Not authenticated');

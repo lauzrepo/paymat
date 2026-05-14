@@ -1,5 +1,6 @@
 import { User, Phone, Calendar, Users } from 'lucide-react';
 import { useClientMe } from '../../hooks/useClient';
+import { AutoPaySection } from '../../components/AutoPaySection';
 
 function Field({ label, value }: { label: string; value: string | null | undefined }) {
   return (
@@ -71,6 +72,8 @@ export function AccountPage() {
           </dl>
         </div>
       )}
+
+      <AutoPaySection userEmail={data?.email} />
     </div>
   );
 }

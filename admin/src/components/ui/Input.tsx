@@ -4,10 +4,11 @@ import { cn } from '../../lib/utils';
 interface InputProps extends React.InputHTMLAttributes<HTMLInputElement> {
   label?: string;
   error?: string;
+  hint?: string;
 }
 
 export const Input = forwardRef<HTMLInputElement, InputProps>(
-  ({ label, error, className, id, ...props }, ref) => (
+  ({ label, error, hint, className, id, ...props }, ref) => (
     <div>
       {label && (
         <label htmlFor={id} className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
@@ -24,7 +25,10 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
         )}
         {...props}
       />
-      {error && <p className="mt-1 text-xs text-red-600 dark:text-red-400">{error}</p>}
+      {error
+        ? <p className="mt-1 text-xs text-red-600 dark:text-red-400">{error}</p>
+        : hint && <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">{hint}</p>
+      }
     </div>
   )
 );
