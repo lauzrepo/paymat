@@ -6,6 +6,7 @@ import stripeConnectService from './stripeConnectService';
 import { sendInvoiceGenerated, sendPaymentReceived, sendPaymentFailed, sendOrgPaymentReceipt } from './emailService';
 import { config } from '../config/environment';
 import logger from '../utils/logger';
+import { nextInvoiceNumber } from '../utils/invoiceNumber';
 
 const PORTAL_URL = config.email.appUrl.replace('app.', 'portal.');
 
@@ -64,17 +65,6 @@ type EnrollmentWithRelations = Awaited<
   };
 };
 
-/** Returns the next globally-unique invoice number (INV-XXXXX).
- *  Finds the current highest numeric suffix across ALL orgs and increments it.
- *  invoiceNumber has a @unique constraint, so this must be global. */
-async function nextInvoiceNumber(): Promise<string> {
-  const last = await prisma.invoice.findFirst({
-    orderBy: { invoiceNumber: 'desc' },
-    select: { invoiceNumber: true },
-  });
-  const n = last ? parseInt(last.invoiceNumber.replace(/\D/g, ''), 10) : 0;
-  return `INV-${String((isNaN(n) ? 0 : n) + 1).padStart(5, '0')}`;
-}
 
 class BillingService {
   async generateDueInvoices(organizationId?: string) {
