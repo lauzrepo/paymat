@@ -4,6 +4,7 @@ type Decimal = Prisma.Decimal;
 import prisma from '../config/database';
 import { AppError } from '../middleware/errorHandler';
 import logger from '../utils/logger';
+import { nextInvoiceNumber } from '../utils/invoiceNumber';
 
 export interface CreateInvoiceData {
   organizationId: string;
@@ -32,8 +33,7 @@ class InvoiceService {
       return sum + item.unitPrice * qty;
     }, 0);
 
-    const count = await prisma.invoice.count({ where: { organizationId } });
-    const invoiceNumber = `INV-${String(count + 1).padStart(5, '0')}`;
+    const invoiceNumber = await nextInvoiceNumber();
 
     const invoice = await prisma.invoice.create({
       data: {
