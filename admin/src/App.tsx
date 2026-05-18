@@ -26,6 +26,7 @@ import { FeedbackPage } from './pages/feedback/FeedbackPage';
 import { FeedbackDetailPage } from './pages/feedback/FeedbackDetailPage';
 import { BillingPage } from './pages/billing/BillingPage';
 import { OnboardingPage } from './pages/onboarding/OnboardingPage';
+import { HowToPage } from './pages/help/HowToPage';
 
 function App() {
   return (
@@ -62,6 +63,7 @@ function App() {
             <Route path="/feedback/:id" element={<FeedbackDetailPage />} />
             <Route path="/billing" element={<BillingPage />} />
             <Route path="/settings" element={<SettingsPage />} />
+            <Route path="/how-to" element={<HowToPage />} />
           </Route>
 
           <Route path="*" element={<Navigate to="/" replace />} />
