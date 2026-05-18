@@ -10,6 +10,7 @@ import {
   Receipt,
   Settings,
   MessageSquare,
+  HelpCircle,
   X,
 } from 'lucide-react';
 import { cn } from '../../lib/utils';
@@ -26,6 +27,7 @@ const nav = [
   { to: '/feedback', label: 'Feedback', icon: MessageSquare },
   { to: '/billing', label: 'Billing', icon: Receipt },
   { to: '/settings', label: 'Settings', icon: Settings },
+  { to: '/how-to', label: 'How-To Guide', icon: HelpCircle },
 ];
 
 interface SidebarProps {
