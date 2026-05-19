@@ -31,6 +31,10 @@ export function useRefundPayment() {
   return useMutation({
     mutationFn: ({ id, amount, reason }: { id: string; amount?: number; reason?: string }) =>
       api.refundPayment(id, amount, reason),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['payments'] }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['payments'] });
+      queryClient.invalidateQueries({ queryKey: ['invoices'] });
+      queryClient.invalidateQueries({ queryKey: ['paymentStats'] });
+    },
   });
 }
