@@ -148,6 +148,15 @@ const SECTIONS: Section[] = [
           'Your organization can manually mark the invoice as paid if needed.',
         ],
       },
+      {
+        q: 'How do I request a refund?',
+        steps: [
+          'Contact your organization directly through the Support page.',
+          'Include the invoice number and the date and amount of the charge you\'d like refunded.',
+          'Your organization can issue refunds from their admin panel — they will confirm once processed.',
+          'You\'ll see the payment status change to Refunded in your Payment History once it\'s done.',
+        ],
+      },
     ],
   },
   {

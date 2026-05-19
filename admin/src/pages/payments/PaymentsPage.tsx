@@ -1,15 +1,58 @@
 import { useState } from 'react';
-import { usePayments, usePaymentStats } from '../../hooks/usePayments';
+import { usePayments, usePaymentStats, useRefundPayment } from '../../hooks/usePayments';
 import { Card, CardHeader, CardBody } from '../../components/ui/Card';
 import { Badge } from '../../components/ui/Badge';
+import { Button } from '../../components/ui/Button';
 import { Spinner } from '../../components/ui/Spinner';
 import { StatCard } from '../../components/shared/StatCard';
 import { formatCurrency, formatDate } from '../../lib/utils';
-import { DollarSign, CheckCircle, Hash } from 'lucide-react';
+import { DollarSign, CheckCircle, Hash, RotateCcw } from 'lucide-react';
+import type { Payment } from '../../types/payment';
 
 const STATUS_VARIANT: Record<string, 'green' | 'red' | 'gray' | 'yellow'> = {
   succeeded: 'green', failed: 'red', refunded: 'yellow',
 };
+
+function RefundButton({ payment }: { payment: Payment }) {
+  const [confirming, setConfirming] = useState(false);
+  const refund = useRefundPayment();
+
+  if (payment.status !== 'succeeded' || !payment.stripeChargeId) return null;
+
+  if (!confirming) {
+    return (
+      <button
+        onClick={() => setConfirming(true)}
+        className="flex items-center gap-1 text-xs text-gray-400 dark:text-gray-500 hover:text-red-600 dark:hover:text-red-400 transition-colors"
+      >
+        <RotateCcw className="h-3 w-3" /> Refund
+      </button>
+    );
+  }
+
+  return (
+    <div className="flex items-center gap-2">
+      <span className="text-xs text-gray-600 dark:text-gray-400">Refund {formatCurrency(payment.amount, payment.currency)}?</span>
+      <Button
+        size="sm"
+        variant="danger"
+        loading={refund.isPending}
+        onClick={async () => {
+          await refund.mutateAsync({ id: payment.id });
+          setConfirming(false);
+        }}
+      >
+        Confirm
+      </Button>
+      <button
+        onClick={() => setConfirming(false)}
+        className="text-xs text-gray-400 hover:text-gray-600 dark:hover:text-gray-200"
+      >
+        Cancel
+      </button>
+    </div>
+  );
+}
 
 export function PaymentsPage() {
   const [status, setStatus] = useState('');
@@ -49,15 +92,18 @@ export function PaymentsPage() {
               {/* Mobile cards */}
               <div className="md:hidden divide-y divide-gray-100 dark:divide-gray-700">
                 {payments.data.items.map((p) => (
-                  <div key={p.id} className="px-4 py-3 flex items-center justify-between gap-3">
-                    <div className="min-w-0">
-                      <p className="text-sm font-semibold text-gray-900 dark:text-gray-100">{formatCurrency(p.amount, p.currency)}</p>
-                      <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
-                        {p.invoice?.invoiceNumber ?? '—'} · <span className="capitalize">{p.paymentMethodType}</span>
-                      </p>
-                      <p className="text-xs text-gray-400 dark:text-gray-500">{formatDate(p.createdAt)}</p>
+                  <div key={p.id} className="px-4 py-3 space-y-1">
+                    <div className="flex items-center justify-between gap-3">
+                      <div className="min-w-0">
+                        <p className="text-sm font-semibold text-gray-900 dark:text-gray-100">{formatCurrency(p.amount, p.currency)}</p>
+                        <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
+                          {p.invoice?.invoiceNumber ?? '—'} · <span className="capitalize">{p.paymentMethodType}</span>
+                        </p>
+                        <p className="text-xs text-gray-400 dark:text-gray-500">{formatDate(p.createdAt)}</p>
+                      </div>
+                      <Badge variant={STATUS_VARIANT[p.status] ?? 'gray'}>{p.status}</Badge>
                     </div>
-                    <Badge variant={STATUS_VARIANT[p.status] ?? 'gray'}>{p.status}</Badge>
+                    <RefundButton payment={p} />
                   </div>
                 ))}
               </div>
@@ -72,6 +118,7 @@ export function PaymentsPage() {
                       <th className="px-6 py-3 text-left">Method</th>
                       <th className="px-6 py-3 text-left">Status</th>
                       <th className="px-6 py-3 text-left">Date</th>
+                      <th className="px-6 py-3 text-left"></th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-gray-100 dark:divide-gray-700">
@@ -84,6 +131,9 @@ export function PaymentsPage() {
                           <Badge variant={STATUS_VARIANT[p.status] ?? 'gray'}>{p.status}</Badge>
                         </td>
                         <td className="px-6 py-3 text-gray-500 dark:text-gray-400">{formatDate(p.createdAt)}</td>
+                        <td className="px-6 py-3">
+                          <RefundButton payment={p} />
+                        </td>
                       </tr>
                     ))}
                   </tbody>
