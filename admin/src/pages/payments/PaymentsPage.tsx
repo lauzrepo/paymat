@@ -15,6 +15,7 @@ const STATUS_VARIANT: Record<string, 'green' | 'red' | 'gray' | 'yellow'> = {
 
 function RefundButton({ payment }: { payment: Payment }) {
   const [confirming, setConfirming] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const refund = useRefundPayment();
 
   if (payment.status !== 'succeeded' || !payment.stripeChargeId) return null;
@@ -22,7 +23,7 @@ function RefundButton({ payment }: { payment: Payment }) {
   if (!confirming) {
     return (
       <button
-        onClick={() => setConfirming(true)}
+        onClick={() => { setConfirming(true); setError(null); }}
         className="flex items-center gap-1 text-xs text-gray-400 dark:text-gray-500 hover:text-red-600 dark:hover:text-red-400 transition-colors"
       >
         <RotateCcw className="h-3 w-3" /> Refund
@@ -31,25 +32,34 @@ function RefundButton({ payment }: { payment: Payment }) {
   }
 
   return (
-    <div className="flex items-center gap-2">
-      <span className="text-xs text-gray-600 dark:text-gray-400">Refund {formatCurrency(payment.amount, payment.currency)}?</span>
-      <Button
-        size="sm"
-        variant="danger"
-        loading={refund.isPending}
-        onClick={async () => {
-          await refund.mutateAsync({ id: payment.id });
-          setConfirming(false);
-        }}
-      >
-        Confirm
-      </Button>
-      <button
-        onClick={() => setConfirming(false)}
-        className="text-xs text-gray-400 hover:text-gray-600 dark:hover:text-gray-200"
-      >
-        Cancel
-      </button>
+    <div className="space-y-1">
+      <div className="flex items-center gap-2">
+        <span className="text-xs text-gray-600 dark:text-gray-400">Refund {formatCurrency(payment.amount, payment.currency)}?</span>
+        <Button
+          size="sm"
+          variant="danger"
+          loading={refund.isPending}
+          onClick={async () => {
+            setError(null);
+            try {
+              await refund.mutateAsync({ id: payment.id });
+              setConfirming(false);
+            } catch (err: unknown) {
+              const e = err as { response?: { data?: { message?: string } }; message?: string };
+              setError(e.response?.data?.message ?? e.message ?? 'Refund failed');
+            }
+          }}
+        >
+          Confirm
+        </Button>
+        <button
+          onClick={() => { setConfirming(false); setError(null); }}
+          className="text-xs text-gray-400 hover:text-gray-600 dark:hover:text-gray-200"
+        >
+          Cancel
+        </button>
+      </div>
+      {error && <p className="text-xs text-red-500 dark:text-red-400">{error}</p>}
     </div>
   );
 }
