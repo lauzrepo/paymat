@@ -1,6 +1,7 @@
 import Stripe from 'stripe';
 import { config } from '../config/environment';
 import logger from '../utils/logger';
+import { AppError } from '../middleware/errorHandler';
 
 type StripeClient = Stripe.Stripe;
 
@@ -148,10 +149,24 @@ class StripeConnectService {
   // ── Refunds ──────────────────────────────────────────────────────────────
 
   async refundCharge(connectAccountId: string, chargeId: string, amountCents?: number, sandboxMode = true): Promise<void> {
-    await this.getClient(sandboxMode).refunds.create(
-      { charge: chargeId, ...(amountCents !== undefined && { amount: amountCents }) },
-      { stripeAccount: connectAccountId }
-    );
+    const client = this.getClient(sandboxMode);
+    const params = { charge: chargeId, ...(amountCents !== undefined && { amount: amountCents }) };
+    try {
+      await client.refunds.create(params, { stripeAccount: connectAccountId });
+    } catch (err: unknown) {
+      const stripeErr = err as { code?: string; type?: string; message?: string };
+      if (stripeErr.code === 'resource_missing' || stripeErr.type === 'StripeInvalidRequestError') {
+        // Charge may be on the platform account (e.g. created before Connect account was linked)
+        try {
+          await client.refunds.create(params);
+        } catch (fallbackErr: unknown) {
+          const fe = fallbackErr as { message?: string };
+          throw new AppError(400, `Refund failed: ${fe.message ?? 'charge not found in Stripe'}`);
+        }
+      } else {
+        throw new AppError(400, `Refund failed: ${stripeErr.message ?? 'unknown Stripe error'}`);
+      }
+    }
     logger.info(`[StripeConnect] refunded charge ${chargeId} on account ${connectAccountId}`);
   }
 
