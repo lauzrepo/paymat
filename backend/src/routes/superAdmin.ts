@@ -6,6 +6,8 @@ import {
   superAdminRefreshToken,
   getSuperAdminMe,
   changeSuperAdminPassword,
+  superAdminForgotPassword,
+  superAdminResetPassword,
   listOrganizations,
   getOrganization,
   createOrganization,
@@ -22,6 +24,8 @@ const router = Router();
 // Auth — public
 router.post('/auth/login', authLimiter, superAdminLogin);
 router.post('/auth/refresh-token', authLimiter, superAdminRefreshToken);
+router.post('/auth/forgot-password', authLimiter, superAdminForgotPassword);
+router.post('/auth/reset-password', authLimiter, superAdminResetPassword);
 
 // Auth — protected
 router.get('/auth/me', apiLimiter, authenticateSuperAdmin, getSuperAdminMe);
