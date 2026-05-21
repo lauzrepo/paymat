@@ -1,7 +1,7 @@
 import { Router } from 'express';
 import { optionalAuth, authenticateToken, requireRole } from '../middleware/auth';
 import { runBilling } from '../controllers/billingController';
-import { getBillingStatus, getOwnPortalLink } from '../controllers/stripeBillingController';
+import { getBillingStatus, getOwnPortalLink, getConnectDashboardLink } from '../controllers/stripeBillingController';
 import {
   getMonthlyStatement, downloadMonthlyStatement, emailMonthlyStatement,
   getAnnualSummary, downloadAnnualSummary, emailAnnualSummary,
@@ -13,6 +13,7 @@ router.post('/run', optionalAuth, runBilling);
 
 router.get('/status', authenticateToken, requireRole('admin'), getBillingStatus);
 router.post('/portal', authenticateToken, requireRole('admin'), getOwnPortalLink);
+router.post('/connect-dashboard', authenticateToken, requireRole('admin'), getConnectDashboardLink);
 
 const adminAuth = [authenticateToken, requireRole('admin')] as const;
 router.get('/reports/monthly/:year/:month', ...adminAuth, getMonthlyStatement);

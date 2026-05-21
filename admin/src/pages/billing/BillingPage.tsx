@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useSearchParams, Link } from 'react-router-dom';
-import { Play, CreditCard, CheckCircle, AlertTriangle, XCircle, Clock, FileText, TrendingUp, AlertCircle, Download, Mail, BarChart2 } from 'lucide-react';
+import { Play, CreditCard, CheckCircle, AlertTriangle, XCircle, Clock, FileText, TrendingUp, AlertCircle, Download, Mail, BarChart2, ExternalLink } from 'lucide-react';
 import { apiClient } from '../../lib/axios';
 import { Card, CardHeader, CardBody } from '../../components/ui/Card';
 import { Button } from '../../components/ui/Button';
@@ -267,6 +267,7 @@ function ReportsCard() {
   const [emailSent, setEmailSent] = useState(false);
   const [emailError, setEmailError] = useState('');
   const [downloading, setDownloading] = useState(false);
+  const [dashboardLoading, setDashboardLoading] = useState(false);
 
   const years = Array.from({ length: 5 }, (_, i) => now.getFullYear() - i);
 
@@ -290,6 +291,15 @@ function ReportsCard() {
       }
     } catch { /* ignore */ }
     setPreviewLoading(false);
+  };
+
+  const handleConnectDashboard = async () => {
+    setDashboardLoading(true);
+    try {
+      const { data } = await apiClient.post('/billing/connect-dashboard');
+      window.location.href = data.data.url;
+    } catch { /* ignore */ }
+    setDashboardLoading(false);
   };
 
   const handleDownload = async () => {
@@ -399,6 +409,9 @@ function ReportsCard() {
         <div className="flex flex-wrap gap-3">
           <Button variant="secondary" size="sm" loading={downloading} onClick={handleDownload}>
             <Download className="h-4 w-4 mr-1.5" /> Download CSV
+          </Button>
+          <Button variant="secondary" size="sm" loading={dashboardLoading} onClick={handleConnectDashboard}>
+            <ExternalLink className="h-4 w-4 mr-1.5" /> View 1099-K in Stripe
           </Button>
         </div>
 

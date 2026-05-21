@@ -238,6 +238,13 @@ class StripeConnectService {
     );
   }
 
+  // ── Express dashboard login link ─────────────────────────────────────────
+
+  async createLoginLink(connectAccountId: string, sandboxMode = true): Promise<string> {
+    const link = await this.getClient(sandboxMode).accounts.createLoginLink(connectAccountId);
+    return link.url;
+  }
+
   // ── Webhooks ─────────────────────────────────────────────────────────────
 
   constructWebhookEvent(rawBody: Buffer, signature: string, secret: string) {
