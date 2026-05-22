@@ -319,6 +319,60 @@ export const promoteOrganizationToProduction = asyncHandler(async (req: Request,
   });
 });
 
+// POST /super-admin/organizations/:id/revert-sandbox
+// Reverts a production org back to sandbox mode with a fresh test Connect account.
+export const revertOrganizationToSandbox = asyncHandler(async (req: Request, res: Response) => {
+  const org = await prisma.organization.findUnique({ where: { id: req.params.id as string } });
+  if (!org) throw new AppError(404, 'Organization not found');
+  if (org.sandboxMode) throw new AppError(400, 'Organization is already in sandbox mode');
+
+  const appUrl = config.email.appUrl;
+
+  const adminUser = await prisma.user.findFirst({
+    where: { organizationId: org.id, role: 'admin', deletedAt: null },
+    select: { email: true, firstName: true, lastName: true },
+    orderBy: { createdAt: 'asc' },
+  });
+  const adminEmail = adminUser?.email ?? `admin@${org.slug}.placeholder`;
+  const adminName = adminUser ? `${adminUser.firstName} ${adminUser.lastName}`.trim() || adminEmail : adminEmail;
+
+  const testConnectAccountId = await stripeConnectService.createConnectAccount(
+    org.id,
+    org.name,
+    adminEmail,
+    true // test mode
+  );
+
+  const onboardingUrl = await stripeConnectService.createAccountOnboardingLink(
+    testConnectAccountId,
+    `${appUrl}/onboarding?stripe=connected`,
+    `${appUrl}/onboarding?stripe=refresh`,
+    true // test mode
+  );
+
+  await prisma.organization.update({
+    where: { id: org.id },
+    data: {
+      sandboxMode: true,
+      stripeConnectAccountId: testConnectAccountId,
+      stripeConnectOnboardingComplete: false,
+    },
+  });
+
+  await sendStripeOnboardingEmail(adminEmail, {
+    recipientName: adminName,
+    orgName: org.name,
+    onboardingUrl,
+  });
+
+  logger.info(`[SuperAdmin] org ${org.id} reverted to sandbox — new test Connect account ${testConnectAccountId}, onboarding email sent to ${adminEmail}`);
+
+  res.json({
+    status: 'success',
+    data: { emailSentTo: adminEmail },
+  });
+});
+
 export const deleteOrganization = asyncHandler(async (req: Request, res: Response) => {
   const id = req.params.id as string;
 

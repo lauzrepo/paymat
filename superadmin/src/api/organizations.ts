@@ -39,6 +39,9 @@ export const deleteOrganization = (id: string): Promise<void> =>
 export const promoteToProduction = (id: string): Promise<{ emailSentTo: string }> =>
   apiClient.post(`/organizations/${id}/promote`).then((r) => r.data.data);
 
+export const revertToSandbox = (id: string): Promise<{ emailSentTo: string }> =>
+  apiClient.post(`/organizations/${id}/revert-sandbox`).then((r) => r.data.data);
+
 export const sendBillingCheckout = (orgId: string): Promise<{ url: string }> =>
   apiClient.post(`/billing/send-checkout/${orgId}`).then((r) => r.data.data);
 

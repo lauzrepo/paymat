@@ -15,6 +15,7 @@ import {
   setOrganizationActive,
   deleteOrganization,
   promoteOrganizationToProduction,
+  revertOrganizationToSandbox,
 } from '../controllers/superAdminController';
 import { createInvite, listInvites, verifyInvite, redeemInvite, resendInvite, deleteInvite } from '../controllers/inviteController';
 import { sendCheckoutLink, getPortalLink } from '../controllers/stripeBillingController';
@@ -38,6 +39,7 @@ router.get('/organizations/:id', apiLimiter, authenticateSuperAdmin, getOrganiza
 router.put('/organizations/:id', apiLimiter, authenticateSuperAdmin, updateOrganization);
 router.patch('/organizations/:id/status', apiLimiter, authenticateSuperAdmin, setOrganizationActive);
 router.post('/organizations/:id/promote', apiLimiter, authenticateSuperAdmin, promoteOrganizationToProduction);
+router.post('/organizations/:id/revert-sandbox', apiLimiter, authenticateSuperAdmin, revertOrganizationToSandbox);
 router.delete('/organizations/:id', apiLimiter, authenticateSuperAdmin, deleteOrganization);
 
 // Stripe billing — protected
