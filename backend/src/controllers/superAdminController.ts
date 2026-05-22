@@ -103,7 +103,12 @@ export const superAdminForgotPassword = asyncHandler(async (req: Request, res: R
   });
 
   const resetUrl = `${config.email.superAdminUrl}/reset-password?token=${token}`;
-  await sendSuperAdminPasswordReset(admin.email, { recipientName: admin.name, resetUrl });
+
+  try {
+    await sendSuperAdminPasswordReset(admin.email, { recipientName: admin.name, resetUrl });
+  } catch (err) {
+    logger.error('Failed to send super admin password reset email:', err);
+  }
 
   const responseData: Record<string, string> = { message: 'If that email is registered, a reset link has been sent.' };
   if (config.app.isDevelopment) responseData.resetUrl = resetUrl;
@@ -118,6 +123,7 @@ export const superAdminResetPassword = asyncHandler(async (req: Request, res: Re
 
   const admin = await prisma.superAdmin.findUnique({ where: { passwordResetToken: token } });
   if (!admin || !admin.passwordResetExpiry || admin.passwordResetExpiry < new Date()) {
+    logger.warn('[SuperAdmin] Password reset attempted with invalid or expired token');
     throw new AppError(400, 'Invalid or expired reset token');
   }
 

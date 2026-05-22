@@ -44,7 +44,7 @@ export function ResetPasswordPage() {
     try {
       await authApi.resetPassword(token, newPassword);
       setSuccess(true);
-      setTimeout(() => navigate('/login'), 2500);
+      setTimeout(() => navigate('/login'), 1500);
     } catch (err: any) {
       setError(err?.response?.data?.message ?? 'Invalid or expired token. Please request a new link.');
     } finally {
@@ -86,6 +86,7 @@ export function ResetPasswordPage() {
                   onChange={(e) => setNewPassword(e.target.value)}
                   className="w-full bg-gray-800 border border-gray-700 text-white rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-violet-500"
                 />
+                <p className="mt-1 text-xs text-gray-500">Minimum 8 characters</p>
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-300 mb-1">Confirm password</label>
