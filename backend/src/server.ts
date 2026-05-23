@@ -5,6 +5,7 @@ import cron from 'node-cron';
 import { config } from './config/environment';
 import logger from './utils/logger';
 import billingService from './services/billingService';
+import prisma from './config/database';
 import { errorHandler, notFoundHandler } from './middleware/errorHandler';
 import { apiLimiter } from './middleware/rateLimiter';
 import { resolveTenant } from './middleware/tenant';
@@ -85,14 +86,37 @@ const server = app.listen(PORT, () => {
   logger.info(`❤️  Health check at http://localhost:${PORT}/health`);
 });
 
-// Run billing every day at 6am UTC
-cron.schedule('0 6 * * *', async () => {
-  logger.info('Cron: starting daily billing run');
-  try {
-    const result = await billingService.generateDueInvoices();
-    logger.info('Cron: billing run complete', result);
-  } catch (err) {
-    logger.error('Cron: billing run failed', { err });
+// Run billing at 8am in each org's local timezone — checked every hour
+cron.schedule('0 * * * *', async () => {
+  const now = new Date();
+  const orgs = await prisma.organization.findMany({
+    where: { isActive: true },
+    select: { id: true, name: true, timezone: true },
+  });
+
+  const dueOrgs = orgs.filter((org) => {
+    try {
+      const hour = parseInt(
+        now.toLocaleString('en-US', { timeZone: org.timezone, hour: 'numeric', hour12: false }),
+        10
+      );
+      return hour === 8;
+    } catch {
+      return false;
+    }
+  });
+
+  if (dueOrgs.length === 0) return;
+
+  logger.info(`Cron: billing due for ${dueOrgs.length} org(s) at local 8am`);
+  for (const org of dueOrgs) {
+    logger.info(`Cron: starting billing run for org ${org.name}`);
+    try {
+      const result = await billingService.generateDueInvoices(org.id);
+      logger.info('Cron: billing run complete', { org: org.name, ...result });
+    } catch (err) {
+      logger.error('Cron: billing run failed', { org: org.name, err });
+    }
   }
 });
 

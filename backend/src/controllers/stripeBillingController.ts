@@ -1,6 +1,7 @@
 import { Request, Response } from 'express';
 import prisma from '../config/database';
 import stripeService from '../services/stripeService';
+import stripeConnectService from '../services/stripeConnectService';
 import { asyncHandler, AppError } from '../middleware/errorHandler';
 import { config } from '../config/environment';
 
@@ -68,6 +69,19 @@ export const getOwnPortalLink = asyncHandler(async (req: Request, res: Response)
   );
 
   res.json({ status: 'success', data: { url: session.url } });
+});
+
+// POST /api/billing/connect-dashboard — creates a one-time Express Dashboard login link
+export const getConnectDashboardLink = asyncHandler(async (req: Request, res: Response) => {
+  if (!req.user) throw new AppError(401, 'Not authenticated');
+  const org = await prisma.organization.findUnique({
+    where: { id: req.organization!.id },
+    select: { stripeConnectAccountId: true, sandboxMode: true },
+  });
+  if (!org?.stripeConnectAccountId) throw new AppError(400, 'No Stripe Connect account linked yet');
+
+  const url = await stripeConnectService.createLoginLink(org.stripeConnectAccountId, org.sandboxMode);
+  res.json({ status: 'success', data: { url } });
 });
 
 // GET /api/billing/status — called from admin portal to show subscription status

@@ -257,12 +257,14 @@ model FeedbackSubmission {
 }
 
 model SuperAdmin {
-  id           String   @id @default(uuid())
-  email        String   @unique
-  passwordHash String   @map("password_hash")
-  name         String
-  createdAt    DateTime @default(now()) @map("created_at")
-  updatedAt    DateTime @updatedAt @map("updated_at")
+  id                   String    @id @default(uuid())
+  email                String    @unique
+  passwordHash         String    @map("password_hash")
+  name                 String
+  passwordResetToken   String?   @unique @map("password_reset_token")
+  passwordResetExpiry  DateTime? @map("password_reset_expiry")
+  createdAt            DateTime  @default(now()) @map("created_at")
+  updatedAt            DateTime  @updatedAt @map("updated_at")
 
   @@map("super_admins")
 }

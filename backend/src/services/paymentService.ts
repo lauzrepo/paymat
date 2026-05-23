@@ -108,10 +108,23 @@ class PaymentService {
     const amountCents = amount !== undefined ? Math.round(amount * 100) : undefined;
     await stripeConnectService.refundCharge(org.stripeConnectAccountId, payment.stripeChargeId, amountCents, org.sandboxMode);
 
+    const refundedAmount = amount ?? Number(payment.amount);
+
     await prisma.payment.update({
       where: { id: paymentId },
       data: { status: 'refunded' },
     });
+
+    const invoice = await prisma.invoice.findUnique({ where: { id: payment.invoiceId } });
+    if (invoice) {
+      const newAmountPaid = Math.max(0, Number(invoice.amountPaid) - refundedAmount);
+      const isPastDue = invoice.dueDate < new Date();
+      const newStatus = newAmountPaid >= Number(invoice.amountDue) ? 'paid' : isPastDue ? 'overdue' : 'sent';
+      await prisma.invoice.update({
+        where: { id: payment.invoiceId },
+        data: { amountPaid: new Decimal(newAmountPaid), status: newStatus, ...(newStatus !== 'paid' && { paidAt: null }) },
+      });
+    }
 
     logger.info(`Payment refunded: ${paymentId}`);
   }

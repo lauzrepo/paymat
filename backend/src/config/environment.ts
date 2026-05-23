@@ -32,6 +32,7 @@ const envSchema = z.object({
   RESEND_API_KEY: z.string().min(1, 'RESEND_API_KEY is required'),
   SUPER_ADMIN_EMAIL: z.string().email('SUPER_ADMIN_EMAIL must be a valid email'),
   APP_URL: z.string().url().default('https://app.cliqpaymat.app'),
+  SUPER_ADMIN_URL: z.string().url().default('https://superadmin.cliqpaymat.app'),
   STRIPE_SECRET_KEY: z.string().min(1, 'STRIPE_SECRET_KEY is required'),
   STRIPE_SECRET_KEY_LIVE: z.string().optional(),
   STRIPE_PUBLISHABLE_KEY_LIVE: z.string().optional(),
@@ -108,6 +109,7 @@ export const config = {
     resendApiKey: env.RESEND_API_KEY,
     superAdminEmail: env.SUPER_ADMIN_EMAIL,
     appUrl: env.APP_URL,
+    superAdminUrl: env.SUPER_ADMIN_URL,
   },
   stripe: {
     secretKey: env.STRIPE_SECRET_KEY,

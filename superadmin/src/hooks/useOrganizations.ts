@@ -63,3 +63,13 @@ export function usePromoteToProduction(id: string) {
     },
   });
 }
+
+export function useRevertToSandbox(id: string) {
+  return useMutation({
+    mutationFn: () => api.revertToSandbox(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['organizations', id] });
+      queryClient.invalidateQueries({ queryKey: ['organizations'] });
+    },
+  });
+}

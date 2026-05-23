@@ -73,7 +73,10 @@ export function SettingsPage() {
       </Card>
 
       <Card>
-        <CardHeader><h2 className="text-base font-semibold text-gray-900 dark:text-gray-100">Change Password</h2></CardHeader>
+        <CardHeader>
+          <h2 className="text-base font-semibold text-gray-900 dark:text-gray-100">Change Password</h2>
+          <p className="text-sm text-gray-500 dark:text-gray-400 mt-0.5">Update your password while logged in. To reset a forgotten password, use the login page.</p>
+        </CardHeader>
         <CardBody>
           <form onSubmit={handleChangePassword} className="space-y-4">
             <div>

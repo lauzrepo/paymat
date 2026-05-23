@@ -9,6 +9,7 @@ export interface Payment {
   status: string;
   paymentMethodType: string;
   notes: string | null;
+  stripeChargeId: string | null;
   createdAt: string;
   invoice?: { id: string; invoiceNumber: string } | null;
   user?: { id: string; email: string; firstName: string | null; lastName: string | null } | null;

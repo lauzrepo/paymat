@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
-import { ChevronLeft, CreditCard, ExternalLink, Rocket } from 'lucide-react';
-import { useOrganization, useUpdateOrganization, useSetOrganizationActive, useDeleteOrganization, usePromoteToProduction } from '../../hooks/useOrganizations';
+import { ChevronLeft, CreditCard, ExternalLink, Rocket, RotateCcw } from 'lucide-react';
+import { useOrganization, useUpdateOrganization, useSetOrganizationActive, useDeleteOrganization, usePromoteToProduction, useRevertToSandbox } from '../../hooks/useOrganizations';
 import { sendBillingCheckout, getBillingPortalLink } from '../../api/organizations';
 import { Card, CardHeader, CardBody } from '../../components/ui/Card';
 import { Button } from '../../components/ui/Button';
@@ -25,11 +25,13 @@ export function OrganizationDetailPage() {
   const setActive = useSetOrganizationActive();
   const deleteOrg = useDeleteOrganization();
   const promote = usePromoteToProduction(id!);
+  const revert = useRevertToSandbox(id!);
 
   const [editing, setEditing] = useState(false);
   const [billingLoading, setBillingLoading] = useState(false);
   const [billingMsg, setBillingMsg] = useState('');
   const [promoteMsg, setPromoteMsg] = useState('');
+  const [revertMsg, setRevertMsg] = useState('');
 
   const handleSendCheckout = async () => {
     if (!org) return;
@@ -102,6 +104,21 @@ export function OrganizationDetailPage() {
     } catch (err: unknown) {
       const msg = (err as { response?: { data?: { message?: string } } })?.response?.data?.message;
       setPromoteMsg(msg ?? 'Failed to promote organization.');
+    }
+  };
+
+  const handleRevert = async () => {
+    if (!org) return;
+    if (!window.confirm(
+      `Revert "${org.name}" back to sandbox mode?\n\nThis will create a new test Stripe Connect account. The org must complete onboarding again in sandbox mode.`
+    )) return;
+    setRevertMsg('');
+    try {
+      const { emailSentTo } = await revert.mutateAsync();
+      setRevertMsg(`Reverted to sandbox. Onboarding email sent to ${emailSentTo}.`);
+    } catch (err: unknown) {
+      const msg = (err as { response?: { data?: { message?: string } } })?.response?.data?.message;
+      setRevertMsg(msg ?? 'Failed to revert organization.');
     }
   };
 
@@ -334,6 +351,42 @@ export function OrganizationDetailPage() {
               className="flex-shrink-0"
             >
               <Rocket className="h-3.5 w-3.5 mr-1" /> Promote to production
+            </Button>
+          </CardBody>
+        </Card>
+      )}
+
+      {/* Revert to Sandbox */}
+      {org.sandboxMode === false && (
+        <Card>
+          <CardHeader className="flex items-center gap-2">
+            <RotateCcw className="h-4 w-4 text-gray-500 dark:text-gray-400" />
+            <h2 className="text-base font-semibold text-gray-900 dark:text-gray-100">Revert to Sandbox</h2>
+          </CardHeader>
+          <CardBody className="flex items-start justify-between gap-4">
+            <div className="flex-1">
+              <p className="text-sm text-gray-700 dark:text-gray-300">
+                This organization is in <span className="font-semibold text-blue-700 dark:text-blue-400">production mode</span>.
+                Reverting creates a new test Stripe Connect account and switches back to test keys.
+              </p>
+              <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                The org admin will need to complete onboarding again in sandbox mode.
+                Existing live Stripe data is not affected.
+              </p>
+              {revertMsg && (
+                <p className={`text-xs mt-2 ${revertMsg.includes('Failed') ? 'text-red-600' : 'text-green-600 dark:text-green-400'}`}>
+                  {revertMsg}
+                </p>
+              )}
+            </div>
+            <Button
+              size="sm"
+              variant="secondary"
+              loading={revert.isPending}
+              onClick={handleRevert}
+              className="flex-shrink-0"
+            >
+              <RotateCcw className="h-3.5 w-3.5 mr-1" /> Revert to sandbox
             </Button>
           </CardBody>
         </Card>

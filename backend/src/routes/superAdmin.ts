@@ -6,6 +6,8 @@ import {
   superAdminRefreshToken,
   getSuperAdminMe,
   changeSuperAdminPassword,
+  superAdminForgotPassword,
+  superAdminResetPassword,
   listOrganizations,
   getOrganization,
   createOrganization,
@@ -13,6 +15,7 @@ import {
   setOrganizationActive,
   deleteOrganization,
   promoteOrganizationToProduction,
+  revertOrganizationToSandbox,
 } from '../controllers/superAdminController';
 import { createInvite, listInvites, verifyInvite, redeemInvite, resendInvite, deleteInvite } from '../controllers/inviteController';
 import { sendCheckoutLink, getPortalLink } from '../controllers/stripeBillingController';
@@ -22,6 +25,8 @@ const router = Router();
 // Auth — public
 router.post('/auth/login', authLimiter, superAdminLogin);
 router.post('/auth/refresh-token', authLimiter, superAdminRefreshToken);
+router.post('/auth/forgot-password', authLimiter, superAdminForgotPassword);
+router.post('/auth/reset-password', authLimiter, superAdminResetPassword);
 
 // Auth — protected
 router.get('/auth/me', apiLimiter, authenticateSuperAdmin, getSuperAdminMe);
@@ -34,6 +39,7 @@ router.get('/organizations/:id', apiLimiter, authenticateSuperAdmin, getOrganiza
 router.put('/organizations/:id', apiLimiter, authenticateSuperAdmin, updateOrganization);
 router.patch('/organizations/:id/status', apiLimiter, authenticateSuperAdmin, setOrganizationActive);
 router.post('/organizations/:id/promote', apiLimiter, authenticateSuperAdmin, promoteOrganizationToProduction);
+router.post('/organizations/:id/revert-sandbox', apiLimiter, authenticateSuperAdmin, revertOrganizationToSandbox);
 router.delete('/organizations/:id', apiLimiter, authenticateSuperAdmin, deleteOrganization);
 
 // Stripe billing — protected

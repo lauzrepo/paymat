@@ -1,5 +1,6 @@
 import { Resend } from 'resend';
 import { config } from '../config/environment';
+import type { MonthlyStatement, AnnualSummary } from './reportService';
 
 const resend = new Resend(config.email.resendApiKey);
 const FROM = 'Cliq Paymat <noreply@cliqpaymat.app>';
@@ -273,6 +274,32 @@ export async function sendStripeOnboardingEmail(to: string, details: {
   });
 }
 
+export async function sendSuperAdminPasswordReset(to: string, details: {
+  recipientName: string;
+  resetUrl: string;
+}) {
+  await resend.emails.send({
+    from: FROM,
+    to,
+    subject: 'Reset your Paymat super admin password',
+    html: `
+      <div style="font-family:sans-serif;max-width:600px;margin:0 auto">
+        <div style="background:#7c3aed;padding:24px;border-radius:8px 8px 0 0;text-align:center">
+          <h1 style="color:#fff;margin:0;font-size:22px">Super Admin Password Reset</h1>
+        </div>
+        <div style="background:#fff;border:1px solid #e5e7eb;border-top:none;border-radius:0 0 8px 8px;padding:32px">
+          <p style="font-size:16px;color:#111827">Hi ${details.recipientName},</p>
+          <p style="color:#6b7280">We received a request to reset your super admin password. Click the button below to choose a new one. This link expires in 1 hour.</p>
+          <div style="text-align:center;margin:32px 0">
+            <a href="${details.resetUrl}" style="background:#7c3aed;color:#fff;padding:12px 28px;border-radius:8px;text-decoration:none;font-size:15px;font-weight:600">Reset Password</a>
+          </div>
+          <p style="color:#9ca3af;font-size:12px">If you didn't request this, you can safely ignore this email. Your password won't change.</p>
+        </div>
+      </div>
+    `,
+  });
+}
+
 export async function sendPasswordReset(to: string, details: {
   recipientName: string;
   resetUrl: string;
@@ -293,6 +320,102 @@ export async function sendPasswordReset(to: string, details: {
             <a href="${details.resetUrl}" style="background:#4f46e5;color:#fff;padding:12px 28px;border-radius:8px;text-decoration:none;font-size:15px;font-weight:600">Reset Password</a>
           </div>
           <p style="color:#9ca3af;font-size:12px">If you didn't request this, you can safely ignore this email. Your password won't change.</p>
+        </div>
+      </div>
+    `,
+  });
+}
+
+export async function sendMonthlyStatement(to: string, stmt: MonthlyStatement) {
+  const fmt = (n: number) => `$${n.toFixed(2)}`;
+  const paymentRows = stmt.payments.map((p) => `
+    <tr>
+      <td style="padding:6px 8px;border-bottom:1px solid #f3f4f6;color:#6b7280;font-size:13px">${p.date}</td>
+      <td style="padding:6px 8px;border-bottom:1px solid #f3f4f6;font-size:13px">${p.invoiceNumber}</td>
+      <td style="padding:6px 8px;border-bottom:1px solid #f3f4f6;font-size:13px;text-align:right">${fmt(p.amount)}</td>
+      <td style="padding:6px 8px;border-bottom:1px solid #f3f4f6;font-size:13px;text-transform:capitalize">${p.method}</td>
+      <td style="padding:6px 8px;border-bottom:1px solid #f3f4f6;font-size:13px;color:${p.status === 'succeeded' ? '#059669' : p.status === 'refunded' ? '#d97706' : '#6b7280'}">${p.status}</td>
+    </tr>`).join('');
+
+  await resend.emails.send({
+    from: FROM,
+    to,
+    subject: `${stmt.monthName} ${stmt.year} Statement — ${stmt.orgName}`,
+    html: `
+      <div style="font-family:sans-serif;max-width:640px;margin:0 auto">
+        <div style="background:#4f46e5;padding:24px;border-radius:8px 8px 0 0">
+          <h1 style="color:#fff;margin:0;font-size:20px">Monthly Statement</h1>
+          <p style="color:#c7d2fe;margin:4px 0 0;font-size:14px">${stmt.monthName} ${stmt.year} — ${stmt.orgName}</p>
+        </div>
+        <div style="background:#fff;border:1px solid #e5e7eb;border-top:none;border-radius:0 0 8px 8px;padding:32px">
+          <table style="width:100%;border-collapse:collapse;margin-bottom:28px">
+            <tr><td style="padding:6px 0;color:#6b7280;font-size:14px;width:180px">Invoices created</td><td style="font-weight:600;color:#111827;font-size:14px">${stmt.summary.invoicesCreated}</td></tr>
+            <tr><td style="padding:6px 0;color:#6b7280;font-size:14px">Total invoiced</td><td style="font-weight:600;color:#111827;font-size:14px">${fmt(stmt.summary.totalInvoiced)}</td></tr>
+            <tr><td style="padding:6px 0;color:#6b7280;font-size:14px">Total collected</td><td style="font-weight:700;color:#059669;font-size:16px">${fmt(stmt.summary.totalCollected)}</td></tr>
+            <tr><td style="padding:6px 0;color:#6b7280;font-size:14px">Total refunded</td><td style="font-weight:600;color:#d97706;font-size:14px">${fmt(stmt.summary.totalRefunded)}</td></tr>
+            <tr><td style="padding:6px 0;color:#6b7280;font-size:14px">Outstanding</td><td style="font-weight:600;color:#111827;font-size:14px">${fmt(stmt.summary.outstanding)}</td></tr>
+          </table>
+          ${stmt.payments.length > 0 ? `
+          <h3 style="font-size:14px;font-weight:600;color:#111827;margin:0 0 8px">Payments (${stmt.payments.length})</h3>
+          <table style="width:100%;border-collapse:collapse;margin-bottom:24px">
+            <thead><tr style="background:#f9fafb">
+              <th style="padding:8px;text-align:left;font-size:11px;color:#6b7280;text-transform:uppercase;font-weight:600">Date</th>
+              <th style="padding:8px;text-align:left;font-size:11px;color:#6b7280;text-transform:uppercase;font-weight:600">Invoice</th>
+              <th style="padding:8px;text-align:right;font-size:11px;color:#6b7280;text-transform:uppercase;font-weight:600">Amount</th>
+              <th style="padding:8px;text-align:left;font-size:11px;color:#6b7280;text-transform:uppercase;font-weight:600">Method</th>
+              <th style="padding:8px;text-align:left;font-size:11px;color:#6b7280;text-transform:uppercase;font-weight:600">Status</th>
+            </tr></thead>
+            <tbody>${paymentRows}</tbody>
+          </table>` : ''}
+          <p style="color:#9ca3af;font-size:12px;margin:24px 0 0">Log in to your Paymat admin panel to download a full CSV of this statement.</p>
+        </div>
+      </div>
+    `,
+  });
+}
+
+export async function sendAnnualSummary(to: string, summary: AnnualSummary) {
+  const fmt = (n: number) => `$${n.toFixed(2)}`;
+  const monthRows = summary.months
+    .filter((m) => m.grossCollected > 0 || m.refunded > 0)
+    .map((m) => `
+      <tr>
+        <td style="padding:6px 8px;border-bottom:1px solid #f3f4f6;font-size:13px">${m.monthName}</td>
+        <td style="padding:6px 8px;border-bottom:1px solid #f3f4f6;font-size:13px;text-align:right;color:#059669">${fmt(m.grossCollected)}</td>
+        <td style="padding:6px 8px;border-bottom:1px solid #f3f4f6;font-size:13px;text-align:right;color:${m.refunded > 0 ? '#d97706' : '#9ca3af'}">${fmt(m.refunded)}</td>
+        <td style="padding:6px 8px;border-bottom:1px solid #f3f4f6;font-size:13px;text-align:right;font-weight:600;color:#111827">${fmt(m.netRevenue)}</td>
+      </tr>`).join('');
+
+  await resend.emails.send({
+    from: FROM,
+    to,
+    subject: `${summary.year} Annual Revenue Summary — ${summary.orgName}`,
+    html: `
+      <div style="font-family:sans-serif;max-width:640px;margin:0 auto">
+        <div style="background:#4f46e5;padding:24px;border-radius:8px 8px 0 0">
+          <h1 style="color:#fff;margin:0;font-size:20px">Annual Revenue Summary</h1>
+          <p style="color:#c7d2fe;margin:4px 0 0;font-size:14px">${summary.year} — ${summary.orgName}</p>
+        </div>
+        <div style="background:#fff;border:1px solid #e5e7eb;border-top:none;border-radius:0 0 8px 8px;padding:32px">
+          <div style="background:#f0fdf4;border-radius:8px;padding:20px;margin-bottom:28px">
+            <table style="width:100%;border-collapse:collapse">
+              <tr><td style="padding:4px 0;color:#6b7280;font-size:14px;width:180px">Gross collected</td><td style="font-weight:700;color:#059669;font-size:20px">${fmt(summary.totals.grossCollected)}</td></tr>
+              <tr><td style="padding:4px 0;color:#6b7280;font-size:14px">Total refunded</td><td style="color:#d97706;font-size:14px;font-weight:600">${fmt(summary.totals.refunded)}</td></tr>
+              <tr><td style="padding:4px 0;color:#6b7280;font-size:14px">Net revenue</td><td style="font-weight:700;color:#111827;font-size:18px">${fmt(summary.totals.netRevenue)}</td></tr>
+            </table>
+          </div>
+          ${monthRows ? `
+          <h3 style="font-size:14px;font-weight:600;color:#111827;margin:0 0 8px">Monthly Breakdown</h3>
+          <table style="width:100%;border-collapse:collapse;margin-bottom:24px">
+            <thead><tr style="background:#f9fafb">
+              <th style="padding:8px;text-align:left;font-size:11px;color:#6b7280;text-transform:uppercase;font-weight:600">Month</th>
+              <th style="padding:8px;text-align:right;font-size:11px;color:#6b7280;text-transform:uppercase;font-weight:600">Gross</th>
+              <th style="padding:8px;text-align:right;font-size:11px;color:#6b7280;text-transform:uppercase;font-weight:600">Refunds</th>
+              <th style="padding:8px;text-align:right;font-size:11px;color:#6b7280;text-transform:uppercase;font-weight:600">Net</th>
+            </tr></thead>
+            <tbody>${monthRows}</tbody>
+          </table>` : '<p style="color:#9ca3af;font-size:13px">No payments recorded for this year.</p>'}
+          <p style="color:#9ca3af;font-size:11px;margin:24px 0 0;border-top:1px solid #f3f4f6;padding-top:16px">This summary is provided for reference only and is not an official IRS 1099 form. Download a full CSV from your Paymat admin panel.</p>
         </div>
       </div>
     `,

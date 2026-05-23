@@ -19,6 +19,7 @@ import { InvoiceDetailPage } from './pages/invoices/InvoiceDetailPage';
 import { PaymentHistoryPage } from './pages/payments/PaymentHistoryPage';
 import { FeedbackListPage } from './pages/feedback/FeedbackListPage';
 import { FeedbackFormPage } from './pages/feedback/FeedbackFormPage';
+import { HowToPage } from './pages/help/HowToPage';
 
 function OrgRoutes() {
   const { orgSlug = '' } = useParams<{ orgSlug: string }>();
@@ -49,6 +50,7 @@ function OrgRoutes() {
           <Route path="payments" element={<PaymentHistoryPage />} />
           <Route path="feedback" element={<FeedbackListPage />} />
           <Route path="feedback/new" element={<FeedbackFormPage />} />
+          <Route path="how-to" element={<HowToPage />} />
         </Route>
 
         <Route path="*" element={<Navigate to="" replace />} />

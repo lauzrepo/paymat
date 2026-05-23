@@ -7,8 +7,9 @@ import {
   verifySuperAdminRefreshToken,
 } from '../middleware/superAdminAuth';
 import { config } from '../config/environment';
+import crypto from 'crypto';
 import stripeConnectService from '../services/stripeConnectService';
-import { sendStripeOnboardingEmail } from '../services/emailService';
+import { sendStripeOnboardingEmail, sendSuperAdminPasswordReset } from '../services/emailService';
 import logger from '../utils/logger';
 
 // ---------------------------------------------------------------------------
@@ -79,6 +80,60 @@ export const changeSuperAdminPassword = asyncHandler(async (req: Request, res: R
   await prisma.superAdmin.update({ where: { id: admin.id }, data: { passwordHash } });
 
   res.json({ status: 'success', data: { message: 'Password updated successfully' } });
+});
+
+export const superAdminForgotPassword = asyncHandler(async (req: Request, res: Response) => {
+  const { email } = req.body;
+  if (!email) throw new AppError(400, 'Email is required');
+
+  const admin = await prisma.superAdmin.findUnique({ where: { email } });
+
+  // Always return success to prevent email enumeration
+  if (!admin) {
+    res.json({ status: 'success', data: { message: 'If that email is registered, a reset link has been sent.' } });
+    return;
+  }
+
+  const token = crypto.randomBytes(32).toString('hex');
+  const expiry = new Date(Date.now() + 60 * 60 * 1000); // 1 hour
+
+  await prisma.superAdmin.update({
+    where: { id: admin.id },
+    data: { passwordResetToken: token, passwordResetExpiry: expiry },
+  });
+
+  const resetUrl = `${config.email.superAdminUrl}/reset-password?token=${token}`;
+
+  try {
+    await sendSuperAdminPasswordReset(admin.email, { recipientName: admin.name, resetUrl });
+  } catch (err) {
+    logger.error('Failed to send super admin password reset email:', err);
+  }
+
+  const responseData: Record<string, string> = { message: 'If that email is registered, a reset link has been sent.' };
+  if (config.app.isDevelopment) responseData.resetUrl = resetUrl;
+
+  res.json({ status: 'success', data: responseData });
+});
+
+export const superAdminResetPassword = asyncHandler(async (req: Request, res: Response) => {
+  const { token, newPassword } = req.body;
+  if (!token || !newPassword) throw new AppError(400, 'token and newPassword are required');
+  if (newPassword.length < 8) throw new AppError(400, 'New password must be at least 8 characters');
+
+  const admin = await prisma.superAdmin.findUnique({ where: { passwordResetToken: token } });
+  if (!admin || !admin.passwordResetExpiry || admin.passwordResetExpiry < new Date()) {
+    logger.warn('[SuperAdmin] Password reset attempted with invalid or expired token');
+    throw new AppError(400, 'Invalid or expired reset token');
+  }
+
+  const passwordHash = await bcrypt.hash(newPassword, config.security.bcryptRounds);
+  await prisma.superAdmin.update({
+    where: { id: admin.id },
+    data: { passwordHash, passwordResetToken: null, passwordResetExpiry: null },
+  });
+
+  res.json({ status: 'success', data: { message: 'Password reset successfully' } });
 });
 
 // ---------------------------------------------------------------------------
@@ -257,6 +312,60 @@ export const promoteOrganizationToProduction = asyncHandler(async (req: Request,
   });
 
   logger.info(`[SuperAdmin] org ${org.id} promoted to production — new Connect account ${liveConnectAccountId}, onboarding email sent to ${adminEmail}`);
+
+  res.json({
+    status: 'success',
+    data: { emailSentTo: adminEmail },
+  });
+});
+
+// POST /super-admin/organizations/:id/revert-sandbox
+// Reverts a production org back to sandbox mode with a fresh test Connect account.
+export const revertOrganizationToSandbox = asyncHandler(async (req: Request, res: Response) => {
+  const org = await prisma.organization.findUnique({ where: { id: req.params.id as string } });
+  if (!org) throw new AppError(404, 'Organization not found');
+  if (org.sandboxMode) throw new AppError(400, 'Organization is already in sandbox mode');
+
+  const appUrl = config.email.appUrl;
+
+  const adminUser = await prisma.user.findFirst({
+    where: { organizationId: org.id, role: 'admin', deletedAt: null },
+    select: { email: true, firstName: true, lastName: true },
+    orderBy: { createdAt: 'asc' },
+  });
+  const adminEmail = adminUser?.email ?? `admin@${org.slug}.placeholder`;
+  const adminName = adminUser ? `${adminUser.firstName} ${adminUser.lastName}`.trim() || adminEmail : adminEmail;
+
+  const testConnectAccountId = await stripeConnectService.createConnectAccount(
+    org.id,
+    org.name,
+    adminEmail,
+    true // test mode
+  );
+
+  const onboardingUrl = await stripeConnectService.createAccountOnboardingLink(
+    testConnectAccountId,
+    `${appUrl}/onboarding?stripe=connected`,
+    `${appUrl}/onboarding?stripe=refresh`,
+    true // test mode
+  );
+
+  await prisma.organization.update({
+    where: { id: org.id },
+    data: {
+      sandboxMode: true,
+      stripeConnectAccountId: testConnectAccountId,
+      stripeConnectOnboardingComplete: false,
+    },
+  });
+
+  await sendStripeOnboardingEmail(adminEmail, {
+    recipientName: adminName,
+    orgName: org.name,
+    onboardingUrl,
+  });
+
+  logger.info(`[SuperAdmin] org ${org.id} reverted to sandbox — new test Connect account ${testConnectAccountId}, onboarding email sent to ${adminEmail}`);
 
   res.json({
     status: 'success',

@@ -6,6 +6,8 @@ import { AppLayout } from './components/layout/AppLayout';
 import { ProtectedRoute } from './components/shared/ProtectedRoute';
 
 import { LoginPage } from './pages/auth/LoginPage';
+import { ForgotPasswordPage } from './pages/auth/ForgotPasswordPage';
+import { ResetPasswordPage } from './pages/auth/ResetPasswordPage';
 import { OrganizationsPage } from './pages/organizations/OrganizationsPage';
 import { OrganizationDetailPage } from './pages/organizations/OrganizationDetailPage';
 import { CreateOrganizationPage } from './pages/organizations/CreateOrganizationPage';
@@ -18,6 +20,8 @@ function App() {
       <BrowserRouter>
         <Routes>
           <Route path="/login" element={<LoginPage />} />
+          <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+          <Route path="/reset-password" element={<ResetPasswordPage />} />
 
           <Route
             element={

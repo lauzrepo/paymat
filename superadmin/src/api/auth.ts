@@ -12,3 +12,11 @@ export const getMe = (): Promise<SuperAdminUser> =>
 
 export const changePassword = (currentPassword: string, newPassword: string): Promise<void> =>
   apiClient.post('/auth/change-password', { currentPassword, newPassword }).then(() => undefined);
+
+export const forgotPassword = async (email: string): Promise<{ message: string; resetUrl?: string }> => {
+  const res = await apiClient.post('/auth/forgot-password', { email });
+  return res.data.data as { message: string; resetUrl?: string };
+};
+
+export const resetPassword = (token: string, newPassword: string): Promise<void> =>
+  apiClient.post('/auth/reset-password', { token, newPassword }).then(() => undefined);
