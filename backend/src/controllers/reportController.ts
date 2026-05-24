@@ -27,7 +27,7 @@ export const downloadMonthlyStatement = asyncHandler(async (req: Request, res: R
   const m = parseMonth(req.params.month);
   const stmt = await reportService.getMonthlyStatement(req.organization!.id, y, m);
   const csv = reportService.generateMonthlyCsv(stmt);
-  const filename = `statement-${stmt.orgName.toLowerCase().replace(/\s+/g, '-')}-${y}-${String(m).padStart(2, '0')}.csv`;
+  const filename = `statement-${stmt.orgName.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '_')}-${y}-${String(m).padStart(2, '0')}.csv`;
   res.setHeader('Content-Type', 'text/csv');
   res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
   res.send(csv);
@@ -53,7 +53,7 @@ export const downloadAnnualSummary = asyncHandler(async (req: Request, res: Resp
   const y = parseYear(req.params.year);
   const summary = await reportService.getAnnualSummary(req.organization!.id, y);
   const csv = reportService.generateAnnualCsv(summary);
-  const filename = `revenue-summary-${summary.orgName.toLowerCase().replace(/\s+/g, '-')}-${y}.csv`;
+  const filename = `revenue-summary-${summary.orgName.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '_')}-${y}.csv`;
   res.setHeader('Content-Type', 'text/csv');
   res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
   res.send(csv);
