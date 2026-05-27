@@ -326,6 +326,42 @@ export async function sendPasswordReset(to: string, details: {
   });
 }
 
+export async function sendInviteAccepted(to: string, details: {
+  recipientName: string;
+  orgName: string;
+  orgSlug: string;
+}) {
+  const adminUrl = config.email.appUrl;
+
+  await resend.emails.send({
+    from: FROM,
+    to,
+    subject: `${details.orgName} is live on Cliqpaymat`,
+    html: `
+      <div style="font-family:sans-serif;max-width:600px;margin:0 auto">
+        <div style="background:#059669;padding:24px;border-radius:8px 8px 0 0;text-align:center">
+          <h1 style="color:#fff;margin:0;font-size:24px">You're all set!</h1>
+        </div>
+        <div style="background:#fff;border:1px solid #e5e7eb;border-top:none;border-radius:0 0 8px 8px;padding:32px">
+          <p style="font-size:16px;color:#111827">Hi ${details.recipientName},</p>
+          <p style="color:#6b7280"><strong>${details.orgName}</strong> has been successfully set up on Cliqpaymat. Your account is ready to go.</p>
+          <div style="background:#f0fdf4;border-radius:8px;padding:20px;margin:24px 0">
+            <table style="width:100%;border-collapse:collapse">
+              <tr><td style="padding:6px 0;color:#6b7280;width:140px">Organization</td><td style="font-weight:600;color:#111827">${details.orgName}</td></tr>
+              <tr><td style="padding:6px 0;color:#6b7280">Org slug</td><td style="font-weight:700;color:#111827;font-family:monospace;font-size:15px">${details.orgSlug}</td></tr>
+            </table>
+          </div>
+          <p style="color:#6b7280;font-size:14px">Your org slug is your unique identifier — it's used for your member portal URL and anywhere you need to reference your account. Keep it handy.</p>
+          <div style="text-align:center;margin:32px 0">
+            <a href="${adminUrl}" style="background:#059669;color:#fff;padding:14px 28px;border-radius:8px;text-decoration:none;font-size:16px;font-weight:600">Go to Dashboard</a>
+          </div>
+          <p style="color:#9ca3af;font-size:12px">If you have any questions getting started, reply to this email and we'll help you out.</p>
+        </div>
+      </div>
+    `,
+  });
+}
+
 export async function sendMonthlyStatement(to: string, stmt: MonthlyStatement) {
   const fmt = (n: number) => `$${n.toFixed(2)}`;
   const paymentRows = stmt.payments.map((p) => `

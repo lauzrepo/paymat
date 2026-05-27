@@ -1,7 +1,8 @@
 import { Request, Response } from 'express';
 import prisma from '../config/database';
 import { asyncHandler, AppError } from '../middleware/errorHandler';
-import { sendInviteEmail } from '../services/emailService';
+import { sendInviteEmail, sendInviteAccepted } from '../services/emailService';
+import logger from '../utils/logger';
 import stripeConnectService from '../services/stripeConnectService';
 
 export const createInvite = asyncHandler(async (req: Request, res: Response) => {
@@ -174,9 +175,15 @@ export const redeemInvite = asyncHandler(async (req: Request, res: Response) => 
     );
   } catch (err) {
     // Non-fatal — org is created, Connect can be retried later
-    const logger = (await import('../utils/logger')).default;
     logger.error('[Onboarding] Failed to provision Stripe Connect account', { err, orgId });
   }
+
+  // Fire-and-forget — org is already created so email failure is non-fatal
+  sendInviteAccepted(invite.email, {
+    recipientName: invite.recipientName,
+    orgName: invite.orgName,
+    orgSlug: slug.trim(),
+  }).catch((err) => logger.warn('[Onboarding] Failed to send acceptance confirmation email', { err }));
 
   res.json({
     status: 'success',
