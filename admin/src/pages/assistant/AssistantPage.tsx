@@ -1,5 +1,7 @@
-import React, { useState, useRef, useEffect, FormEvent, KeyboardEvent } from 'react';
+import { useState, useRef, useEffect, FormEvent, KeyboardEvent } from 'react';
 import { Send, Bot, User, AlertCircle } from 'lucide-react';
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
 import { cn } from '../../lib/utils';
 import { sendMessage, ChatMessage } from '../../api/assistant';
 
@@ -9,48 +11,6 @@ const SUGGESTIONS = [
   'Find contact John Smith',
   'What are our outstanding invoices?',
 ];
-
-function inlineBold(text: string): React.ReactNode {
-  const parts = text.split('**');
-  return parts.map((part, i) =>
-    i % 2 === 1 ? <strong key={i} className="font-semibold">{part}</strong> : part
-  );
-}
-
-function MarkdownContent({ text }: { text: string }) {
-  const lines = text.trim().split('\n');
-  const nodes: React.ReactNode[] = [];
-  const bulletBuffer: string[] = [];
-
-  function flushBullets() {
-    if (bulletBuffer.length === 0) return;
-    nodes.push(
-      <ul key={nodes.length} className="list-disc list-inside space-y-0.5 my-1">
-        {bulletBuffer.map((item, i) => <li key={i}>{inlineBold(item)}</li>)}
-      </ul>
-    );
-    bulletBuffer.length = 0;
-  }
-
-  for (const raw of lines) {
-    const line = raw.trimEnd();
-    if (/^#{1,3}\s/.test(line)) {
-      flushBullets();
-      nodes.push(<p key={nodes.length} className="font-semibold mt-1 mb-0.5">{inlineBold(line.replace(/^#{1,3}\s/, ''))}</p>);
-    } else if (/^[-*]\s/.test(line)) {
-      bulletBuffer.push(line.replace(/^[-*]\s/, ''));
-    } else if (line === '') {
-      flushBullets();
-      nodes.push(<p key={nodes.length} className="h-2" />);
-    } else {
-      flushBullets();
-      nodes.push(<p key={nodes.length} className="leading-snug">{inlineBold(line)}</p>);
-    }
-  }
-  flushBullets();
-
-  return <div className="space-y-1">{nodes}</div>;
-}
 
 function MessageBubble({ message }: { message: ChatMessage }) {
   const isUser = message.role === 'user';
@@ -68,13 +28,52 @@ function MessageBubble({ message }: { message: ChatMessage }) {
       </div>
       <div
         className={cn(
-          'max-w-[75%] rounded-2xl px-4 py-3 text-sm break-words',
+          'rounded-2xl px-4 py-3 text-sm break-words',
           isUser
-            ? 'bg-indigo-600 text-white rounded-tr-sm'
-            : 'bg-white dark:bg-gray-800 text-gray-800 dark:text-gray-100 border border-gray-200 dark:border-gray-700 rounded-tl-sm'
+            ? 'max-w-[70%] bg-indigo-600 text-white rounded-tr-sm whitespace-pre-wrap'
+            : 'max-w-[85%] bg-white dark:bg-gray-800 text-gray-800 dark:text-gray-100 border border-gray-200 dark:border-gray-700 rounded-tl-sm'
         )}
       >
-        {isUser ? message.content : <MarkdownContent text={message.content} />}
+        {isUser ? (
+          message.content
+        ) : (
+          <ReactMarkdown
+            remarkPlugins={[remarkGfm]}
+            components={{
+              p: ({ children }) => <p className="mb-2 last:mb-0 leading-relaxed">{children}</p>,
+              ul: ({ children }) => <ul className="mb-2 pl-4 space-y-0.5 list-disc">{children}</ul>,
+              ol: ({ children }) => <ol className="mb-2 pl-4 space-y-0.5 list-decimal">{children}</ol>,
+              li: ({ children }) => <li className="leading-relaxed">{children}</li>,
+              strong: ({ children }) => <strong className="font-semibold">{children}</strong>,
+              h1: ({ children }) => <h1 className="font-semibold text-base mb-2 mt-1">{children}</h1>,
+              h2: ({ children }) => <h2 className="font-semibold mb-1.5 mt-1">{children}</h2>,
+              h3: ({ children }) => <h3 className="font-medium mb-1 mt-1">{children}</h3>,
+              table: ({ children }) => (
+                <div className="overflow-x-auto my-2 rounded-lg border border-gray-200 dark:border-gray-600">
+                  <table className="w-full text-sm border-collapse">{children}</table>
+                </div>
+              ),
+              thead: ({ children }) => <thead className="bg-gray-50 dark:bg-gray-700/50">{children}</thead>,
+              th: ({ children }) => (
+                <th className="text-left font-semibold px-3 py-2 text-gray-600 dark:text-gray-300 text-xs uppercase tracking-wide">
+                  {children}
+                </th>
+              ),
+              td: ({ children }) => (
+                <td className="px-3 py-2 border-t border-gray-100 dark:border-gray-700">
+                  {children}
+                </td>
+              ),
+              code: ({ children }) => (
+                <code className="bg-gray-100 dark:bg-gray-700 rounded px-1 py-0.5 text-xs font-mono">
+                  {children}
+                </code>
+              ),
+            }}
+          >
+            {message.content}
+          </ReactMarkdown>
+        )}
       </div>
     </div>
   );
