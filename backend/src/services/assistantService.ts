@@ -4,6 +4,7 @@ import prisma from '../config/database';
 import invoiceService from './invoiceService';
 import paymentService from './paymentService';
 import enrollmentService from './enrollmentService';
+import contactService from './contactService';
 import { sendInvoiceGenerated } from './emailService';
 import { config } from '../config/environment';
 
@@ -19,6 +20,7 @@ You help administrators:
 - Answer questions about invoices, payments, contacts, families, and programs using live data
 - Provide revenue summaries and insights
 - Take billing actions: create invoices, record manual payments, void invoices
+- Manage contacts: create new contacts, update status, enroll/unenroll from programs
 
 Data model overview:
 - Contact: an individual member/client (firstName, lastName, email, status: active/inactive)
@@ -233,6 +235,23 @@ const TOOLS: Anthropic.Tool[] = [
         invoiceId: { type: 'string', description: 'Invoice ID to void' },
       },
       required: ['invoiceId'],
+    },
+  },
+  {
+    name: 'create_contact',
+    description: 'Create a new contact (member/client) in the organization.',
+    input_schema: {
+      type: 'object' as const,
+      properties: {
+        firstName: { type: 'string', description: 'First name' },
+        lastName: { type: 'string', description: 'Last name' },
+        email: { type: 'string', description: 'Email address (optional)' },
+        phone: { type: 'string', description: 'Phone number (optional)' },
+        familyId: { type: 'string', description: 'Family ID to link the contact to (optional)' },
+        dateOfBirth: { type: 'string', description: 'Date of birth in ISO format e.g. 2010-03-15 (optional)' },
+        notes: { type: 'string', description: 'Internal notes (optional)' },
+      },
+      required: ['firstName', 'lastName'],
     },
   },
 ];
@@ -748,6 +767,36 @@ async function executeTool(
       });
 
       return JSON.stringify({ success: true, invoiceId: invoice.id });
+    }
+
+    case 'create_contact': {
+      const contact = await contactService.createContact({
+        organizationId,
+        firstName: input.firstName as string,
+        lastName: input.lastName as string,
+        email: input.email as string | undefined,
+        phone: input.phone as string | undefined,
+        familyId: input.familyId as string | undefined,
+        dateOfBirth: input.dateOfBirth ? new Date(input.dateOfBirth as string) : undefined,
+        notes: input.notes as string | undefined,
+      });
+
+      await prisma.auditLog.create({
+        data: {
+          organizationId,
+          userId,
+          action: 'ASSISTANT_CREATE_CONTACT',
+          metadata: { contactId: contact.id, name: `${contact.firstName} ${contact.lastName}` },
+        },
+      });
+
+      return JSON.stringify({
+        success: true,
+        contactId: contact.id,
+        name: `${contact.firstName} ${contact.lastName}`,
+        email: contact.email,
+        status: contact.status,
+      });
     }
 
     default:
