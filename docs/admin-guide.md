@@ -210,6 +210,43 @@ A summary of invoice totals:
 
 ---
 
+## Mate — AI Assistant
+
+Mate is your AI assistant, accessible from the **Mate** page in the sidebar.
+
+### What Mate Can Do
+
+**Answer questions about your data:**
+- "How much revenue have we collected this month?"
+- "Show me all overdue invoices"
+- "Find contact Sarah Lee"
+- "What programs is John Smith enrolled in?"
+- "What's the outstanding balance for the Lau family?"
+
+**Take billing actions:**
+- "Create an invoice for Jane Park, $95 due June 1"
+- "Send invoice INV-00042"
+- "Record a $150 cash payment against INV-00031"
+- "Void invoice INV-00018"
+- "Enroll Tom Chen in the Monday Jiu-Jitsu program"
+- "Create a new contact: Alice Wong, alice@email.com"
+
+### How to Use It
+
+Type your question or request in the chat box and press **Enter** (or **Shift+Enter** for a new line). Mate will query your live data and respond. For actions that modify data (creating invoices, recording payments, voiding), Mate will confirm what it's about to do before proceeding.
+
+### Suggestions
+
+When you open Mate with no prior messages, a set of quick-start suggestions appears. Click any to populate the input box.
+
+### What Mate Cannot Do
+
+- Access data from other organizations
+- Process card payments (use the member portal for that)
+- Actions requiring super-admin access
+
+---
+
 ## Feedback
 
 The **Feedback** page shows support tickets and feedback submitted by your members through their portal. Each submission includes:

@@ -1,7 +1,7 @@
 # Paymat — Technical Whitepaper
 
-**Version:** 1.0
-**Date:** April 2026
+**Version:** 1.1
+**Date:** May 2026
 **Status:** Internal / Pre-Publication
 
 ---
@@ -19,9 +19,10 @@
 9. [Billing Engine](#9-billing-engine)
 10. [Authentication & Authorization](#10-authentication--authorization)
 11. [Email System](#11-email-system)
-12. [Infrastructure & Deployment](#12-infrastructure--deployment)
-13. [Security Posture](#13-security-posture)
-14. [Platform Economics](#14-platform-economics)
+12. [AI Assistant — Mate](#12-ai-assistant--mate)
+13. [Infrastructure & Deployment](#13-infrastructure--deployment)
+14. [Security Posture](#14-security-posture)
+15. [Platform Economics](#15-platform-economics)
 
 ---
 
@@ -46,6 +47,7 @@ The platform is structured around three distinct user personas operating across 
 - Self-serve member payment portal with Stripe Elements
 - Transactional email via Resend
 - Per-organization platform fee with founding member discount support
+- AI assistant (Mate) for natural-language queries and billing actions via Claude
 
 ---
 
@@ -70,19 +72,24 @@ The platform is structured around three distinct user personas operating across 
 │  │                  Route Controllers                    │   │
 │  │  auth · contacts · families · programs · enrollments │   │
 │  │  invoices · payments · billing · feedback · client   │   │
-│  │  webhooks · super-admin · invites                    │   │
+│  │  assistant · webhooks · super-admin · invites        │   │
 │  └──────────────────────────────────────────────────────┘   │
 │                                                             │
 │  ┌──────────────────────────────────────────────────────┐   │
 │  │                  Service Layer                        │   │
 │  │  billingService · stripeConnectService · emailService│   │
 │  │  invoiceService · paymentService · auditLogService   │   │
+│  │  assistantService                                    │   │
 │  └──────────────────────────────────────────────────────┘   │
 │                                                             │
 │  ┌──────────────┐  ┌──────────────┐  ┌──────────────────┐   │
 │  │ node-cron    │  │ Stripe SDK   │  │ Resend SDK       │   │
 │  │ (6AM UTC)    │  │              │  │                  │   │
 │  └──────────────┘  └──────────────┘  └──────────────────┘   │
+│                                                             │
+│  ┌──────────────────────────────────────────────────────┐   │
+│  │ Anthropic SDK  (claude-haiku-4-5 · tool use)         │   │
+│  └──────────────────────────────────────────────────────┘   │
 └────────────────────────┬────────────────────────────────────┘
                          │ Prisma ORM
 ┌────────────────────────▼────────────────────────────────────┐
@@ -111,6 +118,7 @@ The platform is structured around three distinct user personas operating across 
 | Logging | Winston | 3.19.0 | Current stable |
 | Scheduling | node-cron | 4.2.1 | Current stable |
 | Security | Helmet, cors, express-rate-limit | 7.2.0 / 2.8.6 / 7.5.1 | Current stable |
+| AI | Anthropic SDK (@anthropic-ai/sdk) | 0.98.x | Current stable |
 
 ### 3.2 Request Lifecycle
 
@@ -169,6 +177,7 @@ errorHandler (formats AppError / unexpected errors into JSON response)
 | `stripeBillingController` | `GET /billing/status`, `POST /billing/portal` | Org Stripe subscription management |
 | `feedbackController` | `GET/POST /feedback`, `GET/PUT /feedback/:id` | Member feedback submissions |
 | `clientController` | `GET /client/me`, `GET /client/enrollments`, `GET /client/invoices`, `GET /client/invoices/:id`, `POST /client/invoices/:id/initialize-payment`, `GET /client/payments` | Member self-serve portal API |
+| `assistantController` | `POST /assistant/chat` | AI assistant chat endpoint |
 | `webhookController` | `POST /webhooks/stripe` | Stripe event ingestion |
 | `superAdminController` | `GET/POST/PUT /super-admin/organizations`, `GET /super-admin/auth/me` | Platform-level org management |
 | `inviteController` | `GET/POST/DELETE /super-admin/invites`, `GET /invites/verify/:token`, `POST /invites/redeem/:token` | Org onboarding invite flow |
@@ -325,6 +334,9 @@ Records payments from any source (Stripe auto-charge, portal self-pay, manual ca
 ### 5.6 `auditLogService`
 Writes structured audit events for user actions (login, logout, invoice marked paid, etc.). Events include `userId`, `ipAddress`, `userAgent`, and a `metadata` JSON blob.
 
+### 5.7 `assistantService`
+Implements the Mate AI assistant. See [Section 12](#12-ai-assistant--mate) for full detail.
+
 ---
 
 ## 6. Frontend Applications
@@ -356,6 +368,7 @@ The primary interface for organization admins and staff.
 - **Enrollments** — Member-to-program assignments, billing date tracking
 - **Invoices** — Invoice list with status filters; mark-paid and void actions
 - **Payments** — Payment history with refund capability
+- **Mate** — AI assistant chat interface (see [Section 12](#12-ai-assistant--mate))
 - **Billing** — Manual billing run trigger, Stripe subscription status, billing stats
 - **Feedback** — Member feedback/issue submissions
 - **Settings** — Organization profile, branding, Stripe Connect onboarding
@@ -635,9 +648,87 @@ All emails share a consistent structure:
 
 ---
 
-## 12. Infrastructure & Deployment
+## 12. AI Assistant — Mate
 
-### 12.1 Services
+Mate is an AI-powered assistant built into the admin portal that lets organization admins query their data and take billing actions through a natural-language chat interface.
+
+### 12.1 Architecture
+
+Mate is implemented as a stateless request/response service. The admin frontend maintains the conversation history in React state and sends the full message array to the backend on each turn. The backend calls the Anthropic Messages API and returns the assistant's reply.
+
+```
+Admin browser
+  │
+  │  POST /api/assistant/chat
+  │  { messages: [...full conversation history] }
+  ↓
+assistantController
+  → authenticateToken (org-scoped JWT required)
+  → validate: messages array, max 50 messages
+  ↓
+assistantService.chat(messages, organizationId, userId)
+  ↓
+Anthropic API  (claude-haiku-4-5, tool use enabled)
+  ↔  tool calls → executeTool(name, input, organizationId, userId)
+                    → Prisma queries scoped to organizationId
+  ↓
+Text reply returned to browser
+```
+
+The `organizationId` is extracted from the authenticated JWT — it is never derived from the conversation content. All tool calls are scoped to the authenticated organization at the query level, making cross-tenant data access structurally impossible.
+
+### 12.2 Model & Configuration
+
+| Parameter | Value |
+|-----------|-------|
+| Model | `claude-haiku-4-5` |
+| Max tokens | 1,024 |
+| Max tool iterations | 8 per request |
+| Max conversation length | 50 messages |
+| Prompt caching | Automatic (`cache_control: ephemeral`) |
+
+**Why Haiku:** The assistant's workload is narrow — structured queries, short summaries, and lightweight action confirmations. Haiku provides sub-second response times at a fraction of the cost of larger models, which matters for interactive UX.
+
+**Prompt caching:** Both API calls (initial and each tool-use continuation) include automatic prompt caching. Once a conversation grows past the 4,096-token minimum threshold for Haiku 4.5, all prior turns are read from cache at 10% of normal input token cost. In practice this kicks in within 2–3 turns once tool results enter the history.
+
+### 12.3 Tools
+
+Mate has 16 tools covering read queries, write actions, and contact management:
+
+| Tool | Type | Description |
+|------|------|-------------|
+| `get_revenue_summary` | Read | Total collected, outstanding balance, overdue count, recent payments |
+| `search_invoices` | Read | Filter invoices by status or contact name |
+| `search_contacts` | Read | Search by name/email, or list all |
+| `get_payment_history` | Read | Recent payments, optionally filtered by contact |
+| `get_invoice_details` | Read | Full invoice including line items and payments |
+| `get_contact_enrollments` | Read | A contact's active program enrollments |
+| `get_family_details` | Read | Family members, enrollments, and outstanding balance |
+| `list_programs` | Read | Active programs with pricing |
+| `create_contact` | Write | Create a new contact |
+| `create_invoice` | Write | Create a new invoice for a contact or family |
+| `send_invoice` | Write | Mark a draft invoice as sent and email it |
+| `record_payment` | Write | Record a manual cash/check/bank payment |
+| `void_invoice` | Write | Cancel an unpaid invoice |
+| `create_enrollment` | Write | Enroll a contact in a program |
+| `unenroll_contact` | Write | Cancel a contact's enrollment |
+| `update_contact_status` | Write | Set a contact active or inactive |
+
+All write actions are logged to `AuditLog` with action codes prefixed `ASSISTANT_*`.
+
+### 12.4 Security & Tenant Isolation
+
+- The assistant endpoint requires a valid org-scoped JWT (`authenticateToken` middleware)
+- `organizationId` is injected server-side from `req.organization.id` — never from the message content
+- Every tool executes `WHERE organizationId = ?` — Mate cannot read or modify another tenant's data regardless of what is asked
+- The super-admin portal has no assistant route and no access to the `/api/assistant/chat` endpoint
+- Conversation history is held entirely client-side and discarded on page navigation — no server-side session storage
+
+---
+
+## 13. Infrastructure & Deployment
+
+### 13.1 Services
 
 | Service | Provider | Purpose | Current Plan |
 |---------|----------|---------|--------------|
@@ -649,7 +740,7 @@ All emails share a consistent structure:
 | Email | Resend | Transactional email | Free (3k/mo) |
 | Payments | Stripe | Connect platform | Per-transaction |
 
-### 12.2 Environment Variables
+### 13.2 Environment Variables
 
 **Backend (Railway):**
 
@@ -668,14 +759,15 @@ All emails share a consistent structure:
 | `APP_URL` | Admin portal base URL |
 | `ALLOWED_ORIGINS` | Comma-separated CORS whitelist |
 | `DEFAULT_TENANT_SLUG` | Fallback tenant for local development |
+| `ANTHROPIC_API_KEY` | Anthropic API key for Mate assistant |
 
-### 12.3 Deployment Flow
+### 13.3 Deployment Flow
 
 Railway auto-deploys on push to `main`. The `railway.json` config specifies the build command (`npm run build`) and start command (`npm start`). Prisma migrations run automatically via a `prisma migrate deploy` step in the build.
 
 Vercel auto-deploys each frontend app from its respective subdirectory on push to `main`.
 
-### 12.4 Scaling Thresholds
+### 13.4 Scaling Thresholds
 
 | Service | Free tier limit | Approx org count at limit |
 |---------|----------------|--------------------------|
@@ -686,50 +778,50 @@ Vercel auto-deploys each frontend app from its respective subdirectory on push t
 
 ---
 
-## 13. Security Posture
+## 14. Security Posture
 
-### 13.1 Transport
+### 14.1 Transport
 All traffic over HTTPS. Helmet sets `Strict-Transport-Security`, `X-Content-Type-Options`, `X-Frame-Options`, and `Content-Security-Policy` headers.
 
-### 13.2 Input Validation
+### 14.2 Input Validation
 All inbound request bodies are validated with `express-validator` before reaching controllers. `AppError` with appropriate HTTP status codes is thrown on invalid input.
 
-### 13.3 SQL Injection
+### 14.3 SQL Injection
 Prisma's parameterized query builder is used exclusively. No raw SQL strings are constructed from user input.
 
-### 13.4 CORS
+### 14.4 CORS
 `ALLOWED_ORIGINS` env var is parsed as a comma-separated whitelist. Requests from unlisted origins are rejected at the CORS middleware level.
 
-### 13.5 Rate Limiting
+### 14.5 Rate Limiting
 Two rate limiters:
 - `apiLimiter` — 100 requests per 15 minutes per IP, applied globally
 - `paymentLimiter` — tighter limit on payment initialization endpoints
 
-### 13.6 Webhook Verification
+### 14.6 Webhook Verification
 Stripe webhooks are verified using `stripe.webhooks.constructEvent(rawBody, signature, secret)`. The raw body buffer is preserved before JSON parsing specifically for this purpose.
 
-### 13.7 Password Storage
+### 14.7 Password Storage
 All passwords are hashed with `bcrypt` at cost factor 10 before storage. Password reset tokens are UUID v4 strings with a 1-hour expiry window.
 
-### 13.8 Tenant Isolation
+### 14.8 Tenant Isolation
 Every data query is scoped to `organizationId` from the middleware-resolved tenant, not from user-supplied input. A user cannot query data from another organization even with a valid JWT.
 
-### 13.9 Known Limitations
+### 14.9 Known Limitations
 - Invoice number generation (`nextInvoiceNumber`) is not atomic — concurrent billing runs could theoretically generate duplicate numbers (mitigated by the `@unique` constraint causing a retry-able conflict, but not handled gracefully yet)
 - Refresh tokens are not stored server-side — revocation requires token expiry
 - No MFA support yet
 
 ---
 
-## 14. Platform Economics
+## 15. Platform Economics
 
-### 14.1 Revenue Model
+### 15.1 Revenue Model
 Paymat takes a percentage of every payment processed through the platform as a Stripe Connect application fee. This fee is:
 - Configurable per organization via `Organization.platformFeePercent`
 - Applied automatically by Stripe — no manual settlement required
 - Invisible to the cardholder (they see only the org's charge)
 
-### 14.2 Default & Early Adopter Rates
+### 15.2 Default & Early Adopter Rates
 
 | Cohort | Rate | Orgs |
 |--------|------|------|
@@ -737,7 +829,7 @@ Paymat takes a percentage of every payment processed through the platform as a S
 | Early growth | 1.0% (lifetime) | Slots 11–50 |
 | Standard | 2.0% | 51+ |
 
-### 14.3 Revenue at Scale (2.0% rate, avg $2,700/org/mo)
+### 15.3 Revenue at Scale (2.0% rate, avg $2,700/org/mo)
 
 | Active Orgs | Monthly Volume | Platform Revenue | Est. Infra | Net |
 |-------------|---------------|-----------------|------------|-----|
@@ -750,4 +842,4 @@ Infrastructure costs remain under 5% of revenue at all realistic scales due to t
 
 ---
 
-*This document reflects the system as of April 2026. Architecture decisions are subject to change as the platform scales.*
+*This document reflects the system as of May 2026. Architecture decisions are subject to change as the platform scales.*
