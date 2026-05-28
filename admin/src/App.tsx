@@ -27,6 +27,7 @@ import { FeedbackDetailPage } from './pages/feedback/FeedbackDetailPage';
 import { BillingPage } from './pages/billing/BillingPage';
 import { OnboardingPage } from './pages/onboarding/OnboardingPage';
 import { HowToPage } from './pages/help/HowToPage';
+import { AssistantPage } from './pages/assistant/AssistantPage';
 
 function App() {
   return (
@@ -64,6 +65,7 @@ function App() {
             <Route path="/billing" element={<BillingPage />} />
             <Route path="/settings" element={<SettingsPage />} />
             <Route path="/how-to" element={<HowToPage />} />
+            <Route path="/assistant" element={<AssistantPage />} />
           </Route>
 
           <Route path="*" element={<Navigate to="/" replace />} />
