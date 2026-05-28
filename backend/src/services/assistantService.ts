@@ -825,6 +825,7 @@ export async function chat(
   let response = await anthropic.messages.create({
     model: MODEL,
     max_tokens: 1024,
+    cache_control: { type: 'ephemeral' },
     system: SYSTEM_PROMPT,
     tools: TOOLS,
     messages: anthropicMessages,
@@ -859,6 +860,7 @@ export async function chat(
     response = await anthropic.messages.create({
       model: MODEL,
       max_tokens: 1024,
+      cache_control: { type: 'ephemeral' },
       system: SYSTEM_PROMPT,
       tools: TOOLS,
       messages: anthropicMessages,
