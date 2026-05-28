@@ -333,7 +333,7 @@ async function executeTool(
           organizationId,
           userId,
           action: 'ASSISTANT_RECORD_PAYMENT',
-          metadata: { paymentId: payment.id, invoiceId: input.invoiceId, amount: input.amount },
+          metadata: { paymentId: payment.id, invoiceId: input.invoiceId as string, amount: input.amount as number },
         },
       });
 
