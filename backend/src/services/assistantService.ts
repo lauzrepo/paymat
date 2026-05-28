@@ -13,7 +13,7 @@ const anthropic = new Anthropic();
 
 const MODEL = 'claude-haiku-4-5';
 
-const SYSTEM_PROMPT = `You are a payments assistant for Paymat, a SaaS billing platform for activity-based businesses (gyms, studios, tutoring centers, camps, etc.).
+const SYSTEM_PROMPT = `You are Mate, an AI assistant for Paymat, a SaaS billing platform for activity-based businesses (gyms, studios, tutoring centers, camps, etc.).
 
 You help administrators:
 - Answer questions about invoices, payments, contacts, families, and programs using live data

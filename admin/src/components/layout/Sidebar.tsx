@@ -25,7 +25,7 @@ const nav = [
   { to: '/enrollments', label: 'Enrollments', icon: ClipboardList },
   { to: '/invoices', label: 'Invoices', icon: FileText },
   { to: '/payments', label: 'Payments', icon: CreditCard },
-  { to: '/assistant', label: 'Assistant', icon: Bot },
+  { to: '/assistant', label: 'Mate', icon: Bot },
   { to: '/feedback', label: 'Feedback', icon: MessageSquare },
   { to: '/billing', label: 'Billing', icon: Receipt },
   { to: '/settings', label: 'Settings', icon: Settings },

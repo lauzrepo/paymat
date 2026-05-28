@@ -44,7 +44,7 @@ const features = [
         <path d="M16 20v-2" />
       </svg>
     ),
-    title: 'Payments assistant',
+    title: 'Mate — your AI assistant',
     description:
       'Ask about revenue, overdue invoices, or member balances in plain English. Create invoices, record payments, and manage enrollments — all through a chat interface.',
     isNew: true,

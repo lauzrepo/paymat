@@ -115,9 +115,9 @@ export function AssistantPage() {
   return (
     <div className="flex flex-col h-full max-w-3xl mx-auto">
       <div className="mb-4">
-        <h1 className="text-xl font-semibold text-gray-900 dark:text-gray-100">Payments Assistant</h1>
+        <h1 className="text-xl font-semibold text-gray-900 dark:text-gray-100">Mate</h1>
         <p className="text-sm text-gray-500 dark:text-gray-400 mt-0.5">
-          Ask questions about invoices, payments, and revenue — or take billing actions.
+          Your AI assistant — ask about invoices, payments, and revenue, or take billing actions.
         </p>
       </div>
 
@@ -128,9 +128,9 @@ export function AssistantPage() {
               <Bot className="h-7 w-7 text-indigo-600 dark:text-indigo-400" />
             </div>
             <div className="text-center space-y-1">
-              <p className="font-medium text-gray-900 dark:text-gray-100">How can I help you today?</p>
+              <p className="font-medium text-gray-900 dark:text-gray-100">Hey, I'm Mate.</p>
               <p className="text-sm text-gray-500 dark:text-gray-400">
-                I can look up invoices, payments, contacts, and more.
+                Ask me anything about your invoices, payments, contacts, and more.
               </p>
             </div>
             <div className="grid grid-cols-2 gap-2 w-full max-w-md">
@@ -171,7 +171,7 @@ export function AssistantPage() {
             value={input}
             onChange={handleTextareaChange}
             onKeyDown={handleKeyDown}
-            placeholder="Ask anything about your payments…"
+            placeholder="Ask Mate anything…"
             disabled={loading}
             className="flex-1 resize-none bg-transparent text-sm text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none disabled:opacity-50 py-1 max-h-40"
           />
