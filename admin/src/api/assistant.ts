@@ -1,4 +1,4 @@
-import apiClient from '../lib/axios';
+import { apiClient } from '../lib/axios';
 
 export interface ChatMessage {
   role: 'user' | 'assistant';
