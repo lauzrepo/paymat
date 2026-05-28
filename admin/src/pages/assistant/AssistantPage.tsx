@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect, FormEvent, KeyboardEvent } from 'react';
+import React, { useState, useRef, useEffect, FormEvent, KeyboardEvent } from 'react';
 import { Send, Bot, User, AlertCircle } from 'lucide-react';
 import { cn } from '../../lib/utils';
 import { sendMessage, ChatMessage } from '../../api/assistant';
@@ -9,6 +9,48 @@ const SUGGESTIONS = [
   'Find contact John Smith',
   'What are our outstanding invoices?',
 ];
+
+function inlineBold(text: string): React.ReactNode {
+  const parts = text.split('**');
+  return parts.map((part, i) =>
+    i % 2 === 1 ? <strong key={i} className="font-semibold">{part}</strong> : part
+  );
+}
+
+function MarkdownContent({ text }: { text: string }) {
+  const lines = text.trim().split('\n');
+  const nodes: React.ReactNode[] = [];
+  const bulletBuffer: string[] = [];
+
+  function flushBullets() {
+    if (bulletBuffer.length === 0) return;
+    nodes.push(
+      <ul key={nodes.length} className="list-disc list-inside space-y-0.5 my-1">
+        {bulletBuffer.map((item, i) => <li key={i}>{inlineBold(item)}</li>)}
+      </ul>
+    );
+    bulletBuffer.length = 0;
+  }
+
+  for (const raw of lines) {
+    const line = raw.trimEnd();
+    if (/^#{1,3}\s/.test(line)) {
+      flushBullets();
+      nodes.push(<p key={nodes.length} className="font-semibold mt-1 mb-0.5">{inlineBold(line.replace(/^#{1,3}\s/, ''))}</p>);
+    } else if (/^[-*]\s/.test(line)) {
+      bulletBuffer.push(line.replace(/^[-*]\s/, ''));
+    } else if (line === '') {
+      flushBullets();
+      nodes.push(<p key={nodes.length} className="h-2" />);
+    } else {
+      flushBullets();
+      nodes.push(<p key={nodes.length} className="leading-snug">{inlineBold(line)}</p>);
+    }
+  }
+  flushBullets();
+
+  return <div className="space-y-1">{nodes}</div>;
+}
 
 function MessageBubble({ message }: { message: ChatMessage }) {
   const isUser = message.role === 'user';
@@ -26,13 +68,13 @@ function MessageBubble({ message }: { message: ChatMessage }) {
       </div>
       <div
         className={cn(
-          'max-w-[75%] rounded-2xl px-4 py-3 text-sm whitespace-pre-wrap break-words',
+          'max-w-[75%] rounded-2xl px-4 py-3 text-sm break-words',
           isUser
             ? 'bg-indigo-600 text-white rounded-tr-sm'
             : 'bg-white dark:bg-gray-800 text-gray-800 dark:text-gray-100 border border-gray-200 dark:border-gray-700 rounded-tl-sm'
         )}
       >
-        {message.content}
+        {isUser ? message.content : <MarkdownContent text={message.content} />}
       </div>
     </div>
   );
