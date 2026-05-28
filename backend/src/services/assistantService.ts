@@ -242,9 +242,11 @@ async function executeTool(
           organizationId,
           ...(query && {
             OR: [
-              { firstName: { contains: query, mode: 'insensitive' } },
-              { lastName: { contains: query, mode: 'insensitive' } },
-              { email: { contains: query, mode: 'insensitive' } },
+              ...query.trim().split(/\s+/).flatMap((word) => [
+                { firstName: { contains: word, mode: 'insensitive' as const } },
+                { lastName: { contains: word, mode: 'insensitive' as const } },
+              ]),
+              { email: { contains: query, mode: 'insensitive' as const } },
             ],
           }),
         },
