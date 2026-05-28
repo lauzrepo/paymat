@@ -3,6 +3,10 @@ import { Prisma } from '@prisma/client';
 import prisma from '../config/database';
 import invoiceService from './invoiceService';
 import paymentService from './paymentService';
+import { sendInvoiceGenerated } from './emailService';
+import { config } from '../config/environment';
+
+const PORTAL_URL = config.email.appUrl.replace('app.', 'portal.');
 
 const anthropic = new Anthropic();
 
@@ -126,6 +130,39 @@ const TOOLS: Anthropic.Tool[] = [
         notes: { type: 'string', description: 'Optional notes' },
       },
       required: ['invoiceId', 'amount'],
+    },
+  },
+  {
+    name: 'get_invoice_details',
+    description: 'Get full details for a specific invoice, including line items and payment history.',
+    input_schema: {
+      type: 'object' as const,
+      properties: {
+        invoiceId: { type: 'string', description: 'Invoice ID' },
+      },
+      required: ['invoiceId'],
+    },
+  },
+  {
+    name: 'send_invoice',
+    description: 'Mark a draft invoice as sent and email it to the contact or family billing address.',
+    input_schema: {
+      type: 'object' as const,
+      properties: {
+        invoiceId: { type: 'string', description: 'Invoice ID to send' },
+      },
+      required: ['invoiceId'],
+    },
+  },
+  {
+    name: 'list_programs',
+    description: 'List active programs for the organization, including name and price.',
+    input_schema: {
+      type: 'object' as const,
+      properties: {
+        query: { type: 'string', description: 'Optional name search (partial match)' },
+      },
+      required: [],
     },
   },
   {
@@ -354,6 +391,128 @@ async function executeTool(
       });
 
       return JSON.stringify({ success: true, paymentId: payment.id, amount: Number(payment.amount) });
+    }
+
+    case 'get_invoice_details': {
+      const invoice = await prisma.invoice.findFirst({
+        where: { id: input.invoiceId as string, organizationId },
+        include: {
+          contact: { select: { id: true, firstName: true, lastName: true, email: true } },
+          family: { select: { id: true, name: true, billingEmail: true } },
+          lineItems: { select: { id: true, description: true, quantity: true, unitPrice: true, total: true } },
+          payments: {
+            select: { id: true, amount: true, status: true, paymentMethodType: true, createdAt: true },
+            orderBy: { createdAt: 'desc' },
+          },
+        },
+      });
+
+      if (!invoice) return JSON.stringify({ error: 'Invoice not found' });
+
+      return JSON.stringify({
+        id: invoice.id,
+        invoiceNumber: invoice.invoiceNumber,
+        status: invoice.status,
+        amountDue: Number(invoice.amountDue),
+        amountPaid: Number(invoice.amountPaid),
+        currency: invoice.currency,
+        dueDate: invoice.dueDate,
+        paidAt: invoice.paidAt,
+        notes: invoice.notes,
+        billedTo: invoice.contact
+          ? { type: 'contact', id: invoice.contact.id, name: `${invoice.contact.firstName} ${invoice.contact.lastName}`, email: invoice.contact.email }
+          : invoice.family
+          ? { type: 'family', id: invoice.family.id, name: invoice.family.name, email: invoice.family.billingEmail }
+          : null,
+        lineItems: invoice.lineItems.map((li) => ({
+          description: li.description,
+          quantity: li.quantity,
+          unitPrice: Number(li.unitPrice),
+          total: Number(li.total),
+        })),
+        payments: invoice.payments.map((p) => ({
+          amount: Number(p.amount),
+          status: p.status,
+          method: p.paymentMethodType,
+          date: p.createdAt,
+        })),
+      });
+    }
+
+    case 'send_invoice': {
+      const invoice = await prisma.invoice.findFirst({
+        where: { id: input.invoiceId as string, organizationId },
+        include: {
+          contact: { select: { firstName: true, lastName: true, email: true } },
+          family: { select: { name: true, billingEmail: true } },
+          lineItems: { select: { description: true } },
+          organization: { select: { name: true, slug: true } },
+        },
+      });
+
+      if (!invoice) return JSON.stringify({ error: 'Invoice not found' });
+      if (invoice.status !== 'draft') return JSON.stringify({ error: `Invoice is already ${invoice.status}` });
+
+      await prisma.invoice.update({ where: { id: invoice.id }, data: { status: 'sent' } });
+
+      await prisma.auditLog.create({
+        data: {
+          organizationId,
+          userId,
+          action: 'ASSISTANT_SEND_INVOICE',
+          metadata: { invoiceId: invoice.id, invoiceNumber: invoice.invoiceNumber },
+        },
+      });
+
+      const recipientEmail = invoice.contact?.email ?? invoice.family?.billingEmail;
+      const recipientName = invoice.contact
+        ? `${invoice.contact.firstName} ${invoice.contact.lastName}`.trim()
+        : (invoice.family?.name ?? 'Customer');
+
+      if (recipientEmail) {
+        sendInvoiceGenerated(recipientEmail, {
+          recipientName,
+          orgName: invoice.organization.name,
+          invoiceNumber: invoice.invoiceNumber,
+          amount: Number(invoice.amountDue),
+          currency: invoice.currency,
+          dueDate: invoice.dueDate,
+          programName: invoice.lineItems[0]?.description ?? 'Services',
+          portalUrl: `${PORTAL_URL}/${invoice.organization.slug}/invoices/${invoice.id}`,
+        }).catch(() => {});
+      }
+
+      return JSON.stringify({
+        success: true,
+        invoiceId: invoice.id,
+        invoiceNumber: invoice.invoiceNumber,
+        emailedTo: recipientEmail ?? null,
+      });
+    }
+
+    case 'list_programs': {
+      const query = input.query as string | undefined;
+
+      const programs = await prisma.program.findMany({
+        where: {
+          organizationId,
+          isActive: true,
+          ...(query && { name: { contains: query, mode: 'insensitive' } }),
+        },
+        orderBy: { name: 'asc' },
+        select: { id: true, name: true, description: true, price: true, billingFrequency: true, capacity: true },
+      });
+
+      return JSON.stringify(
+        programs.map((p) => ({
+          id: p.id,
+          name: p.name,
+          description: p.description,
+          price: Number(p.price),
+          billingFrequency: p.billingFrequency,
+          capacity: p.capacity,
+        }))
+      );
     }
 
     case 'get_contact_enrollments': {
