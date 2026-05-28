@@ -129,6 +129,17 @@ const TOOLS: Anthropic.Tool[] = [
     },
   },
   {
+    name: 'get_contact_enrollments',
+    description: "Get a contact's active program enrollments, including program name and price. Use this before creating an invoice when the user says 'bill for current enrollments' or similar.",
+    input_schema: {
+      type: 'object' as const,
+      properties: {
+        contactId: { type: 'string', description: 'The contact ID to look up enrollments for' },
+      },
+      required: ['contactId'],
+    },
+  },
+  {
     name: 'void_invoice',
     description: 'Void an unpaid invoice (marks it cancelled). Cannot void paid invoices.',
     input_schema: {
@@ -343,6 +354,31 @@ async function executeTool(
       });
 
       return JSON.stringify({ success: true, paymentId: payment.id, amount: Number(payment.amount) });
+    }
+
+    case 'get_contact_enrollments': {
+      const enrollments = await prisma.enrollment.findMany({
+        where: {
+          contact: { organizationId },
+          contactId: input.contactId as string,
+          status: 'active',
+        },
+        include: {
+          program: { select: { id: true, name: true, price: true, billingFrequency: true } },
+        },
+        orderBy: { startDate: 'asc' },
+      });
+
+      return JSON.stringify(
+        enrollments.map((e) => ({
+          enrollmentId: e.id,
+          programId: e.program.id,
+          programName: e.program.name,
+          price: Number(e.program.price),
+          billingFrequency: e.program.billingFrequency,
+          startDate: e.startDate,
+        }))
+      );
     }
 
     case 'void_invoice': {
