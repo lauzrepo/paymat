@@ -61,14 +61,14 @@ const TOOLS: Anthropic.Tool[] = [
   },
   {
     name: 'search_contacts',
-    description: 'Search contacts by name or email.',
+    description: 'Search contacts by name or email, or list all contacts if no query is provided.',
     input_schema: {
       type: 'object' as const,
       properties: {
-        query: { type: 'string', description: 'Name or email to search for' },
-        limit: { type: 'number', description: 'Max results, default 10' },
+        query: { type: 'string', description: 'Name or email to search for (omit to list all)' },
+        limit: { type: 'number', description: 'Max results, default 20' },
       },
-      required: ['query'],
+      required: [],
     },
   },
   {
@@ -234,19 +234,22 @@ async function executeTool(
     }
 
     case 'search_contacts': {
-      const query = input.query as string;
-      const limit = (input.limit as number) ?? 10;
+      const query = input.query as string | undefined;
+      const limit = (input.limit as number) ?? 20;
 
       const contacts = await prisma.contact.findMany({
         where: {
           organizationId,
-          OR: [
-            { firstName: { contains: query, mode: 'insensitive' } },
-            { lastName: { contains: query, mode: 'insensitive' } },
-            { email: { contains: query, mode: 'insensitive' } },
-          ],
+          ...(query && {
+            OR: [
+              { firstName: { contains: query, mode: 'insensitive' } },
+              { lastName: { contains: query, mode: 'insensitive' } },
+              { email: { contains: query, mode: 'insensitive' } },
+            ],
+          }),
         },
         take: limit,
+        orderBy: { firstName: 'asc' },
         select: { id: true, firstName: true, lastName: true, email: true, status: true, familyId: true },
       });
 
