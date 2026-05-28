@@ -24,6 +24,7 @@ import billingRoutes from './routes/billing';
 import feedbackRoutes from './routes/feedback';
 import clientRoutes from './routes/client';
 import webhookRoutes from './routes/webhooks';
+import assistantRoutes from './routes/assistant';
 
 const app: Application = express();
 
@@ -74,6 +75,7 @@ app.use('/api/feedback', feedbackRoutes);
 app.use('/webhooks', webhookRoutes);
 app.use('/api/client', clientRoutes);
 app.use('/api/waitlist', waitlistRoutes);
+app.use('/api/assistant', assistantRoutes);
 
 app.use(notFoundHandler);
 app.use(errorHandler);
