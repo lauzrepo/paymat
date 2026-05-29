@@ -5,7 +5,7 @@ import invoiceService from './invoiceService';
 import paymentService from './paymentService';
 import enrollmentService from './enrollmentService';
 import contactService from './contactService';
-import { sendInvoiceGenerated, sendPaymentReminder } from './emailService';
+import { sendInvoiceGenerated, sendPaymentReminder, sendMemberPortalInvite } from './emailService';
 import { config } from '../config/environment';
 
 const PORTAL_URL = config.email.appUrl.replace('app.', 'portal.');
@@ -20,7 +20,7 @@ You help administrators:
 - Answer questions about invoices, payments, contacts, families, and programs using live data
 - Provide revenue summaries and insights
 - Take billing actions: create invoices, record manual payments, void invoices, send payment reminder emails
-- Manage contacts: create new contacts, update status, enroll/unenroll from programs
+- Manage contacts: create new contacts, update status, enroll/unenroll from programs, resend portal invites
 
 Data model overview:
 - Contact: an individual member/client (firstName, lastName, email, status: active/inactive)
@@ -246,6 +246,17 @@ const TOOLS: Anthropic.Tool[] = [
         invoiceId: { type: 'string', description: 'Invoice ID to send the reminder for' },
       },
       required: ['invoiceId'],
+    },
+  },
+  {
+    name: 'resend_portal_invite',
+    description: 'Resend a member portal invite email to a contact. Creates a new invite token if one does not exist or the previous one was already used.',
+    input_schema: {
+      type: 'object' as const,
+      properties: {
+        contactId: { type: 'string', description: 'Contact ID to resend the invite to' },
+      },
+      required: ['contactId'],
     },
   },
   {
@@ -825,6 +836,50 @@ async function executeTool(
       });
 
       return JSON.stringify({ success: true, sentTo: recipientEmail, invoiceNumber: invoice.invoiceNumber });
+    }
+
+    case 'resend_portal_invite': {
+      const contact = await prisma.contact.findFirst({
+        where: { id: input.contactId as string, organizationId },
+        select: { id: true, firstName: true, email: true },
+      });
+
+      if (!contact) return JSON.stringify({ error: 'Contact not found' });
+      if (!contact.email) return JSON.stringify({ error: 'Contact has no email address — add one first' });
+
+      const existingUser = await prisma.user.findFirst({
+        where: { organizationId, email: contact.email, deletedAt: null },
+      });
+      if (existingUser) return JSON.stringify({ error: 'Contact already has a portal account' });
+
+      const org = await prisma.organization.findUnique({
+        where: { id: organizationId },
+        select: { name: true, slug: true },
+      });
+      if (!org) return JSON.stringify({ error: 'Organization not found' });
+
+      const invite = await prisma.memberPortalInvite.create({
+        data: { contactId: contact.id, email: contact.email },
+      });
+
+      await sendMemberPortalInvite(contact.email, {
+        firstName: contact.firstName,
+        orgName: org.name,
+        orgSlug: org.slug,
+        token: invite.token,
+        baseDomain: config.multiTenant.baseDomain,
+      });
+
+      await prisma.auditLog.create({
+        data: {
+          organizationId,
+          userId,
+          action: 'ASSISTANT_RESEND_PORTAL_INVITE',
+          metadata: { contactId: contact.id, email: contact.email },
+        },
+      });
+
+      return JSON.stringify({ success: true, sentTo: contact.email });
     }
 
     case 'create_contact': {
