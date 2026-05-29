@@ -24,9 +24,10 @@ export function FeedbackPage() {
   const [statusFilter, setStatusFilter] = useState('');
   const [typeFilter, setTypeFilter] = useState('');
   const [showForm, setShowForm] = useState(false);
+  const [page, setPage] = useState(1);
   const [form, setForm] = useState(EMPTY_FORM);
 
-  const list = useFeedbackList({ status: statusFilter || undefined, type: typeFilter || undefined });
+  const list = useFeedbackList({ status: statusFilter || undefined, type: typeFilter || undefined, page });
   const create = useCreateFeedback();
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -92,7 +93,7 @@ export function FeedbackPage() {
         <CardHeader>
           <div className="flex flex-wrap items-center gap-3">
             <div className="relative">
-              <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)}
+              <select value={statusFilter} onChange={(e) => { setStatusFilter(e.target.value); setPage(1); }}
                 className="appearance-none bg-white dark:bg-gray-700 dark:border-gray-600 dark:text-gray-100 text-sm border border-gray-300 rounded-lg pl-3 pr-8 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500 cursor-pointer">
                 <option value="">All statuses</option>
                 <option value="open">Open</option>
@@ -103,7 +104,7 @@ export function FeedbackPage() {
               <ChevronDown className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
             </div>
             <div className="relative">
-              <select value={typeFilter} onChange={(e) => setTypeFilter(e.target.value)}
+              <select value={typeFilter} onChange={(e) => { setTypeFilter(e.target.value); setPage(1); }}
                 className="appearance-none bg-white dark:bg-gray-700 dark:border-gray-600 dark:text-gray-100 text-sm border border-gray-300 rounded-lg pl-3 pr-8 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500 cursor-pointer">
                 <option value="">All types</option>
                 <option value="feedback">Feedback</option>
@@ -177,6 +178,16 @@ export function FeedbackPage() {
                   </tbody>
                 </table>
               </div>
+
+              {list.data.totalPages > 1 && (
+                <div className="flex items-center justify-between px-6 py-3 border-t border-gray-100 dark:border-gray-700 text-sm text-gray-500 dark:text-gray-400">
+                  <span>Page {list.data.page} of {list.data.totalPages}</span>
+                  <div className="flex gap-2">
+                    <Button variant="secondary" size="sm" onClick={() => setPage((p) => p - 1)} disabled={page <= 1}>Previous</Button>
+                    <Button variant="secondary" size="sm" onClick={() => setPage((p) => p + 1)} disabled={page >= list.data.totalPages}>Next</Button>
+                  </div>
+                </div>
+              )}
             </>
           )}
         </CardBody>

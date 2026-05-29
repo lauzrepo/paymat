@@ -100,7 +100,8 @@ function EditRow({ program, onDone }: { program: Program; onDone: () => void }) 
 export function ProgramsPage() {
   const [showForm, setShowForm] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
-  const programs = usePrograms();
+  const [page, setPage] = useState(1);
+  const programs = usePrograms({ page });
   const create = useCreateProgram();
   const deleteProgram = useDeleteProgram();
 
@@ -232,6 +233,16 @@ export function ProgramsPage() {
                   </tbody>
                 </table>
               </div>
+
+              {programs.data.totalPages > 1 && (
+                <div className="flex items-center justify-between px-6 py-3 border-t border-gray-100 dark:border-gray-700 text-sm text-gray-500 dark:text-gray-400">
+                  <span>Page {programs.data.page} of {programs.data.totalPages}</span>
+                  <div className="flex gap-2">
+                    <Button variant="secondary" size="sm" onClick={() => setPage((p) => p - 1)} disabled={page <= 1}>Previous</Button>
+                    <Button variant="secondary" size="sm" onClick={() => setPage((p) => p + 1)} disabled={page >= programs.data.totalPages}>Next</Button>
+                  </div>
+                </div>
+              )}
             </>
           )}
         </CardBody>

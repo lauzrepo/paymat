@@ -12,8 +12,9 @@ export function FamiliesPage() {
   const [showForm, setShowForm] = useState(false);
   const [form, setForm] = useState({ name: '', billingEmail: '' });
   const [addCard, setAddCard] = useState(false);
+  const [page, setPage] = useState(1);
   const navigate = useNavigate();
-  const families = useFamilies();
+  const families = useFamilies({ page });
   const create = useCreateFamily();
 
   const handleCreate = async (e: React.FormEvent) => {
@@ -122,6 +123,16 @@ export function FamiliesPage() {
                   </tbody>
                 </table>
               </div>
+
+              {families.data.totalPages > 1 && (
+                <div className="flex items-center justify-between px-6 py-3 border-t border-gray-100 dark:border-gray-700 text-sm text-gray-500 dark:text-gray-400">
+                  <span>Page {families.data.page} of {families.data.totalPages}</span>
+                  <div className="flex gap-2">
+                    <Button variant="secondary" size="sm" onClick={() => setPage((p) => p - 1)} disabled={page <= 1}>Previous</Button>
+                    <Button variant="secondary" size="sm" onClick={() => setPage((p) => p + 1)} disabled={page >= families.data.totalPages}>Next</Button>
+                  </div>
+                </div>
+              )}
             </>
           )}
         </CardBody>

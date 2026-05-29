@@ -17,9 +17,10 @@ const STATUS_VARIANT: Record<string, 'green' | 'yellow' | 'gray'> = {
 export function EnrollmentsPage() {
   const [status, setStatus] = useState('active');
   const [showForm, setShowForm] = useState(false);
+  const [page, setPage] = useState(1);
   const [form, setForm] = useState({ contactId: '', programId: '', startDate: new Date().toISOString().split('T')[0] });
 
-  const enrollments = useEnrollments({ status: status || undefined });
+  const enrollments = useEnrollments({ status: status || undefined, page });
   const contacts = useContacts({ status: 'active', limit: 100 } as Parameters<typeof useContacts>[0]);
   const programs = usePrograms({ activeOnly: true });
   const enroll = useEnroll();
@@ -101,7 +102,7 @@ export function EnrollmentsPage() {
           <div className="flex items-center gap-3">
             <select
               value={status}
-              onChange={(e) => setStatus(e.target.value)}
+              onChange={(e) => { setStatus(e.target.value); setPage(1); }}
               className="appearance-none bg-white dark:bg-gray-700 dark:border-gray-600 dark:text-gray-100 text-sm border border-gray-300 rounded-lg px-3 py-2 pr-8 focus:outline-none focus:ring-2 focus:ring-indigo-500"
             >
               <option value="">All statuses</option>
@@ -201,6 +202,16 @@ export function EnrollmentsPage() {
                   </tbody>
                 </table>
               </div>
+
+              {enrollments.data.totalPages > 1 && (
+                <div className="flex items-center justify-between px-6 py-3 border-t border-gray-100 dark:border-gray-700 text-sm text-gray-500 dark:text-gray-400">
+                  <span>Page {enrollments.data.page} of {enrollments.data.totalPages}</span>
+                  <div className="flex gap-2">
+                    <Button variant="secondary" size="sm" onClick={() => setPage((p) => p - 1)} disabled={page <= 1}>Previous</Button>
+                    <Button variant="secondary" size="sm" onClick={() => setPage((p) => p + 1)} disabled={page >= enrollments.data.totalPages}>Next</Button>
+                  </div>
+                </div>
+              )}
             </>
           )}
         </CardBody>

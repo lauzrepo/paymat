@@ -30,8 +30,9 @@ export function InvoicesPage() {
   const [paymentForm, setPaymentForm] = useState({ amount: '', method: 'cash', notes: '' });
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [downloading, setDownloading] = useState(false);
+  const [page, setPage] = useState(1);
 
-  const invoices = useInvoices({ status: status || undefined, contactId: searchParams.get('contactId') ?? undefined });
+  const invoices = useInvoices({ status: status || undefined, contactId: searchParams.get('contactId') ?? undefined, page });
   const branding = useTenantBranding();
   const stats = useInvoiceStats();
   const contacts = useContacts();
@@ -258,7 +259,7 @@ export function InvoicesPage() {
       <Card>
         <CardHeader>
           <div className="flex flex-wrap items-center gap-3">
-            <select value={status} onChange={(e) => setStatus(e.target.value)}
+            <select value={status} onChange={(e) => { setStatus(e.target.value); setPage(1); setSelectedIds(new Set()); }}
               className="appearance-none bg-white dark:bg-gray-700 dark:border-gray-600 dark:text-gray-100 text-sm border border-gray-300 rounded-lg px-3 py-2 pr-8 focus:outline-none focus:ring-2 focus:ring-indigo-500">
               <option value="">All statuses</option>
               <option value="draft">Draft</option>
@@ -384,6 +385,16 @@ export function InvoicesPage() {
                   </tbody>
                 </table>
               </div>
+
+              {invoices.data.totalPages > 1 && (
+                <div className="flex items-center justify-between px-6 py-3 border-t border-gray-100 dark:border-gray-700 text-sm text-gray-500 dark:text-gray-400">
+                  <span>Page {invoices.data.page} of {invoices.data.totalPages}</span>
+                  <div className="flex gap-2">
+                    <Button variant="secondary" size="sm" onClick={() => { setPage((p) => p - 1); setSelectedIds(new Set()); }} disabled={page <= 1}>Previous</Button>
+                    <Button variant="secondary" size="sm" onClick={() => { setPage((p) => p + 1); setSelectedIds(new Set()); }} disabled={page >= invoices.data.totalPages}>Next</Button>
+                  </div>
+                </div>
+              )}
             </>
           )}
         </CardBody>

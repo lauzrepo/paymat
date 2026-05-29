@@ -66,7 +66,8 @@ function RefundButton({ payment }: { payment: Payment }) {
 
 export function PaymentsPage() {
   const [status, setStatus] = useState('');
-  const payments = usePayments({ status: status || undefined });
+  const [page, setPage] = useState(1);
+  const payments = usePayments({ status: status || undefined, page });
   const stats = usePaymentStats();
 
   return (
@@ -82,7 +83,7 @@ export function PaymentsPage() {
       <Card>
         <CardHeader>
           <div className="flex items-center gap-3">
-            <select value={status} onChange={(e) => setStatus(e.target.value)}
+            <select value={status} onChange={(e) => { setStatus(e.target.value); setPage(1); }}
               className="appearance-none bg-white dark:bg-gray-700 dark:border-gray-600 dark:text-gray-100 text-sm border border-gray-300 rounded-lg px-3 py-2 pr-8 focus:outline-none focus:ring-2 focus:ring-indigo-500">
               <option value="">All statuses</option>
               <option value="succeeded">Succeeded</option>
@@ -149,6 +150,16 @@ export function PaymentsPage() {
                   </tbody>
                 </table>
               </div>
+
+              {payments.data.totalPages > 1 && (
+                <div className="flex items-center justify-between px-6 py-3 border-t border-gray-100 dark:border-gray-700 text-sm text-gray-500 dark:text-gray-400">
+                  <span>Page {payments.data.page} of {payments.data.totalPages}</span>
+                  <div className="flex gap-2">
+                    <Button variant="secondary" size="sm" onClick={() => setPage((p) => p - 1)} disabled={page <= 1}>Previous</Button>
+                    <Button variant="secondary" size="sm" onClick={() => setPage((p) => p + 1)} disabled={page >= payments.data.totalPages}>Next</Button>
+                  </div>
+                </div>
+              )}
             </>
           )}
         </CardBody>
