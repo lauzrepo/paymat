@@ -150,7 +150,9 @@ test.describe('billing card decline', () => {
     await page.goto(`/invoices/${invoiceId}`);
     await expect(page.getByText(/INV-/)).toBeVisible({ timeout: 10_000 });
 
-    const failedBadge = page.getByText('failed', { exact: true }).first();
+    // Target the desktop table row (mobile view duplicates are md:hidden)
+    const paymentsTable = page.locator('table');
+    const failedBadge = paymentsTable.getByText('failed', { exact: true });
     await expect(failedBadge).toBeVisible({ timeout: 5_000 });
     await expect(failedBadge).toHaveClass(/red/);
   });
@@ -160,6 +162,7 @@ test.describe('billing card decline', () => {
     await page.goto(`/invoices/${invoiceId}`);
     await expect(page.getByText(/INV-/)).toBeVisible({ timeout: 10_000 });
 
-    await expect(page.getByText('card').first()).toBeVisible();
+    // Target the desktop table (mobile view duplicates are md:hidden)
+    await expect(page.locator('table').getByText('card', { exact: false }).first()).toBeVisible();
   });
 });
