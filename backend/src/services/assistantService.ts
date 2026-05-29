@@ -399,6 +399,14 @@ const TOOLS: Anthropic.Tool[] = [
   },
 ];
 
+function toTitleCase(str: string): string {
+  return str
+    .trim()
+    .split(/\s+/)
+    .map((w) => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase())
+    .join(' ');
+}
+
 async function executeTool(
   name: string,
   input: Record<string, unknown>,
@@ -1108,8 +1116,8 @@ async function executeTool(
     case 'create_contact': {
       const contact = await contactService.createContact({
         organizationId,
-        firstName: input.firstName as string,
-        lastName: input.lastName as string,
+        firstName: toTitleCase(input.firstName as string),
+        lastName: toTitleCase(input.lastName as string),
         email: input.email as string | undefined,
         phone: input.phone as string | undefined,
         familyId: input.familyId as string | undefined,
