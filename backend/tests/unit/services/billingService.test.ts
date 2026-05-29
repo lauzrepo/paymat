@@ -4,6 +4,7 @@ jest.mock('../../../src/services/stripeConnectService', () => ({
   __esModule: true,
   default: {
     chargeCustomer: jest.fn(),
+    getChargeFees: jest.fn().mockResolvedValue(null),
   },
 }));
 
@@ -72,6 +73,7 @@ function makeInvoice(overrides: Record<string, unknown> = {}) {
 
 beforeEach(() => {
   jest.clearAllMocks();
+  (prisma.user.findMany as jest.Mock).mockResolvedValue([]);
 });
 
 describe('BillingService.generateDueInvoices()', () => {
@@ -503,8 +505,8 @@ describe('BillingService.generateDueInvoices()', () => {
   });
 
   describe('auto-charge failure', () => {
-    it('leaves invoice in sent status, does not increment autoCharged, and sends payment failed email', async () => {
-      const enrollment = makeEnrollment({
+    function makeDeclinedEnrollment() {
+      return makeEnrollment({
         contact: {
           id: 'contact-1',
           organizationId: 'org-1',
@@ -517,25 +519,162 @@ describe('BillingService.generateDueInvoices()', () => {
           organization: { slug: 'test-org', name: 'Test Org', stripeConnectAccountId: 'acct_test', platformFeePercent: 0, sandboxMode: true },
         },
       });
+    }
 
+    beforeEach(() => {
       (prisma.enrollment.count as jest.Mock).mockResolvedValue(1);
-      (prisma.enrollment.findMany as jest.Mock).mockResolvedValue([enrollment]);
+      (prisma.enrollment.findMany as jest.Mock).mockResolvedValue([makeDeclinedEnrollment()]);
       (prisma.invoice.count as jest.Mock).mockResolvedValue(0);
       (prisma.invoice.create as jest.Mock).mockResolvedValue(makeInvoice({ id: 'invoice-1' }));
+      (prisma.payment.create as jest.Mock).mockResolvedValue({});
       (prisma.enrollment.update as jest.Mock).mockResolvedValue({});
       (prisma.invoice.updateMany as jest.Mock).mockResolvedValue({ count: 0 });
       (stripeConnectService.chargeCustomer as jest.Mock).mockRejectedValue(new Error('Card declined'));
+    });
 
+    it('leaves invoice in sent status, does not increment autoCharged, and sends payment failed email', async () => {
       const result = await billingService.generateDueInvoices();
 
       expect(result.autoCharged).toBe(0);
-      // Invoice.update to paid should NOT have been called
       expect(prisma.invoice.update as jest.Mock).not.toHaveBeenCalled();
-      // invoicesCreated still increments — the invoice was created
       expect(result.invoicesCreated).toBe(1);
-      // sendPaymentFailed should fire (fire-and-forget, may need to flush)
-      await Promise.resolve(); // flush micro-tasks
+      await Promise.resolve();
       expect(sendPaymentFailed as jest.Mock).toHaveBeenCalled();
+    });
+
+    it('writes a failed Payment row with status=failed', async () => {
+      await billingService.generateDueInvoices();
+
+      expect(prisma.payment.create as jest.Mock).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({
+            invoiceId: 'invoice-1',
+            status: 'failed',
+            paymentMethodType: 'card',
+            currency: 'USD',
+          }),
+        }),
+      );
+    });
+
+    it('captures the Stripe PaymentIntent ID from the error when available', async () => {
+      const declineErr = Object.assign(new Error('Card declined'), {
+        payment_intent: { id: 'pi_declined_123' },
+      });
+      (stripeConnectService.chargeCustomer as jest.Mock).mockRejectedValue(declineErr);
+
+      await billingService.generateDueInvoices();
+
+      expect(prisma.payment.create as jest.Mock).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({
+            stripePaymentIntentId: 'pi_declined_123',
+            status: 'failed',
+          }),
+        }),
+      );
+    });
+
+    it('uses null PaymentIntent ID when the error has no payment_intent', async () => {
+      await billingService.generateDueInvoices();
+
+      expect(prisma.payment.create as jest.Mock).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({
+            stripePaymentIntentId: null,
+            status: 'failed',
+          }),
+        }),
+      );
+    });
+  });
+
+  describe('family auto-charge failure', () => {
+    function makeDeclinedFamilyEnrollment() {
+      return {
+        id: 'enroll-fam-1',
+        contactId: 'contact-fam-1',
+        nextBillingDate: new Date('2026-03-01T00:00:00.000Z'),
+        contact: {
+          id: 'contact-fam-1',
+          organizationId: 'org-1',
+          firstName: 'Emma',
+          lastName: 'Johnson',
+          email: 'emma@example.com',
+          stripeCustomerId: null,
+          stripeDefaultPaymentMethodId: null,
+          familyId: 'family-1',
+          family: {
+            id: 'family-1',
+            name: 'Johnson Family',
+            stripeCustomerId: 'cus_fam_bad',
+            stripeDefaultPaymentMethodId: 'pm_fam_bad',
+            billingEmail: 'johnson.family@example.com',
+          },
+          organization: { slug: 'test-org', name: 'Test Org', stripeConnectAccountId: 'acct_test', platformFeePercent: 0, sandboxMode: true },
+        },
+        program: {
+          id: 'prog-1',
+          name: 'Beginner Karate',
+          price: 120,
+          billingFrequency: 'monthly',
+          maxBillingCycles: null,
+        },
+      };
+    }
+
+    beforeEach(() => {
+      (prisma.enrollment.count as jest.Mock).mockResolvedValue(1);
+      (prisma.enrollment.findMany as jest.Mock).mockResolvedValue([makeDeclinedFamilyEnrollment()]);
+      (prisma.invoice.count as jest.Mock).mockResolvedValue(0);
+      (prisma.invoice.create as jest.Mock).mockResolvedValue(makeInvoice({ id: 'fam-invoice-1', invoiceNumber: 'INV-00002' }));
+      (prisma.payment.create as jest.Mock).mockResolvedValue({});
+      (prisma.enrollment.update as jest.Mock).mockResolvedValue({});
+      (prisma.invoice.updateMany as jest.Mock).mockResolvedValue({ count: 0 });
+      (stripeConnectService.chargeCustomer as jest.Mock).mockRejectedValue(new Error('Insufficient funds'));
+    });
+
+    it('writes a failed Payment row for the family invoice', async () => {
+      await billingService.generateDueInvoices();
+
+      expect(prisma.payment.create as jest.Mock).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({
+            invoiceId: 'fam-invoice-1',
+            status: 'failed',
+            paymentMethodType: 'card',
+            currency: 'USD',
+          }),
+        }),
+      );
+    });
+
+    it('captures the Stripe PaymentIntent ID from the family charge error when available', async () => {
+      const declineErr = Object.assign(new Error('Insufficient funds'), {
+        payment_intent: { id: 'pi_fam_declined_456' },
+      });
+      (stripeConnectService.chargeCustomer as jest.Mock).mockRejectedValue(declineErr);
+
+      await billingService.generateDueInvoices();
+
+      expect(prisma.payment.create as jest.Mock).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({
+            stripePaymentIntentId: 'pi_fam_declined_456',
+            status: 'failed',
+          }),
+        }),
+      );
+    });
+
+    it('sends payment failed email to the family billing address', async () => {
+      await billingService.generateDueInvoices();
+      await Promise.resolve();
+
+      expect(sendPaymentFailed as jest.Mock).toHaveBeenCalledWith(
+        'johnson.family@example.com',
+        expect.objectContaining({ recipientName: 'Johnson Family' }),
+      );
     });
   });
 

@@ -313,6 +313,20 @@ class BillingService {
             `Billing: auto-charge failed for family invoice ${invoiceNumber} — ${(chargeErr as Error).message}`
           );
 
+          const failedPaymentIntentId = (chargeErr as { payment_intent?: { id: string } }).payment_intent?.id ?? null;
+          await prisma.payment.create({
+            data: {
+              organizationId: orgId,
+              invoiceId: invoice.id,
+              stripePaymentIntentId: failedPaymentIntentId,
+              amount: new Decimal(totalAmount),
+              currency: 'USD',
+              status: 'failed',
+              paymentMethodType: 'card',
+              notes: `Auto-charge failed: ${(chargeErr as Error).message}`,
+            },
+          });
+
           const billingEmail = family.billingEmail;
           const emailTargets: Array<{ email: string; name: string }> = billingEmail
             ? [{ email: billingEmail, name: family.name }]
@@ -477,6 +491,20 @@ class BillingService {
             }
           } catch (chargeErr) {
             logger.warn(`Billing: auto-charge failed for ${invoiceNumber} — ${(chargeErr as Error).message}`);
+
+            const failedPaymentIntentId = (chargeErr as { payment_intent?: { id: string } }).payment_intent?.id ?? null;
+            await prisma.payment.create({
+              data: {
+                organizationId: orgId,
+                invoiceId: invoice.id,
+                stripePaymentIntentId: failedPaymentIntentId,
+                amount: new Decimal(amount),
+                currency: 'USD',
+                status: 'failed',
+                paymentMethodType: 'card',
+                notes: `Auto-charge failed: ${(chargeErr as Error).message}`,
+              },
+            });
 
             if (contactEmail) {
               sendPaymentFailed(contactEmail, {
