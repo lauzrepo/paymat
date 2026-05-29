@@ -1,5 +1,8 @@
 import prisma from '../config/database';
 import { AppError } from '../middleware/errorHandler';
+import { sendMemberPortalInvite } from './emailService';
+import { config } from '../config/environment';
+import logger from '../utils/logger';
 
 export interface CreateContactData {
   organizationId: string;
@@ -35,10 +38,29 @@ export interface BulkImportContactRow {
 
 class ContactService {
   async createContact(data: CreateContactData) {
-    return prisma.contact.create({
+    const contact = await prisma.contact.create({
       data,
       include: { family: true, enrollments: { include: { program: true } } },
     });
+
+    if (contact.email) {
+      const org = await prisma.organization.findUnique({ where: { id: contact.organizationId }, select: { name: true, slug: true } });
+      if (org) {
+        prisma.memberPortalInvite.create({
+          data: { contactId: contact.id, email: contact.email },
+        }).then((invite) =>
+          sendMemberPortalInvite(contact.email!, {
+            firstName: contact.firstName,
+            orgName: org.name,
+            orgSlug: org.slug,
+            token: invite.token,
+            baseDomain: config.multiTenant.baseDomain,
+          })
+        ).catch((err) => logger.warn('[MemberInvite] Failed to send portal invite', { err, contactId: contact.id }));
+      }
+    }
+
+    return contact;
   }
 
   async getContacts(organizationId: string, page = 1, limit = 20, filters: { status?: string; familyId?: string; search?: string } = {}) {

@@ -14,6 +14,13 @@ const router = Router();
 router.post('/register', authLimiter, validate(registerSchema), authController.register);
 
 /**
+ * @route   GET /api/auth/member-invite/:token
+ * @desc    Look up a member portal invite by token (returns email + first name for pre-fill)
+ * @access  Public
+ */
+router.get('/member-invite/:token', authController.getMemberInvite);
+
+/**
  * @route   POST /api/auth/register-member
  * @desc    Self-service portal registration for existing members (Contacts)
  * @access  Public

@@ -51,11 +51,20 @@ export function useResetPassword() {
 
 export function useRegisterMember() {
   return useMutation({
-    mutationFn: ({ email, password }: { email: string; password: string }) =>
-      api.registerMember(email, password),
+    mutationFn: ({ email, password, token }: { email: string; password: string; token?: string }) =>
+      api.registerMember(email, password, token),
     onSuccess: ({ accessToken, refreshToken }) => {
       authStore.setTokens({ accessToken, refreshToken });
       queryClient.invalidateQueries({ queryKey: ['me'] });
     },
+  });
+}
+
+export function useMemberInvite(token: string | null) {
+  return useQuery({
+    queryKey: ['member-invite', token],
+    queryFn: () => api.getMemberInvite(token!),
+    enabled: !!token,
+    retry: false,
   });
 }

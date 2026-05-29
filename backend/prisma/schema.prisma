@@ -77,12 +77,13 @@ model Contact {
   createdAt      DateTime  @default(now()) @map("created_at")
   updatedAt      DateTime  @updatedAt @map("updated_at")
 
-  organization Organization @relation(fields: [organizationId], references: [id])
-  family       Family?      @relation(fields: [familyId], references: [id])
-  user         User?
-  enrollments  Enrollment[]
-  invoices     Invoice[]
-  feedback     FeedbackSubmission[]
+  organization   Organization @relation(fields: [organizationId], references: [id])
+  family         Family?      @relation(fields: [familyId], references: [id])
+  user           User?
+  enrollments    Enrollment[]
+  invoices       Invoice[]
+  feedback       FeedbackSubmission[]
+  portalInvites  MemberPortalInvite[]
 
   @@unique([organizationId, stripeCustomerId])
   @@index([organizationId])
@@ -281,4 +282,18 @@ model InviteToken {
 
   @@index([token])
   @@map("invite_tokens")
+}
+
+model MemberPortalInvite {
+  id        String    @id @default(uuid())
+  token     String    @unique @default(uuid())
+  contactId String    @map("contact_id")
+  email     String
+  usedAt    DateTime? @map("used_at")
+  createdAt DateTime  @default(now()) @map("created_at")
+
+  contact   Contact   @relation(fields: [contactId], references: [id], onDelete: Cascade)
+
+  @@index([token])
+  @@map("member_portal_invites")
 }

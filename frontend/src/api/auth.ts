@@ -32,7 +32,12 @@ export async function resetPassword(token: string, newPassword: string) {
   return data as { status: string };
 }
 
-export async function registerMember(email: string, password: string) {
-  const { data } = await apiClient.post('/auth/register-member', { email, password });
+export async function registerMember(email: string, password: string, token?: string) {
+  const { data } = await apiClient.post('/auth/register-member', { email, password, ...(token ? { token } : {}) });
   return data.data as { accessToken: string; refreshToken: string; user: User };
+}
+
+export async function getMemberInvite(token: string) {
+  const { data } = await apiClient.get(`/auth/member-invite/${token}`);
+  return data.data as { email: string; firstName: string };
 }

@@ -173,9 +173,32 @@ export const getCurrentUser = asyncHandler(async (req: Request, res: Response) =
  * The email must match an existing Contact in the org that doesn't yet have
  * a linked User account.
  */
+export const getMemberInvite = asyncHandler(async (req: Request, res: Response) => {
+  const { token } = req.params as { token: string };
+
+  const invite = await prisma.memberPortalInvite.findUnique({
+    where: { token },
+    include: { contact: { select: { firstName: true, organizationId: true } } },
+  });
+
+  if (!invite) throw new AppError(404, 'Invite not found');
+  if (invite.usedAt) throw new AppError(410, 'This invite has already been used. Please sign in or reset your password.');
+
+  res.json({ status: 'success', data: { email: invite.email, firstName: invite.contact.firstName } });
+});
+
 export const registerMember = asyncHandler(async (req: Request, res: Response) => {
-  const { email, password } = req.body;
+  const { email, password, token } = req.body;
   const organizationId = req.organization!.id;
+
+  let invite: { id: string } | null = null;
+  if (token) {
+    const found = await prisma.memberPortalInvite.findUnique({ where: { token } });
+    if (!found) throw new AppError(400, 'Invalid invite link.');
+    if (found.usedAt) throw new AppError(410, 'This invite has already been used. Please sign in or reset your password.');
+    if (found.email.toLowerCase() !== email.toLowerCase()) throw new AppError(400, 'This invite link is for a different email address.');
+    invite = found;
+  }
 
   const contact = await prisma.contact.findFirst({
     where: { organizationId, email, status: 'active' },
@@ -202,6 +225,10 @@ export const registerMember = asyncHandler(async (req: Request, res: Response) =
     role: 'client',
     contactId: contact.id,
   });
+
+  if (invite) {
+    await prisma.memberPortalInvite.update({ where: { id: invite.id }, data: { usedAt: new Date() } });
+  }
 
   const { accessToken, refreshToken } = generateTokens(user.id, user.email, organizationId, user.role);
 
