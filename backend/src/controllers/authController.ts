@@ -167,6 +167,63 @@ export const getCurrentUser = asyncHandler(async (req: Request, res: Response) =
 });
 
 /**
+ * Register a member (client) portal account via self-service
+ * POST /api/auth/register-member
+ *
+ * The email must match an existing Contact in the org that doesn't yet have
+ * a linked User account.
+ */
+export const registerMember = asyncHandler(async (req: Request, res: Response) => {
+  const { email, password } = req.body;
+  const organizationId = req.organization!.id;
+
+  const contact = await prisma.contact.findFirst({
+    where: { organizationId, email, status: 'active' },
+  });
+
+  if (!contact) {
+    throw new AppError(404, 'No member record found for this email. Please contact your organization.');
+  }
+
+  const existingUser = await prisma.user.findFirst({
+    where: { organizationId, email, deletedAt: null },
+  });
+
+  if (existingUser) {
+    throw new AppError(409, 'A portal account already exists for this email. Please sign in or reset your password.');
+  }
+
+  const user = await userService.createUser({
+    organizationId,
+    email,
+    password,
+    firstName: contact.firstName,
+    lastName: contact.lastName,
+    role: 'client',
+    contactId: contact.id,
+  });
+
+  const { accessToken, refreshToken } = generateTokens(user.id, user.email, organizationId, user.role);
+
+  await prisma.auditLog.create({
+    data: {
+      organizationId,
+      userId: user.id,
+      action: 'USER_REGISTERED',
+      ipAddress: req.ip,
+      userAgent: req.headers['user-agent'],
+    },
+  });
+
+  logger.info(`Member portal account created: ${user.email}`);
+
+  res.status(201).json({
+    status: 'success',
+    data: { user, accessToken, refreshToken },
+  });
+});
+
+/**
  * Forgot password
  * POST /api/auth/forgot-password
  */

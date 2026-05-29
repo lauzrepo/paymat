@@ -31,3 +31,8 @@ export async function resetPassword(token: string, newPassword: string) {
   const { data } = await apiClient.post('/auth/reset-password', { token, newPassword });
   return data as { status: string };
 }
+
+export async function registerMember(email: string, password: string) {
+  const { data } = await apiClient.post('/auth/register-member', { email, password });
+  return data.data as { accessToken: string; refreshToken: string; user: User };
+}

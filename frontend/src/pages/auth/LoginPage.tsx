@@ -62,6 +62,12 @@ export function LoginPage() {
               Forgot your password?
             </Link>
           </p>
+          <p className="mt-2 text-center text-sm text-gray-500 dark:text-gray-400">
+            New member?{' '}
+            <Link to={`/${orgSlug}/register`} className="text-indigo-600 hover:text-indigo-500 font-medium">
+              Create your account
+            </Link>
+          </p>
         </div>
       </div>
     </div>

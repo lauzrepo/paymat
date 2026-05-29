@@ -48,3 +48,14 @@ export function useResetPassword() {
     },
   });
 }
+
+export function useRegisterMember() {
+  return useMutation({
+    mutationFn: ({ email, password }: { email: string; password: string }) =>
+      api.registerMember(email, password),
+    onSuccess: ({ accessToken, refreshToken }) => {
+      authStore.setTokens({ accessToken, refreshToken });
+      queryClient.invalidateQueries({ queryKey: ['me'] });
+    },
+  });
+}

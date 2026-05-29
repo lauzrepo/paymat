@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import * as authController from '../controllers/authController';
-import { validate, registerSchema, loginSchema, refreshTokenSchema, forgotPasswordSchema, resetPasswordSchema } from '../middleware/validation';
+import { validate, registerSchema, loginSchema, refreshTokenSchema, forgotPasswordSchema, resetPasswordSchema, registerMemberSchema } from '../middleware/validation';
 import { authenticateToken } from '../middleware/auth';
 import { authLimiter } from '../middleware/rateLimiter';
 
@@ -12,6 +12,13 @@ const router = Router();
  * @access  Public
  */
 router.post('/register', authLimiter, validate(registerSchema), authController.register);
+
+/**
+ * @route   POST /api/auth/register-member
+ * @desc    Self-service portal registration for existing members (Contacts)
+ * @access  Public
+ */
+router.post('/register-member', authLimiter, validate(registerMemberSchema), authController.registerMember);
 
 /**
  * @route   POST /api/auth/login
