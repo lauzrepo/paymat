@@ -5,6 +5,45 @@ import type { MonthlyStatement, AnnualSummary } from './reportService';
 const resend = new Resend(config.email.resendApiKey);
 const FROM = 'Cliq Paymat <noreply@cliqpaymat.app>';
 
+export async function sendPaymentReminder(to: string, details: {
+  recipientName: string;
+  orgName: string;
+  invoiceNumber: string;
+  amountDue: number;
+  currency: string;
+  dueDate: Date;
+  portalUrl: string;
+}) {
+  const overdue = details.dueDate < new Date();
+  await resend.emails.send({
+    from: FROM,
+    to,
+    subject: `${overdue ? 'Overdue: ' : ''}Invoice ${details.invoiceNumber} from ${details.orgName}`,
+    html: `
+      <div style="font-family:sans-serif;max-width:600px;margin:0 auto">
+        <div style="background:${overdue ? '#dc2626' : '#4f46e5'};padding:24px;border-radius:8px 8px 0 0;text-align:center">
+          <h1 style="color:#fff;margin:0;font-size:22px">${overdue ? 'Payment Overdue' : 'Payment Reminder'}</h1>
+        </div>
+        <div style="background:#fff;border:1px solid #e5e7eb;border-top:none;border-radius:0 0 8px 8px;padding:32px">
+          <p style="font-size:16px;color:#111827">Hi ${details.recipientName},</p>
+          <p style="color:#6b7280">This is a friendly reminder that you have an outstanding invoice with <strong>${details.orgName}</strong>${overdue ? ' that is now <strong>overdue</strong>' : ''}.</p>
+          <div style="background:${overdue ? '#fef2f2' : '#f9fafb'};border-radius:8px;padding:20px;margin:24px 0">
+            <table style="width:100%;border-collapse:collapse">
+              <tr><td style="padding:4px 0;color:#6b7280;width:140px">Invoice</td><td style="font-weight:600;color:#111827">${details.invoiceNumber}</td></tr>
+              <tr><td style="padding:4px 0;color:#6b7280">Amount due</td><td style="font-weight:700;color:${overdue ? '#dc2626' : '#111827'};font-size:18px">$${details.amountDue.toFixed(2)} ${details.currency}</td></tr>
+              <tr><td style="padding:4px 0;color:#6b7280">Due date</td><td style="color:${overdue ? '#dc2626' : '#111827'};font-weight:${overdue ? '600' : '400'}">${details.dueDate.toLocaleDateString()}</td></tr>
+            </table>
+          </div>
+          <div style="text-align:center;margin:24px 0">
+            <a href="${details.portalUrl}" style="background:${overdue ? '#dc2626' : '#4f46e5'};color:#fff;padding:12px 28px;border-radius:8px;text-decoration:none;font-size:15px;font-weight:600">Pay Now</a>
+          </div>
+          <p style="color:#9ca3af;font-size:12px">If you've already made this payment, please disregard this reminder.</p>
+        </div>
+      </div>
+    `,
+  });
+}
+
 export async function sendFeedbackNotification(submission: {
   id: string;
   name: string;
