@@ -3,7 +3,9 @@ import { Prisma } from '@prisma/client';
 import prisma from '../config/database';
 import invoiceService from './invoiceService';
 import paymentService from './paymentService';
-import { sendPaymentReminder } from './emailService';
+import enrollmentService from './enrollmentService';
+import contactService from './contactService';
+import { sendInvoiceGenerated, sendPaymentReminder } from './emailService';
 import { config } from '../config/environment';
 
 const PORTAL_URL = config.email.appUrl.replace('app.', 'portal.');
@@ -12,12 +14,13 @@ const anthropic = new Anthropic();
 
 const MODEL = 'claude-haiku-4-5';
 
-const SYSTEM_PROMPT = `You are a payments assistant for Paymat, a SaaS billing platform for activity-based businesses (gyms, studios, tutoring centers, camps, etc.).
+const SYSTEM_PROMPT = `You are Mate, an AI assistant for Paymat, a SaaS billing platform for activity-based businesses (gyms, studios, tutoring centers, camps, etc.).
 
 You help administrators:
 - Answer questions about invoices, payments, contacts, families, and programs using live data
 - Provide revenue summaries and insights
 - Take billing actions: create invoices, record manual payments, void invoices, send payment reminder emails
+- Manage contacts: create new contacts, update status, enroll/unenroll from programs
 
 Data model overview:
 - Contact: an individual member/client (firstName, lastName, email, status: active/inactive)
@@ -133,6 +136,97 @@ const TOOLS: Anthropic.Tool[] = [
     },
   },
   {
+    name: 'get_invoice_details',
+    description: 'Get full details for a specific invoice, including line items and payment history.',
+    input_schema: {
+      type: 'object' as const,
+      properties: {
+        invoiceId: { type: 'string', description: 'Invoice ID' },
+      },
+      required: ['invoiceId'],
+    },
+  },
+  {
+    name: 'send_invoice',
+    description: 'Mark a draft invoice as sent and email it to the contact or family billing address.',
+    input_schema: {
+      type: 'object' as const,
+      properties: {
+        invoiceId: { type: 'string', description: 'Invoice ID to send' },
+      },
+      required: ['invoiceId'],
+    },
+  },
+  {
+    name: 'list_programs',
+    description: 'List active programs for the organization, including name and price.',
+    input_schema: {
+      type: 'object' as const,
+      properties: {
+        query: { type: 'string', description: 'Optional name search (partial match)' },
+      },
+      required: [],
+    },
+  },
+  {
+    name: 'get_contact_enrollments',
+    description: "Get a contact's active program enrollments, including program name and price. Use this before creating an invoice when the user says 'bill for current enrollments' or similar.",
+    input_schema: {
+      type: 'object' as const,
+      properties: {
+        contactId: { type: 'string', description: 'The contact ID to look up enrollments for' },
+      },
+      required: ['contactId'],
+    },
+  },
+  {
+    name: 'get_family_details',
+    description: "Get a family's members, their active enrollments, and outstanding invoice balance.",
+    input_schema: {
+      type: 'object' as const,
+      properties: {
+        familyId: { type: 'string', description: 'Family ID' },
+      },
+      required: ['familyId'],
+    },
+  },
+  {
+    name: 'create_enrollment',
+    description: 'Enroll a contact in a program. Handles capacity checks and re-activating cancelled enrollments.',
+    input_schema: {
+      type: 'object' as const,
+      properties: {
+        contactId: { type: 'string', description: 'Contact ID to enroll' },
+        programId: { type: 'string', description: 'Program ID to enroll in' },
+        startDate: { type: 'string', description: 'Start date in ISO format (defaults to today)' },
+      },
+      required: ['contactId', 'programId'],
+    },
+  },
+  {
+    name: 'unenroll_contact',
+    description: 'Cancel a contact\'s enrollment in a program.',
+    input_schema: {
+      type: 'object' as const,
+      properties: {
+        enrollmentId: { type: 'string', description: 'Enrollment ID to cancel' },
+      },
+      required: ['enrollmentId'],
+    },
+  },
+  {
+    name: 'update_contact_status',
+    description: "Update a contact's status to active or inactive.",
+    input_schema: {
+      type: 'object' as const,
+      properties: {
+        contactId: { type: 'string', description: 'Contact ID' },
+        status: { type: 'string', enum: ['active', 'inactive'], description: 'New status' },
+      },
+      required: ['contactId', 'status'],
+    },
+  },
+  {
     name: 'void_invoice',
     description: 'Void an unpaid invoice (marks it cancelled). Cannot void paid invoices.',
     input_schema: {
@@ -152,6 +246,23 @@ const TOOLS: Anthropic.Tool[] = [
         invoiceId: { type: 'string', description: 'Invoice ID to send the reminder for' },
       },
       required: ['invoiceId'],
+    },
+  },
+  {
+    name: 'create_contact',
+    description: 'Create a new contact (member/client) in the organization.',
+    input_schema: {
+      type: 'object' as const,
+      properties: {
+        firstName: { type: 'string', description: 'First name' },
+        lastName: { type: 'string', description: 'Last name' },
+        email: { type: 'string', description: 'Email address (optional)' },
+        phone: { type: 'string', description: 'Phone number (optional)' },
+        familyId: { type: 'string', description: 'Family ID to link the contact to (optional)' },
+        dateOfBirth: { type: 'string', description: 'Date of birth in ISO format e.g. 2010-03-15 (optional)' },
+        notes: { type: 'string', description: 'Internal notes (optional)' },
+      },
+      required: ['firstName', 'lastName'],
     },
   },
 ];
@@ -360,6 +471,293 @@ async function executeTool(
       return JSON.stringify({ success: true, paymentId: payment.id, amount: Number(payment.amount) });
     }
 
+    case 'get_invoice_details': {
+      const invoice = await prisma.invoice.findFirst({
+        where: { id: input.invoiceId as string, organizationId },
+        include: {
+          contact: { select: { id: true, firstName: true, lastName: true, email: true } },
+          family: { select: { id: true, name: true, billingEmail: true } },
+          lineItems: { select: { id: true, description: true, quantity: true, unitPrice: true, total: true } },
+          payments: {
+            select: { id: true, amount: true, status: true, paymentMethodType: true, createdAt: true },
+            orderBy: { createdAt: 'desc' },
+          },
+        },
+      });
+
+      if (!invoice) return JSON.stringify({ error: 'Invoice not found' });
+
+      return JSON.stringify({
+        id: invoice.id,
+        invoiceNumber: invoice.invoiceNumber,
+        status: invoice.status,
+        amountDue: Number(invoice.amountDue),
+        amountPaid: Number(invoice.amountPaid),
+        currency: invoice.currency,
+        dueDate: invoice.dueDate,
+        paidAt: invoice.paidAt,
+        notes: invoice.notes,
+        billedTo: invoice.contact
+          ? { type: 'contact', id: invoice.contact.id, name: `${invoice.contact.firstName} ${invoice.contact.lastName}`, email: invoice.contact.email }
+          : invoice.family
+          ? { type: 'family', id: invoice.family.id, name: invoice.family.name, email: invoice.family.billingEmail }
+          : null,
+        lineItems: invoice.lineItems.map((li) => ({
+          description: li.description,
+          quantity: li.quantity,
+          unitPrice: Number(li.unitPrice),
+          total: Number(li.total),
+        })),
+        payments: invoice.payments.map((p) => ({
+          amount: Number(p.amount),
+          status: p.status,
+          method: p.paymentMethodType,
+          date: p.createdAt,
+        })),
+      });
+    }
+
+    case 'send_invoice': {
+      const invoice = await prisma.invoice.findFirst({
+        where: { id: input.invoiceId as string, organizationId },
+        include: {
+          contact: { select: { firstName: true, lastName: true, email: true } },
+          family: { select: { name: true, billingEmail: true } },
+          lineItems: { select: { description: true } },
+          organization: { select: { name: true, slug: true } },
+        },
+      });
+
+      if (!invoice) return JSON.stringify({ error: 'Invoice not found' });
+      if (invoice.status !== 'draft') return JSON.stringify({ error: `Invoice is already ${invoice.status}` });
+
+      await prisma.invoice.update({ where: { id: invoice.id }, data: { status: 'sent' } });
+
+      await prisma.auditLog.create({
+        data: {
+          organizationId,
+          userId,
+          action: 'ASSISTANT_SEND_INVOICE',
+          metadata: { invoiceId: invoice.id, invoiceNumber: invoice.invoiceNumber },
+        },
+      });
+
+      const recipientEmail = invoice.contact?.email ?? invoice.family?.billingEmail;
+      const recipientName = invoice.contact
+        ? `${invoice.contact.firstName} ${invoice.contact.lastName}`.trim()
+        : (invoice.family?.name ?? 'Customer');
+
+      if (recipientEmail) {
+        sendInvoiceGenerated(recipientEmail, {
+          recipientName,
+          orgName: invoice.organization.name,
+          invoiceNumber: invoice.invoiceNumber,
+          amount: Number(invoice.amountDue),
+          currency: invoice.currency,
+          dueDate: invoice.dueDate,
+          programName: invoice.lineItems[0]?.description ?? 'Services',
+          portalUrl: `${PORTAL_URL}/${invoice.organization.slug}/invoices/${invoice.id}`,
+        }).catch(() => {});
+      }
+
+      return JSON.stringify({
+        success: true,
+        invoiceId: invoice.id,
+        invoiceNumber: invoice.invoiceNumber,
+        emailedTo: recipientEmail ?? null,
+      });
+    }
+
+    case 'list_programs': {
+      const query = input.query as string | undefined;
+
+      const programs = await prisma.program.findMany({
+        where: {
+          organizationId,
+          isActive: true,
+          ...(query && { name: { contains: query, mode: 'insensitive' } }),
+        },
+        orderBy: { name: 'asc' },
+        select: { id: true, name: true, description: true, price: true, billingFrequency: true, capacity: true },
+      });
+
+      return JSON.stringify(
+        programs.map((p) => ({
+          id: p.id,
+          name: p.name,
+          description: p.description,
+          price: Number(p.price),
+          billingFrequency: p.billingFrequency,
+          capacity: p.capacity,
+        }))
+      );
+    }
+
+    case 'get_contact_enrollments': {
+      const enrollments = await prisma.enrollment.findMany({
+        where: {
+          contact: { organizationId },
+          contactId: input.contactId as string,
+          status: 'active',
+        },
+        include: {
+          program: { select: { id: true, name: true, price: true, billingFrequency: true } },
+        },
+        orderBy: { startDate: 'asc' },
+      });
+
+      return JSON.stringify(
+        enrollments.map((e) => ({
+          enrollmentId: e.id,
+          programId: e.program.id,
+          programName: e.program.name,
+          price: Number(e.program.price),
+          billingFrequency: e.program.billingFrequency,
+          startDate: e.startDate,
+        }))
+      );
+    }
+
+    case 'get_family_details': {
+      const family = await prisma.family.findFirst({
+        where: { id: input.familyId as string, organizationId },
+        include: {
+          contacts: {
+            select: {
+              id: true,
+              firstName: true,
+              lastName: true,
+              email: true,
+              status: true,
+              enrollments: {
+                where: { status: 'active' },
+                include: { program: { select: { name: true, price: true, billingFrequency: true } } },
+              },
+            },
+          },
+          invoices: {
+            where: { status: { in: ['draft', 'sent', 'overdue'] } },
+            select: { id: true, invoiceNumber: true, status: true, amountDue: true, amountPaid: true, dueDate: true },
+          },
+        },
+      });
+
+      if (!family) return JSON.stringify({ error: 'Family not found' });
+
+      const outstandingBalance = family.invoices.reduce(
+        (sum, inv) => sum + Number(inv.amountDue) - Number(inv.amountPaid),
+        0
+      );
+
+      return JSON.stringify({
+        id: family.id,
+        name: family.name,
+        billingEmail: family.billingEmail,
+        outstandingBalance,
+        members: family.contacts.map((c) => ({
+          id: c.id,
+          name: `${c.firstName} ${c.lastName}`,
+          email: c.email,
+          status: c.status,
+          activeEnrollments: c.enrollments.map((e) => ({
+            enrollmentId: e.id,
+            program: e.program.name,
+            price: Number(e.program.price),
+            billingFrequency: e.program.billingFrequency,
+          })),
+        })),
+        openInvoices: family.invoices.map((inv) => ({
+          id: inv.id,
+          invoiceNumber: inv.invoiceNumber,
+          status: inv.status,
+          amountDue: Number(inv.amountDue),
+          amountPaid: Number(inv.amountPaid),
+          dueDate: inv.dueDate,
+        })),
+      });
+    }
+
+    case 'create_enrollment': {
+      const startDate = input.startDate ? new Date(input.startDate as string) : new Date();
+      const enrollment = await enrollmentService.enroll({
+        contactId: input.contactId as string,
+        programId: input.programId as string,
+        organizationId,
+        startDate,
+      });
+
+      await prisma.auditLog.create({
+        data: {
+          organizationId,
+          userId,
+          action: 'ASSISTANT_CREATE_ENROLLMENT',
+          metadata: {
+            enrollmentId: enrollment.id,
+            contactId: enrollment.contactId,
+            programId: enrollment.programId,
+          },
+        },
+      });
+
+      return JSON.stringify({
+        success: true,
+        enrollmentId: enrollment.id,
+        contactName: `${enrollment.contact.firstName} ${enrollment.contact.lastName}`,
+        programName: enrollment.program.name,
+        startDate: enrollment.startDate,
+      });
+    }
+
+    case 'unenroll_contact': {
+      const enrollment = await enrollmentService.unenroll(input.enrollmentId as string, organizationId);
+
+      await prisma.auditLog.create({
+        data: {
+          organizationId,
+          userId,
+          action: 'ASSISTANT_UNENROLL_CONTACT',
+          metadata: { enrollmentId: enrollment.id, contactId: enrollment.contactId, programId: enrollment.programId },
+        },
+      });
+
+      return JSON.stringify({
+        success: true,
+        enrollmentId: enrollment.id,
+        contactName: `${enrollment.contact.firstName} ${enrollment.contact.lastName}`,
+        programName: enrollment.program.name,
+        endDate: enrollment.endDate,
+      });
+    }
+
+    case 'update_contact_status': {
+      const contact = await prisma.contact.findFirst({
+        where: { id: input.contactId as string, organizationId },
+      });
+      if (!contact) return JSON.stringify({ error: 'Contact not found' });
+
+      const updated = await prisma.contact.update({
+        where: { id: contact.id },
+        data: { status: input.status as string },
+        select: { id: true, firstName: true, lastName: true, status: true },
+      });
+
+      await prisma.auditLog.create({
+        data: {
+          organizationId,
+          userId,
+          action: 'ASSISTANT_UPDATE_CONTACT_STATUS',
+          metadata: { contactId: contact.id, oldStatus: contact.status, newStatus: input.status as string },
+        },
+      });
+
+      return JSON.stringify({
+        success: true,
+        contactId: updated.id,
+        name: `${updated.firstName} ${updated.lastName}`,
+        status: updated.status,
+      });
+    }
+
     case 'void_invoice': {
       const invoice = await prisma.invoice.findFirst({
         where: { id: input.invoiceId as string, organizationId },
@@ -429,6 +827,36 @@ async function executeTool(
       return JSON.stringify({ success: true, sentTo: recipientEmail, invoiceNumber: invoice.invoiceNumber });
     }
 
+    case 'create_contact': {
+      const contact = await contactService.createContact({
+        organizationId,
+        firstName: input.firstName as string,
+        lastName: input.lastName as string,
+        email: input.email as string | undefined,
+        phone: input.phone as string | undefined,
+        familyId: input.familyId as string | undefined,
+        dateOfBirth: input.dateOfBirth ? new Date(input.dateOfBirth as string) : undefined,
+        notes: input.notes as string | undefined,
+      });
+
+      await prisma.auditLog.create({
+        data: {
+          organizationId,
+          userId,
+          action: 'ASSISTANT_CREATE_CONTACT',
+          metadata: { contactId: contact.id, name: `${contact.firstName} ${contact.lastName}` },
+        },
+      });
+
+      return JSON.stringify({
+        success: true,
+        contactId: contact.id,
+        name: `${contact.firstName} ${contact.lastName}`,
+        email: contact.email,
+        status: contact.status,
+      });
+    }
+
     default:
       return JSON.stringify({ error: `Unknown tool: ${name}` });
   }
@@ -455,6 +883,7 @@ export async function chat(
   let response = await anthropic.messages.create({
     model: MODEL,
     max_tokens: 1024,
+    cache_control: { type: 'ephemeral' },
     system: SYSTEM_PROMPT,
     tools: TOOLS,
     messages: anthropicMessages,
@@ -489,6 +918,7 @@ export async function chat(
     response = await anthropic.messages.create({
       model: MODEL,
       max_tokens: 1024,
+      cache_control: { type: 'ephemeral' },
       system: SYSTEM_PROMPT,
       tools: TOOLS,
       messages: anthropicMessages,

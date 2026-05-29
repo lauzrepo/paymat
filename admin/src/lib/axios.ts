@@ -8,16 +8,6 @@ export const apiClient = axios.create({
   headers: { 'Content-Type': 'application/json' },
 });
 
-// Inject access token and workspace slug on every request
-apiClient.interceptors.request.use((config) => {
-  const token = authStore.getAccessToken();
-  if (token) config.headers.Authorization = `Bearer ${token}`;
-  const slug = authStore.getSlug();
-  if (slug) config.headers['x-organization-slug'] = slug;
-  return config;
-});
-
-// Silent refresh on 401
 let isRefreshing = false;
 let failedQueue: Array<{ resolve: (token: string) => void; reject: (err: unknown) => void }> = [];
 
@@ -26,45 +16,65 @@ const processQueue = (error: unknown, token: string | null) => {
   failedQueue = [];
 };
 
+async function doRefresh(): Promise<string> {
+  const refreshToken = authStore.getRefreshToken();
+  if (!refreshToken) {
+    authStore.clearAuth();
+    window.location.href = '/login';
+    throw new Error('No refresh token');
+  }
+
+  if (isRefreshing) {
+    return new Promise<string>((resolve, reject) => {
+      failedQueue.push({ resolve, reject });
+    });
+  }
+
+  isRefreshing = true;
+  try {
+    const { data } = await axios.post(`${API_BASE}/api/auth/refresh-token`, { refreshToken });
+    const { accessToken, refreshToken: newRefresh } = data.data;
+    authStore.setTokens({ accessToken, refreshToken: newRefresh });
+    processQueue(null, accessToken);
+    return accessToken;
+  } catch (err) {
+    processQueue(err, null);
+    authStore.clearAuth();
+    window.location.href = '/login';
+    throw err;
+  } finally {
+    isRefreshing = false;
+  }
+}
+
+// Proactively refresh the token before a request if it's expired/near-expiry
+apiClient.interceptors.request.use(async (config) => {
+  let token = authStore.getAccessToken();
+
+  if (token && authStore.isAccessTokenExpired()) {
+    token = await doRefresh();
+  }
+
+  if (token) config.headers.Authorization = `Bearer ${token}`;
+  const slug = authStore.getSlug();
+  if (slug) config.headers['x-organization-slug'] = slug;
+  return config;
+});
+
+// Fallback: handle 401s that slip through (clock skew, server-side revocation, etc.)
 apiClient.interceptors.response.use(
   (response) => response,
   async (error) => {
     const original = error.config;
 
     if (error.response?.status === 401 && !original._retry) {
-      const refreshToken = authStore.getRefreshToken();
-      if (!refreshToken) {
-        authStore.clearAuth();
-        window.location.href = '/login';
-        return Promise.reject(error);
-      }
-
-      if (isRefreshing) {
-        return new Promise((resolve, reject) => {
-          failedQueue.push({ resolve, reject });
-        }).then((token) => {
-          original.headers.Authorization = `Bearer ${token}`;
-          return apiClient(original);
-        });
-      }
-
       original._retry = true;
-      isRefreshing = true;
-
       try {
-        const { data } = await axios.post(`${API_BASE}/api/auth/refresh-token`, { refreshToken });
-        const { accessToken, refreshToken: newRefresh } = data.data;
-        authStore.setTokens({ accessToken, refreshToken: newRefresh });
-        processQueue(null, accessToken);
+        const accessToken = await doRefresh();
         original.headers.Authorization = `Bearer ${accessToken}`;
         return apiClient(original);
-      } catch (err) {
-        processQueue(err, null);
-        authStore.clearAuth();
-        window.location.href = '/login';
-        return Promise.reject(err);
-      } finally {
-        isRefreshing = false;
+      } catch {
+        return Promise.reject(error);
       }
     }
 

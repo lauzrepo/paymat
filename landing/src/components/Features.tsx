@@ -8,6 +8,7 @@ const features = [
     title: 'Recurring billing',
     description:
       'Invoices generate and send automatically on your schedule — weekly, monthly, or yearly. Bill families together or members individually, with zero manual work.',
+    isNew: false,
   },
   {
     icon: (
@@ -19,6 +20,7 @@ const features = [
     title: 'Member portal',
     description:
       'Every member gets a private portal to view invoices, pay online, and manage their account — branded with your name, ready to share on day one.',
+    isNew: false,
   },
   {
     icon: (
@@ -30,6 +32,22 @@ const features = [
     title: 'Direct payouts',
     description:
       'Payments land directly in your bank account. Powered by Stripe Connect — fast, secure, and reliable. Paymat takes a small platform fee; you keep the rest.',
+    isNew: false,
+  },
+  {
+    icon: (
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M12 8V4H8" />
+        <rect x="2" y="8" width="20" height="12" rx="2" />
+        <path d="M8 20v-4" />
+        <path d="M12 20v-6" />
+        <path d="M16 20v-2" />
+      </svg>
+    ),
+    title: 'Mate — your AI assistant',
+    description:
+      'Ask about revenue, overdue invoices, or member balances in plain English. Create invoices, record payments, and manage enrollments — all through a chat interface.',
+    isNew: true,
   },
 ];
 
@@ -49,16 +67,27 @@ export default function Features() {
           </p>
         </div>
 
-        <div className="grid sm:grid-cols-3 gap-6">
-          {features.map(({ icon, title, description }) => (
+        <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-6">
+          {features.map(({ icon, title, description, isNew }) => (
             <div
               key={title}
-              className="p-7 rounded-2xl border"
+              className="relative p-7 rounded-2xl border"
               style={{
                 backgroundColor: 'var(--color-surface)',
-                borderColor: 'var(--color-border)',
+                borderColor: isNew ? 'rgba(99, 102, 241, 0.4)' : 'var(--color-border)',
               }}
             >
+              {isNew && (
+                <span
+                  className="absolute top-4 right-4 text-[10px] font-semibold px-2 py-0.5 rounded-full"
+                  style={{
+                    backgroundColor: 'rgba(99, 102, 241, 0.12)',
+                    color: 'var(--color-primary)',
+                  }}
+                >
+                  New
+                </span>
+              )}
               <div
                 className="w-10 h-10 rounded-xl flex items-center justify-center mb-5"
                 style={{

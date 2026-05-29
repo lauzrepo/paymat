@@ -9,6 +9,7 @@ A lightweight SaaS platform for service businesses (gyms, studios, schools, club
 - Track **enrollments** linking contacts to programs
 - Auto-generate **invoices** per billing cycle
 - Accept **payments** via Stripe Connect (card payments, no card data on server)
+- **Mate** — built-in AI assistant for natural-language queries and billing actions (powered by Claude)
 - **Multi-tenant** — each business gets its own subdomain with custom branding
 - **Sandbox → production** workflow — orgs start in test mode and are promoted to live by a super admin
 - Three separate portals: **admin** (business owner/staff), **client** (member/parent), and **super admin** (platform operator)
@@ -112,6 +113,7 @@ Routes → Controllers → Services → Prisma ORM → PostgreSQL
 | Database | PostgreSQL (Railway) |
 | Auth | JWT (15min access / 7day refresh) |
 | Payments | Stripe Connect |
+| AI | Anthropic Claude (claude-haiku-4-5, tool use) |
 | Admin UI | Vite, React, TanStack Query, Tailwind CSS v4 |
 | Client UI | Vite, React, TanStack Query, Tailwind CSS v4 |
 | Super admin UI | Vite, React, TanStack Query, Tailwind CSS v4 |
@@ -132,3 +134,4 @@ See `backend/.env.example`. Required:
 - `DEFAULT_TENANT_SLUG` — used for local dev (bypasses subdomain lookup)
 - `BASE_DOMAIN` — production base domain (e.g. `cliqpaymat.app`)
 - `SUPER_ADMIN_EMAIL` / `SUPER_ADMIN_PASSWORD` — seeded super admin credentials
+- `ANTHROPIC_API_KEY` — Anthropic API key for the Mate assistant

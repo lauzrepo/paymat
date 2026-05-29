@@ -1,15 +1,14 @@
-# Paymat — Technical Whitepaper
+# Paymat — Technical Overview
 
 **Version:** 1.1
 **Date:** May 2026
-**Status:** Internal / Pre-Publication
 
 ---
 
 ## Table of Contents
 
-1. [Executive Summary](#1-executive-summary)
-2. [System Architecture Overview](#2-system-architecture-overview)
+1. [Overview](#1-overview)
+2. [System Architecture](#2-system-architecture)
 3. [Backend](#3-backend)
 4. [Database Design](#4-database-design)
 5. [Service Layer](#5-service-layer)
@@ -22,11 +21,10 @@
 12. [AI Assistant — Mate](#12-ai-assistant--mate)
 13. [Infrastructure & Deployment](#13-infrastructure--deployment)
 14. [Security Posture](#14-security-posture)
-15. [Platform Economics](#15-platform-economics)
 
 ---
 
-## 1. Executive Summary
+## 1. Overview
 
 Paymat is a multi-tenant SaaS platform purpose-built for small activity-based businesses — martial arts academies, swim schools, dance studios, gymnastics clubs — that need recurring billing and a member-facing payment portal without the complexity of enterprise software.
 
@@ -46,12 +44,11 @@ The platform is structured around three distinct user personas operating across 
 - Automated invoice generation and auto-charging via saved cards
 - Self-serve member payment portal with Stripe Elements
 - Transactional email via Resend
-- Per-organization platform fee with founding member discount support
 - AI assistant (Mate) for natural-language queries and billing actions via Claude
 
 ---
 
-## 2. System Architecture Overview
+## 2. System Architecture
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
@@ -103,22 +100,22 @@ The platform is structured around three distinct user personas operating across 
 
 ### 3.1 Stack
 
-| Layer | Technology | Version | LTS Status |
-|-------|-----------|---------|------------|
-| Runtime | Node.js | 24.x (LTS) | Active LTS (Krypton) |
-| Language | TypeScript | 5.9.3 | Current stable |
-| Framework | Express.js | 4.22.1 | Current stable (4.x) |
-| ORM | Prisma | 5.22.0 | Current stable |
-| Database | PostgreSQL | 16.x | LTS |
-| Payments | Stripe Node SDK | 21.0.1 | Current stable |
-| Email | Resend | 6.4.2 | Current stable |
-| Auth | jsonwebtoken (JWT) | 9.0.3 | Current stable |
-| Password hashing | bcrypt | 5.1.1 | Current stable |
-| Validation | express-validator, zod | 7.3.2 / 3.25.76 | Current stable |
-| Logging | Winston | 3.19.0 | Current stable |
-| Scheduling | node-cron | 4.2.1 | Current stable |
-| Security | Helmet, cors, express-rate-limit | 7.2.0 / 2.8.6 / 7.5.1 | Current stable |
-| AI | Anthropic SDK (@anthropic-ai/sdk) | 0.98.x | Current stable |
+| Layer | Technology | Version |
+|-------|-----------|---------|
+| Runtime | Node.js | 24.x (LTS) |
+| Language | TypeScript | 5.9.3 |
+| Framework | Express.js | 4.22.1 |
+| ORM | Prisma | 5.22.0 |
+| Database | PostgreSQL | 16.x |
+| Payments | Stripe Node SDK | 21.0.1 |
+| Email | Resend | 6.4.2 |
+| Auth | jsonwebtoken (JWT) | 9.0.3 |
+| Password hashing | bcrypt | 5.1.1 |
+| Validation | express-validator, zod | 7.3.2 / 4.x |
+| Logging | Winston | 3.19.0 |
+| Scheduling | node-cron | 4.2.1 |
+| Security | Helmet, cors, express-rate-limit | current |
+| AI | Anthropic SDK (@anthropic-ai/sdk) | 0.98.x |
 
 ### 3.2 Request Lifecycle
 
@@ -150,17 +147,17 @@ errorHandler (formats AppError / unexpected errors into JSON response)
 
 ### 3.3 Middleware
 
-| Middleware | File | Responsibility |
-|-----------|------|----------------|
-| `resolveTenant` | `middleware/tenant.ts` | Org resolution by header or subdomain |
-| `authenticateToken` | `middleware/auth.ts` | JWT access token verification |
-| `optionalAuth` | `middleware/auth.ts` | Non-blocking JWT check (public routes) |
-| `requireRole` | `middleware/auth.ts` | Role-based access control |
-| `authenticateSuperAdmin` | `middleware/superAdminAuth.ts` | Super-admin JWT verification |
-| `apiLimiter` | `middleware/rateLimiter.ts` | 100 req / 15 min per org |
-| `paymentLimiter` | `middleware/rateLimiter.ts` | Tighter limit on payment endpoints |
-| `asyncHandler` | `middleware/errorHandler.ts` | Async route error propagation |
-| `errorHandler` | `middleware/errorHandler.ts` | Centralized error formatting |
+| Middleware | Responsibility |
+|-----------|----------------|
+| `resolveTenant` | Org resolution by header or subdomain |
+| `authenticateToken` | JWT access token verification |
+| `optionalAuth` | Non-blocking JWT check (public routes) |
+| `requireRole` | Role-based access control |
+| `authenticateSuperAdmin` | Super-admin JWT verification |
+| `apiLimiter` | 100 req / 15 min per org |
+| `paymentLimiter` | Tighter limit on payment endpoints |
+| `asyncHandler` | Async route error propagation |
+| `errorHandler` | Centralized error formatting |
 
 ### 3.4 Controllers
 
@@ -174,17 +171,16 @@ errorHandler (formats AppError / unexpected errors into JSON response)
 | `invoiceController` | `GET/POST /invoices`, `GET /invoices/:id`, `POST /:id/mark-paid`, `POST /:id/void`, `GET /invoices/stats` | Invoice management |
 | `paymentController` | `GET/POST /payments`, `GET /payments/:id`, `POST /:id/refund`, `GET /payments/stats` | Payment recording & refunds |
 | `billingController` | `POST /billing/run` | Trigger manual billing run |
-| `stripeBillingController` | `GET /billing/status`, `POST /billing/portal` | Org Stripe subscription management |
 | `feedbackController` | `GET/POST /feedback`, `GET/PUT /feedback/:id` | Member feedback submissions |
-| `clientController` | `GET /client/me`, `GET /client/enrollments`, `GET /client/invoices`, `GET /client/invoices/:id`, `POST /client/invoices/:id/initialize-payment`, `GET /client/payments` | Member self-serve portal API |
+| `clientController` | `GET /client/me`, `GET /client/enrollments`, `GET /client/invoices/:id`, `POST /client/invoices/:id/initialize-payment` | Member self-serve portal API |
 | `assistantController` | `POST /assistant/chat` | AI assistant chat endpoint |
 | `webhookController` | `POST /webhooks/stripe` | Stripe event ingestion |
-| `superAdminController` | `GET/POST/PUT /super-admin/organizations`, `GET /super-admin/auth/me` | Platform-level org management |
+| `superAdminController` | `GET/POST/PUT /super-admin/organizations` | Platform-level org management |
 | `inviteController` | `GET/POST/DELETE /super-admin/invites`, `GET /invites/verify/:token`, `POST /invites/redeem/:token` | Org onboarding invite flow |
 
 ### 3.5 Scheduled Jobs
 
-A `node-cron` job fires daily at **06:00 UTC** and calls `billingService.generateDueInvoices()` with no `organizationId` filter — processing all organizations in a single run. The run result is logged with counts of invoices created, auto-charges succeeded, and errors.
+A `node-cron` job fires daily at **06:00 UTC** and calls `billingService.generateDueInvoices()`, processing all organizations in a single run.
 
 ---
 
@@ -230,7 +226,7 @@ The root entity. Every piece of data is scoped to an organization.
 |-------|------|-------|
 | `slug` | String (unique) | URL-safe identifier, used in portal routing |
 | `stripeConnectAccountId` | String? | Stripe Express account for payouts |
-| `platformFeePercent` | Float (default: 2.0) | Per-org platform fee cut on charges |
+| `platformFeePercent` | Float | Per-org platform fee cut on charges |
 | `subscriptionStatus` | String | Platform subscription state |
 
 #### Contact
@@ -265,7 +261,7 @@ Can be contact-level or family-level. Contains line items and zero or more payme
 
 | Field | Type | Notes |
 |-------|------|-------|
-| `invoiceNumber` | String (global unique) | Format: `INV-00001`, globally sequential across all orgs |
+| `invoiceNumber` | String (global unique) | Format: `INV-00001`, globally sequential |
 | `amountDue` | Decimal(10,2) | Total owed |
 | `amountPaid` | Decimal(10,2) | Running paid total |
 | `status` | String | `draft`, `sent`, `paid`, `overdue`, `void` |
@@ -290,22 +286,20 @@ Services encapsulate all business logic. Controllers are thin — they validate 
 The core billing engine. See [Section 9](#9-billing-engine) for full detail.
 
 ### 5.2 `stripeConnectService`
-Singleton wrapping all Stripe API calls. Lazy-initializes the Stripe client on first use.
+Singleton wrapping all Stripe API calls.
 
-**Methods:**
+**Key methods:**
 
 | Method | Purpose |
 |--------|---------|
-| `createConnectAccount(orgId, orgName, email)` | Provision an Express account with `card_payments` + `transfers` capabilities |
-| `createAccountOnboardingLink(accountId, returnUrl, refreshUrl)` | Generate onboarding URL for merchant |
-| `createAccountLoginLink(accountId)` | Generate dashboard link for merchant |
-| `getAccountStatus(accountId)` | Check `chargesEnabled` and `detailsSubmitted` |
-| `createCustomer(connectAccountId, email, name)` | Create a Stripe customer on a connected account |
-| `createPaymentIntent(connectAccountId, amountCents, currency, customerId, metadata, feePercent?)` | Create PaymentIntent for self-serve payment; applies org `platformFeePercent` as `application_fee_amount` |
-| `chargeCustomer(opts)` | Off-session charge against a saved card; supports per-org `feePercent` |
-| `refundCharge(connectAccountId, chargeId, amountCents?)` | Full or partial refund |
-| `createSetupIntent(connectAccountId, customerId)` | Save a card without charging (returns `clientSecret`) |
-| `constructWebhookEvent(rawBody, signature, secret)` | Verify and parse Stripe webhook payload |
+| `createConnectAccount` | Provision an Express account |
+| `createAccountOnboardingLink` | Generate Stripe-hosted onboarding URL |
+| `createCustomer` | Create a Stripe customer on a connected account |
+| `createPaymentIntent` | Create PaymentIntent for self-serve payment |
+| `chargeCustomer` | Off-session charge against a saved card |
+| `refundCharge` | Full or partial refund |
+| `createSetupIntent` | Save a card without charging |
+| `constructWebhookEvent` | Verify and parse Stripe webhook payload |
 
 **Platform fee mechanics:**
 The `application_fee_amount` is calculated as `round(amountCents × (feePercent / 100))` and passed to Stripe on every charge. Stripe deducts this from the connected account's payout and routes it to the platform account automatically. The platform never handles funds directly.
@@ -319,20 +313,20 @@ Wraps the Resend SDK. All emails are HTML with a consistent indigo-branded heade
 |----------|---------|-----------|
 | `sendInvoiceGenerated` | Invoice created, no saved card | Contact or family billing email |
 | `sendPaymentReceived` | Auto-charge or portal payment succeeded | Contact or family billing email |
-| `sendPaymentFailed` | Auto-charge failed | Contact or family billing email; includes portal payment link |
-| `sendPasswordReset` | Forgot password request | User email; URL adapts to admin vs. portal origin |
+| `sendPaymentFailed` | Auto-charge failed | Contact or family billing email |
+| `sendPasswordReset` | Forgot password request | User email |
 | `sendWelcome` | New org admin registered | Admin email |
 
-All email calls are fire-and-forget (`async/await` with `.catch()` logging) — a failed email never blocks a billing transaction.
+All email calls are fire-and-forget — a failed email never blocks a billing transaction.
 
 ### 5.4 `invoiceService`
-CRUD + business logic for invoices. Handles global `INV-XXXXX` numbering by finding the current max and incrementing.
+CRUD + business logic for invoices. Handles global `INV-XXXXX` numbering.
 
 ### 5.5 `paymentService`
 Records payments from any source (Stripe auto-charge, portal self-pay, manual cash/check entry). Handles refund flow by calling `stripeConnectService.refundCharge` then updating the payment record.
 
 ### 5.6 `auditLogService`
-Writes structured audit events for user actions (login, logout, invoice marked paid, etc.). Events include `userId`, `ipAddress`, `userAgent`, and a `metadata` JSON blob.
+Writes structured audit events for user actions. Events include `userId`, `ipAddress`, `userAgent`, and a `metadata` JSON blob.
 
 ### 5.7 `assistantService`
 Implements the Mate AI assistant. See [Section 12](#12-ai-assistant--mate) for full detail.
@@ -345,14 +339,14 @@ All three frontend apps share the same stack:
 
 | Technology | Purpose |
 |-----------|---------|
-| React 18.3.1 | UI framework |
-| Vite 5.4.10 | Build tool |
-| TypeScript 5.6.2 | Type safety |
-| React Query 5.91.3 (@tanstack/react-query) | Server state management, caching, background refetch |
-| React Router 6.30.3 | Client-side routing |
-| Axios 1.13.6 | HTTP client with JWT interceptors |
-| Tailwind CSS 3.4.19 | Utility-first styling |
-| React Hook Form 7.71.2 + Zod 4.3.6 | Form validation |
+| React 18 | UI framework |
+| Vite | Build tool |
+| TypeScript | Type safety |
+| TanStack Query v5 | Server state management, caching, background refetch |
+| React Router 6 | Client-side routing |
+| Axios | HTTP client with JWT interceptors |
+| Tailwind CSS | Utility-first styling |
+| React Hook Form + Zod | Form validation |
 
 ### 6.1 Admin Portal (`/admin`)
 
@@ -368,12 +362,12 @@ The primary interface for organization admins and staff.
 - **Enrollments** — Member-to-program assignments, billing date tracking
 - **Invoices** — Invoice list with status filters; mark-paid and void actions
 - **Payments** — Payment history with refund capability
-- **Mate** — AI assistant chat interface (see [Section 12](#12-ai-assistant--mate))
+- **Mate** — AI assistant chat interface
 - **Billing** — Manual billing run trigger, Stripe subscription status, billing stats
 - **Feedback** — Member feedback/issue submissions
 - **Settings** — Organization profile, branding, Stripe Connect onboarding
 
-**Auth store:** JWT access + refresh tokens in `localStorage`. Axios interceptor attaches `Authorization: Bearer <token>` on every request and auto-refreshes on 401.
+**Auth:** JWT access + refresh tokens in `localStorage`. Axios request interceptor proactively refreshes the access token before expiry, with a fallback 401 handler for edge cases.
 
 ### 6.2 Client Portal (`/frontend`)
 
@@ -381,7 +375,7 @@ The primary interface for organization admins and staff.
 
 The member-facing self-serve portal. Multi-tenant by URL path — the `orgSlug` is extracted from the route and sent as `x-organization-slug` on every API call.
 
-**Routing:**
+**Routes:**
 ```
 /:orgSlug/login
 /:orgSlug/forgot-password
@@ -393,24 +387,6 @@ The member-facing self-serve portal. Multi-tenant by URL path — the `orgSlug` 
 /:orgSlug/invoices/:id      → Invoice detail + payment form
 /:orgSlug/payments          → Payment history
 /:orgSlug/feedback          → Submit feedback
-/:orgSlug/feedback/new
-```
-
-**Multi-tenancy implementation:**
-```typescript
-// OrgSlugContext provides slug to all components
-function OrgRoutes() {
-  const { orgSlug = '' } = useParams<{ orgSlug: string }>();
-  useEffect(() => { setOrgSlug(orgSlug); }, [orgSlug]);
-  return (
-    <OrgSlugContext.Provider value={orgSlug}>
-      <Routes>...</Routes>
-    </OrgSlugContext.Provider>
-  );
-}
-
-// Axios interceptor injects header on every request
-if (currentOrgSlug) config.headers['x-organization-slug'] = currentOrgSlug;
 ```
 
 **Payment flow:**
@@ -430,8 +406,8 @@ Platform operator tooling. Uses a separate JWT secret and auth flow — complete
 1. Super admin creates an invite (email + org name)
 2. System generates a UUID invite token with expiry
 3. Invite email sent to recipient
-4. Recipient clicks link → `GET /super-admin/invites/verify/:token` confirms validity
-5. Recipient registers → `POST /super-admin/invites/redeem/:token` creates User + Organization atomically
+4. Recipient clicks link → confirms validity
+5. Recipient registers → creates User + Organization atomically
 6. Admin completes Stripe Connect onboarding via the Settings page
 
 ---
@@ -451,16 +427,14 @@ The `resolveTenant` middleware runs on every request before route handlers:
 4. If not found → 404
 ```
 
-This allows the same backend to serve all tenants simultaneously. The client portal uses the header approach (path-based slugs), while the admin portal uses the subdomain approach.
-
 **Isolation guarantee:**
-All Prisma queries in controllers include `organizationId: req.organization.id` in their `where` clauses. Cross-tenant data access is structurally prevented at the query level.
+All Prisma queries include `organizationId: req.organization.id` in their `where` clauses. Cross-tenant data access is structurally prevented at the query level.
 
 ---
 
 ## 8. Payment Infrastructure
 
-Paymat uses **Stripe Connect Express** as its payment infrastructure. This model has two key properties:
+Paymat uses **Stripe Connect Express** as its payment infrastructure:
 
 1. **Organizations receive payouts directly** — funds flow from cardholder → org's Stripe account. Paymat never holds or touches funds.
 2. **Platform fee is automatic** — Stripe deducts the `application_fee_amount` from the org's payout and routes it to the platform account in the same transaction.
@@ -472,26 +446,20 @@ Super admin creates org
   ↓
 Admin hits "Connect Stripe" in Settings
   ↓
-Backend calls stripe.accounts.create({ type: 'express', capabilities: { card_payments, transfers } })
+Backend calls stripe.accounts.create({ type: 'express' })
   ↓
-Backend generates accountLinks (onboarding URL) and redirects admin
+Backend generates onboarding URL and redirects admin
   ↓
 Merchant completes KYC/business info on Stripe-hosted flow
   ↓
-stripe.accounts retrieve confirms chargesEnabled: true, detailsSubmitted: true
+stripe.accounts retrieve confirms chargesEnabled: true
   ↓
 Org is ready to process payments
 ```
 
 ### 8.2 Customer & Card Management
 
-Each paying entity (contact or family) has a **Stripe Customer** created on the connected account (not the platform account). This is a critical distinction — the customer and their saved payment methods live under the org's Stripe account.
-
-When a contact pays their first invoice via the portal:
-1. A Stripe Customer is created on the org's Connect account
-2. The PaymentIntent is created with `setup_future_usage: 'off_session'` (or Stripe auto-attaches via `automatic_payment_methods`)
-3. After payment, the frontend can call the setup intent flow to explicitly save the card
-4. The saved `paymentMethodId` is stored on the `Contact` record
+Each paying entity (contact or family) has a **Stripe Customer** on the connected account (not the platform account). When a contact pays their first invoice via the portal, the PaymentIntent is created with `setup_future_usage: 'off_session'`, allowing the card to be saved for future automatic charges.
 
 ### 8.3 Payment Intent Flow (Self-Serve Portal)
 
@@ -513,39 +481,23 @@ Stripe fires payment_intent.succeeded webhook
 Backend webhook handler updates invoice status → paid
 ```
 
-### 8.4 Per-Organization Platform Fee
-
-Each org has a `platformFeePercent` field (default: 2.0). This is passed to every charge:
-
-```typescript
-const appFee = rate > 0
-  ? Math.round(amountCents * (rate / 100))
-  : undefined;
-
-// Applied as Stripe application_fee_amount
-params.application_fee_amount = appFee;
-```
-
-Founding member orgs can have a lifetime rate of 0.5% set directly on their org record. Rate changes take effect on the next billing cycle with no code changes.
-
 ---
 
 ## 9. Billing Engine
 
-The billing engine (`billingService.generateDueInvoices`) is the most complex component of the platform. It runs daily at 06:00 UTC and processes all active enrollments in a single transaction-safe loop.
+The billing engine (`billingService.generateDueInvoices`) runs daily at 06:00 UTC and processes all active enrollments in a single run.
 
 ### 9.1 Billing Run Algorithm
 
 ```
 1. Find all active enrollments where nextBillingDate <= today
-   (optionally scoped to a single organization)
 
 2. For each enrollment:
-   a. Count completed billing cycles (invoiceLineItem count)
+   a. Count completed billing cycles
    b. If cycles >= program.maxBillingCycles → cancel enrollment, skip
 
 3. Partition eligible enrollments:
-   - Family-billed: contact has a family AND family has stripeCustomerId + saved card
+   - Family-billed: contact has a family with a saved card
    - Individual-billed: everything else
 
 4. For each family group:
@@ -553,19 +505,14 @@ The billing engine (`billingService.generateDueInvoices`) is the most complex co
    b. Create one Invoice with N line items (one per enrollment)
    c. Advance nextBillingDate for each enrollment
    d. Attempt auto-charge on family's saved card
-      - On success: mark invoice paid, create Payment record, send payment received email
-      - On failure: send payment failed email with portal link
 
 5. For each individual enrollment:
    a. Create Invoice with one line item
    b. Send invoice generated email
    c. Advance nextBillingDate
-   d. If contact has stripeCustomerId + saved card:
-      - Attempt auto-charge
-      - On success: mark paid, create Payment, send payment received email
-      - On failure: send payment failed email with portal link
+   d. If contact has a saved card → attempt auto-charge
 
-6. Mark all sent/draft invoices past their dueDate as overdue
+6. Mark sent/draft invoices past their dueDate as overdue
 
 7. Return summary: { invoicesCreated, autoCharged, errors }
 ```
@@ -579,21 +526,13 @@ The billing engine (`billingService.generateDueInvoices`) is the most complex co
 | `yearly` | +1 calendar year |
 | `one_time` | `null` (no next billing) |
 
-### 9.3 Invoice Numbering
+### 9.3 Family Billing Logic
 
-Invoice numbers are globally unique across all organizations (`INV-00001`, `INV-00002`, etc.). This is enforced by:
-1. `@unique` constraint on `invoiceNumber` in the schema
-2. `nextInvoiceNumber()` function that queries the current max and increments it
+When a family has a saved card, all active enrollments for family members are grouped into a **single invoice** with one line item per member. This avoids multiple charges to the family's card on the same billing date.
 
-In high-concurrency scenarios this is a race condition risk — a future improvement would use a database sequence.
+### 9.4 Error Isolation
 
-### 9.4 Family Billing Logic
-
-When a family has a saved card, all active enrollments for family members are grouped into a **single invoice** with one line item per member. This avoids multiple charges to the family's card on the same billing date. The earliest `nextBillingDate` across the group is used as the invoice due date.
-
-### 9.5 Error Isolation
-
-Each family group and each individual enrollment is wrapped in its own `try/catch`. A failed charge for one member does not block processing of subsequent members. All errors are collected and returned in the run summary.
+Each family group and each individual enrollment is wrapped in its own `try/catch`. A failed charge for one member does not block processing of subsequent members.
 
 ---
 
@@ -603,7 +542,7 @@ Each family group and each individual enrollment is wrapped in its own `try/catc
 
 Two-token pattern:
 - **Access token** — 15 minute expiry, contains `{ userId, email, organizationId, role }`
-- **Refresh token** — 7 day expiry, stored in DB (`User.passwordResetToken` field is separate), used to issue new access tokens silently
+- **Refresh token** — 7 day expiry, used to issue new access tokens silently
 
 Separate JWT secrets are used for org users vs. super-admins, ensuring super-admin tokens cannot be used on org routes and vice versa.
 
@@ -620,10 +559,8 @@ Separate JWT secrets are used for org users vs. super-admins, ensuring super-adm
 
 ```
 1. POST /auth/forgot-password (email)
-2. Backend generates UUID token, stores with 1-hour expiry on User record
-3. Determines reset URL:
-   - If request origin contains "portal." → /{orgSlug}/reset-password?token=...
-   - Otherwise → /reset-password?token=...
+2. Backend generates UUID token, stores with 1-hour expiry
+3. Determines reset URL based on request origin (admin vs. portal)
 4. Sends password reset email via Resend
 5. POST /auth/reset-password (token, newPassword)
 6. Validates token not expired, hashes new password, clears token
@@ -634,17 +571,21 @@ Separate JWT secrets are used for org users vs. super-admins, ensuring super-adm
 ## 11. Email System
 
 **Provider:** Resend
-**SDK version:** 6.4.2
-**From address:** Configured via `EMAIL_FROM` env var
-**Templates:** HTML strings with inline styles (no templating engine dependency)
+**Templates:** HTML strings with inline styles
 
 All emails share a consistent structure:
-- Indigo (`#4f46e5`) branded header bar
+- Indigo-branded header bar
 - Organization name in header
 - Content body
 - Footer with copyright
 
-**Rate limit consideration:** Resend's free tier caps at 100 emails/day and 3,000/month. At ~30 members per org, a single billing run for 10 orgs approaches the daily cap. Upgrade to Resend Pro ($20/mo) is recommended before onboarding more than 10 organizations.
+| Email | Trigger |
+|-------|---------|
+| Invoice generated | New invoice, no saved card on file |
+| Payment received | Successful auto-charge or portal payment |
+| Payment failed | Failed auto-charge; includes portal payment link |
+| Password reset | Forgot password request |
+| Welcome | New org admin registered |
 
 ---
 
@@ -654,7 +595,7 @@ Mate is an AI-powered assistant built into the admin portal that lets organizati
 
 ### 12.1 Architecture
 
-Mate is implemented as a stateless request/response service. The admin frontend maintains the conversation history in React state and sends the full message array to the backend on each turn. The backend calls the Anthropic Messages API and returns the assistant's reply.
+Mate is implemented as a stateless request/response service. The admin frontend maintains the conversation history in React state and sends the full message array to the backend on each turn.
 
 ```
 Admin browser
@@ -675,7 +616,7 @@ Anthropic API  (claude-haiku-4-5, tool use enabled)
 Text reply returned to browser
 ```
 
-The `organizationId` is extracted from the authenticated JWT — it is never derived from the conversation content. All tool calls are scoped to the authenticated organization at the query level, making cross-tenant data access structurally impossible.
+The `organizationId` is extracted from the authenticated JWT — never from the conversation content. All tool calls are scoped to the authenticated organization at the query level.
 
 ### 12.2 Model & Configuration
 
@@ -687,9 +628,7 @@ The `organizationId` is extracted from the authenticated JWT — it is never der
 | Max conversation length | 50 messages |
 | Prompt caching | Automatic (`cache_control: ephemeral`) |
 
-**Why Haiku:** The assistant's workload is narrow — structured queries, short summaries, and lightweight action confirmations. Haiku provides sub-second response times at a fraction of the cost of larger models, which matters for interactive UX.
-
-**Prompt caching:** Both API calls (initial and each tool-use continuation) include automatic prompt caching. Once a conversation grows past the 4,096-token minimum threshold for Haiku 4.5, all prior turns are read from cache at 10% of normal input token cost. In practice this kicks in within 2–3 turns once tool results enter the history.
+**Prompt caching:** Both API calls (initial and each tool-use continuation) include automatic prompt caching. Once a conversation grows past Haiku 4.5's 4,096-token minimum threshold, all prior turns are read from cache at 10% of normal input token cost — reducing both latency and cost as conversations grow.
 
 ### 12.3 Tools
 
@@ -718,11 +657,11 @@ All write actions are logged to `AuditLog` with action codes prefixed `ASSISTANT
 
 ### 12.4 Security & Tenant Isolation
 
-- The assistant endpoint requires a valid org-scoped JWT (`authenticateToken` middleware)
-- `organizationId` is injected server-side from `req.organization.id` — never from the message content
-- Every tool executes `WHERE organizationId = ?` — Mate cannot read or modify another tenant's data regardless of what is asked
-- The super-admin portal has no assistant route and no access to the `/api/assistant/chat` endpoint
-- Conversation history is held entirely client-side and discarded on page navigation — no server-side session storage
+- The assistant endpoint requires a valid org-scoped JWT
+- `organizationId` is injected server-side from `req.organization.id` — never from message content
+- Every tool executes `WHERE organizationId = ?` — Mate cannot read or modify another tenant's data
+- The super-admin portal has no assistant route and no access to `/api/assistant/chat`
+- Conversation history is held client-side and discarded on page navigation — no server-side session storage
 
 ---
 
@@ -730,19 +669,17 @@ All write actions are logged to `AuditLog` with action codes prefixed `ASSISTANT
 
 ### 13.1 Services
 
-| Service | Provider | Purpose | Current Plan |
-|---------|----------|---------|--------------|
-| Backend API | Railway.app | Express server + cron | Hobby (~$5 credit/mo) |
-| PostgreSQL | Railway.app | Primary database | Hobby (0.5GB) |
-| Admin portal | Vercel | Static SPA hosting | Hobby (free) |
-| Client portal | Vercel | Static SPA hosting | Hobby (free) |
-| Super-admin portal | Vercel | Static SPA hosting | Hobby (free) |
-| Email | Resend | Transactional email | Free (3k/mo) |
-| Payments | Stripe | Connect platform | Per-transaction |
+| Service | Provider | Purpose |
+|---------|----------|---------|
+| Backend API | Railway.app | Express server + cron |
+| PostgreSQL | Railway.app | Primary database |
+| Admin portal | Vercel | Static SPA hosting |
+| Client portal | Vercel | Static SPA hosting |
+| Super-admin portal | Vercel | Static SPA hosting |
+| Email | Resend | Transactional email |
+| Payments | Stripe | Connect platform |
 
 ### 13.2 Environment Variables
-
-**Backend (Railway):**
 
 | Variable | Purpose |
 |----------|---------|
@@ -751,30 +688,19 @@ All write actions are logged to `AuditLog` with action codes prefixed `ASSISTANT
 | `JWT_REFRESH_SECRET` | Refresh token signing key |
 | `SUPER_ADMIN_JWT_SECRET` | Super-admin token signing key |
 | `STRIPE_SECRET_KEY` | Stripe platform secret key |
-| `STRIPE_PUBLISHABLE_KEY` | Stripe publishable key (sent to frontend) |
+| `STRIPE_PUBLISHABLE_KEY` | Stripe publishable key |
 | `STRIPE_WEBHOOK_SECRET` | Webhook signature verification |
-| `STRIPE_APPLICATION_FEE_PERCENT` | Default platform fee (overridden per-org) |
 | `RESEND_API_KEY` | Resend email API key |
 | `EMAIL_FROM` | Sender address |
 | `APP_URL` | Admin portal base URL |
 | `ALLOWED_ORIGINS` | Comma-separated CORS whitelist |
-| `DEFAULT_TENANT_SLUG` | Fallback tenant for local development |
 | `ANTHROPIC_API_KEY` | Anthropic API key for Mate assistant |
 
 ### 13.3 Deployment Flow
 
-Railway auto-deploys on push to `main`. The `railway.json` config specifies the build command (`npm run build`) and start command (`npm start`). Prisma migrations run automatically via a `prisma migrate deploy` step in the build.
+Railway auto-deploys on push to `main`. Prisma migrations run automatically via `prisma migrate deploy` in the build step.
 
 Vercel auto-deploys each frontend app from its respective subdirectory on push to `main`.
-
-### 13.4 Scaling Thresholds
-
-| Service | Free tier limit | Approx org count at limit |
-|---------|----------------|--------------------------|
-| Railway compute | $5/mo credit | ~20–30 orgs |
-| Railway Postgres | 0.5GB storage | ~50–100 orgs |
-| Vercel bandwidth | 100GB/mo | ~200+ orgs (SPA is lightweight) |
-| Resend | 100 emails/day | ~10 orgs on monthly billing |
 
 ---
 
@@ -784,7 +710,7 @@ Vercel auto-deploys each frontend app from its respective subdirectory on push t
 All traffic over HTTPS. Helmet sets `Strict-Transport-Security`, `X-Content-Type-Options`, `X-Frame-Options`, and `Content-Security-Policy` headers.
 
 ### 14.2 Input Validation
-All inbound request bodies are validated with `express-validator` before reaching controllers. `AppError` with appropriate HTTP status codes is thrown on invalid input.
+All inbound request bodies are validated with `express-validator` before reaching controllers.
 
 ### 14.3 SQL Injection
 Prisma's parameterized query builder is used exclusively. No raw SQL strings are constructed from user input.
@@ -793,7 +719,6 @@ Prisma's parameterized query builder is used exclusively. No raw SQL strings are
 `ALLOWED_ORIGINS` env var is parsed as a comma-separated whitelist. Requests from unlisted origins are rejected at the CORS middleware level.
 
 ### 14.5 Rate Limiting
-Two rate limiters:
 - `apiLimiter` — 100 requests per 15 minutes per IP, applied globally
 - `paymentLimiter` — tighter limit on payment initialization endpoints
 
@@ -806,40 +731,6 @@ All passwords are hashed with `bcrypt` at cost factor 10 before storage. Passwor
 ### 14.8 Tenant Isolation
 Every data query is scoped to `organizationId` from the middleware-resolved tenant, not from user-supplied input. A user cannot query data from another organization even with a valid JWT.
 
-### 14.9 Known Limitations
-- Invoice number generation (`nextInvoiceNumber`) is not atomic — concurrent billing runs could theoretically generate duplicate numbers (mitigated by the `@unique` constraint causing a retry-able conflict, but not handled gracefully yet)
-- Refresh tokens are not stored server-side — revocation requires token expiry
-- No MFA support yet
-
 ---
 
-## 15. Platform Economics
-
-### 15.1 Revenue Model
-Paymat takes a percentage of every payment processed through the platform as a Stripe Connect application fee. This fee is:
-- Configurable per organization via `Organization.platformFeePercent`
-- Applied automatically by Stripe — no manual settlement required
-- Invisible to the cardholder (they see only the org's charge)
-
-### 15.2 Default & Early Adopter Rates
-
-| Cohort | Rate | Orgs |
-|--------|------|------|
-| Founding members | 0.5% (lifetime) | First 10 |
-| Early growth | 1.0% (lifetime) | Slots 11–50 |
-| Standard | 2.0% | 51+ |
-
-### 15.3 Revenue at Scale (2.0% rate, avg $2,700/org/mo)
-
-| Active Orgs | Monthly Volume | Platform Revenue | Est. Infra | Net |
-|-------------|---------------|-----------------|------------|-----|
-| 10 | $27,000 | $540 | $15 | ~$525 |
-| 25 | $67,500 | $1,350 | $40 | ~$1,310 |
-| 50 | $135,000 | $2,700 | $100 | ~$2,600 |
-| 100 | $270,000 | $5,400 | $250 | ~$5,150 |
-
-Infrastructure costs remain under 5% of revenue at all realistic scales due to the Connect model — Paymat never processes or settles funds.
-
----
-
-*This document reflects the system as of May 2026. Architecture decisions are subject to change as the platform scales.*
+*Last updated May 2026.*

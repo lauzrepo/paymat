@@ -13,7 +13,7 @@ export default function Hero() {
           }}
         >
           <span className="w-1.5 h-1.5 rounded-full bg-current" />
-          Now accepting early access requests
+          New: Mate, your AI assistant
         </div>
 
         <h1
@@ -25,7 +25,7 @@ export default function Hero() {
         </h1>
 
         <p className="text-lg sm:text-xl leading-relaxed mb-10 max-w-xl mx-auto" style={{ color: 'var(--color-muted)' }}>
-          Recurring invoices, member portals, and direct payouts —
+          Recurring invoices, member portals, direct payouts, and an AI assistant —
           without the complexity of software built for someone else.
         </p>
 

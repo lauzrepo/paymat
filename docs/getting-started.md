@@ -7,6 +7,7 @@ Paymat is a recurring billing and member management platform built for activity-
 - **Automates billing** — invoices generate and send on a schedule you define; no manual work
 - **Gives members a portal** — each member gets a private, branded portal to view invoices and pay online
 - **Pays you directly** — payments land in your bank account via Stripe Connect; Paymat takes a small platform fee
+- **Mate, your AI assistant** — ask questions about your revenue, contacts, and invoices in plain English, or take actions like creating invoices and enrolling members through a chat interface
 
 ---
 
@@ -84,6 +85,7 @@ You can also trigger a manual billing run at any time from the **Billing** page.
 | **Enrollment** | A contact enrolled in a specific program |
 | **Invoice** | A billing document generated per enrollment cycle |
 | **Payment** | A recorded charge against an invoice |
+| **Mate** | The built-in AI assistant for querying data and taking actions |
 
 ---
 

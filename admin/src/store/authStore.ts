@@ -28,4 +28,15 @@ export const authStore = {
     // slug intentionally kept so workspace field stays pre-filled on next login
   },
   isAuthenticated: (): boolean => !!localStorage.getItem(ACCESS_TOKEN_KEY),
+  isAccessTokenExpired: (): boolean => {
+    const token = localStorage.getItem(ACCESS_TOKEN_KEY);
+    if (!token) return true;
+    try {
+      const { exp } = JSON.parse(atob(token.split('.')[1])) as { exp: number };
+      // treat as expired 30 seconds early to avoid races
+      return exp * 1000 < Date.now() + 30_000;
+    } catch {
+      return true;
+    }
+  },
 };
