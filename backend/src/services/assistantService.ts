@@ -1020,17 +1020,18 @@ async function executeTool(
     case 'run_billing': {
       const result = await billingService.generateDueInvoices(organizationId);
       await prisma.auditLog.create({
-        data: { organizationId, userId, action: 'ASSISTANT_RUN_BILLING', metadata: result as Record<string, unknown> },
+        data: { organizationId, userId, action: 'ASSISTANT_RUN_BILLING', metadata: JSON.parse(JSON.stringify(result)) },
       });
       return JSON.stringify({ success: true, ...result });
     }
 
     case 'refund_payment': {
-      const refunded = await paymentService.refundPayment(input.paymentId as string, organizationId);
+      const paymentId = input.paymentId as string;
+      await paymentService.refundPayment(paymentId, organizationId);
       await prisma.auditLog.create({
-        data: { organizationId, userId, action: 'ASSISTANT_REFUND_PAYMENT', metadata: { paymentId: refunded.id } },
+        data: { organizationId, userId, action: 'ASSISTANT_REFUND_PAYMENT', metadata: { paymentId } },
       });
-      return JSON.stringify({ success: true, paymentId: refunded.id, status: refunded.status, amount: Number(refunded.amount) });
+      return JSON.stringify({ success: true, paymentId, status: 'refunded' });
     }
 
     case 'list_feedback': {
