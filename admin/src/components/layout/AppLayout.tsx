@@ -3,6 +3,7 @@ import { Outlet } from 'react-router-dom';
 import { Sidebar } from './Sidebar';
 import { Header } from './Header';
 import { TipsPanel } from './TipsPanel';
+import { MateBubble } from '../mate/MateBubble';
 import { useTenantBranding } from '../../hooks/useTenant';
 import { getStripeOnboardingLink } from '../../api/tenant';
 
@@ -79,6 +80,7 @@ export function AppLayout() {
         </main>
       </div>
       <TipsPanel open={tipsOpen} onClose={handleTipsClose} />
+      <MateBubble />
     </div>
   );
 }

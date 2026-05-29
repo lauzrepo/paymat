@@ -1,4 +1,6 @@
-import { Users, DollarSign, AlertCircle, TrendingUp } from 'lucide-react';
+import { useState, KeyboardEvent } from 'react';
+import { Users, DollarSign, AlertCircle, TrendingUp, Bot, Send } from 'lucide-react';
+import { useNavigate, Link } from 'react-router-dom';
 import { useInvoiceStats } from '../../hooks/useInvoices';
 import { usePaymentStats } from '../../hooks/usePayments';
 import { useContacts } from '../../hooks/useContacts';
@@ -8,7 +10,7 @@ import { Card, CardHeader, CardBody } from '../../components/ui/Card';
 import { Spinner } from '../../components/ui/Spinner';
 import { Badge } from '../../components/ui/Badge';
 import { formatCurrency, formatDate } from '../../lib/utils';
-import { Link } from 'react-router-dom';
+import { useMate } from '../../context/MateContext';
 
 const STATUS_COLORS: Record<string, string> = {
   paid: 'green',
@@ -17,6 +19,74 @@ const STATUS_COLORS: Record<string, string> = {
   sent: 'blue',
   void: 'gray',
 };
+
+const MATE_CHIPS = [
+  'Overdue invoices',
+  'Revenue this month',
+  'Recent payments',
+  'Run billing',
+];
+
+function MateWidget() {
+  const { submitMessage, loading } = useMate();
+  const navigate = useNavigate();
+  const [input, setInput] = useState('');
+
+  async function handleSubmit(text: string) {
+    const trimmed = text.trim();
+    if (!trimmed || loading) return;
+    setInput('');
+    await submitMessage(trimmed);
+    navigate('/assistant');
+  }
+
+  function handleKeyDown(e: KeyboardEvent<HTMLInputElement>) {
+    if (e.key === 'Enter') handleSubmit(input);
+  }
+
+  return (
+    <Card>
+      <CardHeader>
+        <div className="flex items-center gap-2">
+          <Bot className="h-4 w-4 text-indigo-600 dark:text-indigo-400" />
+          <h2 className="text-base font-semibold text-gray-900 dark:text-gray-100">Ask Mate</h2>
+        </div>
+      </CardHeader>
+      <CardBody className="space-y-3">
+        <div className="flex items-center gap-2 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-600 rounded-xl px-3 py-2 focus-within:border-indigo-400 transition-colors">
+          <input
+            type="text"
+            value={input}
+            onChange={(e) => setInput(e.target.value)}
+            onKeyDown={handleKeyDown}
+            placeholder="Ask anything about your data…"
+            disabled={loading}
+            className="flex-1 bg-transparent text-sm text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none disabled:opacity-50"
+          />
+          <button
+            onClick={() => handleSubmit(input)}
+            disabled={!input.trim() || loading}
+            className="h-7 w-7 rounded-lg bg-indigo-600 hover:bg-indigo-700 disabled:opacity-40 text-white flex items-center justify-center transition-colors flex-shrink-0"
+          >
+            <Send className="h-3 w-3" />
+          </button>
+        </div>
+        <div className="flex flex-wrap gap-2">
+          {MATE_CHIPS.map((chip) => (
+            <button
+              key={chip}
+              onClick={() => handleSubmit(chip)}
+              disabled={loading}
+              className="text-xs px-3 py-1.5 rounded-full border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-400 hover:border-indigo-300 dark:hover:border-indigo-600 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors disabled:opacity-50"
+            >
+              {chip}
+            </button>
+          ))}
+        </div>
+      </CardBody>
+    </Card>
+  );
+}
 
 export function DashboardPage() {
   const invoiceStats = useInvoiceStats();
@@ -34,6 +104,8 @@ export function DashboardPage() {
         <StatCard label="Overdue Invoices" value={invoiceStats.data?.overdue ?? '—'} icon={<AlertCircle className="h-5 w-5" />} />
         <StatCard label="Total Collected" value={formatCurrency(invoiceStats.data?.totalAmountPaid ?? 0)} icon={<TrendingUp className="h-5 w-5" />} />
       </div>
+
+      <MateWidget />
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div className="lg:col-span-2">

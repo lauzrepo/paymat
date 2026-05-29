@@ -1,9 +1,11 @@
-import { useState, useRef, useEffect, FormEvent, KeyboardEvent } from 'react';
+import { useRef, useEffect, FormEvent, KeyboardEvent } from 'react';
+import { useState } from 'react';
 import { Send, Bot, User, AlertCircle } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { cn } from '../../lib/utils';
-import { sendMessage, ChatMessage } from '../../api/assistant';
+import { useMate } from '../../context/MateContext';
+import type { ChatMessage } from '../../api/assistant';
 
 const SUGGESTIONS = [
   'Show me overdue invoices',
@@ -21,7 +23,7 @@ function MessageBubble({ message }: { message: ChatMessage }) {
           'h-8 w-8 rounded-full flex items-center justify-center flex-shrink-0',
           isUser
             ? 'bg-indigo-600 text-white'
-            : 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300'
+            : 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300',
         )}
       >
         {isUser ? <User className="h-4 w-4" /> : <Bot className="h-4 w-4" />}
@@ -31,7 +33,7 @@ function MessageBubble({ message }: { message: ChatMessage }) {
           'rounded-2xl px-4 py-3 text-sm break-words',
           isUser
             ? 'max-w-[70%] bg-indigo-600 text-white rounded-tr-sm whitespace-pre-wrap'
-            : 'max-w-[85%] bg-white dark:bg-gray-800 text-gray-800 dark:text-gray-100 border border-gray-200 dark:border-gray-700 rounded-tl-sm'
+            : 'max-w-[85%] bg-white dark:bg-gray-800 text-gray-800 dark:text-gray-100 border border-gray-200 dark:border-gray-700 rounded-tl-sm',
         )}
       >
         {isUser ? (
@@ -60,9 +62,7 @@ function MessageBubble({ message }: { message: ChatMessage }) {
                 </th>
               ),
               td: ({ children }) => (
-                <td className="px-3 py-2 border-t border-gray-100 dark:border-gray-700">
-                  {children}
-                </td>
+                <td className="px-3 py-2 border-t border-gray-100 dark:border-gray-700">{children}</td>
               ),
               code: ({ children }) => (
                 <code className="bg-gray-100 dark:bg-gray-700 rounded px-1 py-0.5 text-xs font-mono">
@@ -95,10 +95,8 @@ function TypingIndicator() {
 }
 
 export function AssistantPage() {
-  const [messages, setMessages] = useState<ChatMessage[]>([]);
+  const { messages, loading, error, submitMessage } = useMate();
   const [input, setInput] = useState('');
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
@@ -109,28 +107,9 @@ export function AssistantPage() {
   async function submit() {
     const text = input.trim();
     if (!text || loading) return;
-
-    const userMessage: ChatMessage = { role: 'user', content: text };
-    const next = [...messages, userMessage];
-
-    setMessages(next);
     setInput('');
-    setError(null);
-    setLoading(true);
-
-    if (textareaRef.current) {
-      textareaRef.current.style.height = 'auto';
-    }
-
-    try {
-      const reply = await sendMessage(next);
-      setMessages([...next, { role: 'assistant', content: reply }]);
-    } catch (err: unknown) {
-      const e = err as { response?: { data?: { message?: string } }; message?: string };
-      setError(e.response?.data?.message ?? e.message ?? 'Something went wrong');
-    } finally {
-      setLoading(false);
-    }
+    if (textareaRef.current) textareaRef.current.style.height = 'auto';
+    await submitMessage(text);
   }
 
   function handleKeyDown(e: KeyboardEvent<HTMLTextAreaElement>) {

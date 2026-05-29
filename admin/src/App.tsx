@@ -5,6 +5,7 @@ import { queryClient } from './lib/queryClient';
 import { AuthLayout } from './components/layout/AuthLayout';
 import { AppLayout } from './components/layout/AppLayout';
 import { ProtectedRoute } from './components/shared/ProtectedRoute';
+import { MateProvider } from './context/MateContext';
 
 import { LoginPage } from './pages/auth/LoginPage';
 import { RegisterPage } from './pages/auth/RegisterPage';
@@ -46,7 +47,9 @@ function App() {
           <Route
             element={
               <ProtectedRoute>
-                <AppLayout />
+                <MateProvider>
+                  <AppLayout />
+                </MateProvider>
               </ProtectedRoute>
             }
           >
