@@ -33,7 +33,7 @@ export async function getFeedbackList(params?: {
   page?: number;
 }) {
   const { data } = await apiClient.get('/feedback', { params });
-  return data.data as { items: FeedbackSubmission[]; total: number; page: number; limit: number };
+  return data.data as { items: FeedbackSubmission[]; total: number; page: number; limit: number; totalPages: number };
 }
 
 export async function getFeedbackSubmission(id: string) {
