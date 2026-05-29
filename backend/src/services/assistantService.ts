@@ -3,6 +3,10 @@ import { Prisma } from '@prisma/client';
 import prisma from '../config/database';
 import invoiceService from './invoiceService';
 import paymentService from './paymentService';
+import { sendPaymentReminder } from './emailService';
+import { config } from '../config/environment';
+
+const PORTAL_URL = config.email.appUrl.replace('app.', 'portal.');
 
 const anthropic = new Anthropic();
 
@@ -13,7 +17,7 @@ const SYSTEM_PROMPT = `You are a payments assistant for Paymat, a SaaS billing p
 You help administrators:
 - Answer questions about invoices, payments, contacts, families, and programs using live data
 - Provide revenue summaries and insights
-- Take billing actions: create invoices, record manual payments, void invoices
+- Take billing actions: create invoices, record manual payments, void invoices, send payment reminder emails
 
 Data model overview:
 - Contact: an individual member/client (firstName, lastName, email, status: active/inactive)
@@ -135,6 +139,17 @@ const TOOLS: Anthropic.Tool[] = [
       type: 'object' as const,
       properties: {
         invoiceId: { type: 'string', description: 'Invoice ID to void' },
+      },
+      required: ['invoiceId'],
+    },
+  },
+  {
+    name: 'send_payment_reminder',
+    description: 'Send a payment reminder email to the contact or family for a specific invoice.',
+    input_schema: {
+      type: 'object' as const,
+      properties: {
+        invoiceId: { type: 'string', description: 'Invoice ID to send the reminder for' },
       },
       required: ['invoiceId'],
     },
@@ -365,6 +380,53 @@ async function executeTool(
       });
 
       return JSON.stringify({ success: true, invoiceId: invoice.id });
+    }
+
+    case 'send_payment_reminder': {
+      const invoice = await prisma.invoice.findFirst({
+        where: { id: input.invoiceId as string, organizationId },
+        include: {
+          contact: { select: { firstName: true, lastName: true, email: true } },
+          family: { select: { name: true, billingEmail: true } },
+          organization: { select: { name: true, slug: true } },
+        },
+      });
+
+      if (!invoice) return JSON.stringify({ error: 'Invoice not found' });
+      if (invoice.status === 'paid') return JSON.stringify({ error: 'Invoice is already paid — no reminder needed' });
+      if (invoice.status === 'void') return JSON.stringify({ error: 'Cannot send reminder for a voided invoice' });
+
+      const recipientEmail = invoice.contact?.email ?? invoice.family?.billingEmail;
+      const recipientName = invoice.contact
+        ? `${invoice.contact.firstName} ${invoice.contact.lastName}`
+        : (invoice.family?.name ?? 'Valued Member');
+
+      if (!recipientEmail) {
+        return JSON.stringify({ error: 'No email address on file for this contact or family' });
+      }
+
+      const portalUrl = `${PORTAL_URL}/${invoice.organization.slug}/invoices/${invoice.id}`;
+
+      await sendPaymentReminder(recipientEmail, {
+        recipientName,
+        orgName: invoice.organization.name,
+        invoiceNumber: invoice.invoiceNumber,
+        amountDue: Number(invoice.amountDue) - Number(invoice.amountPaid),
+        currency: 'USD',
+        dueDate: invoice.dueDate,
+        portalUrl,
+      });
+
+      await prisma.auditLog.create({
+        data: {
+          organizationId,
+          userId,
+          action: 'ASSISTANT_SEND_REMINDER',
+          metadata: { invoiceId: invoice.id, invoiceNumber: invoice.invoiceNumber, sentTo: recipientEmail },
+        },
+      });
+
+      return JSON.stringify({ success: true, sentTo: recipientEmail, invoiceNumber: invoice.invoiceNumber });
     }
 
     default:
