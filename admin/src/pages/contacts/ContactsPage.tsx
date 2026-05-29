@@ -14,6 +14,7 @@ import { BulkImportModal } from './BulkImportModal';
 export function ContactsPage() {
   const [search, setSearch] = useState('');
   const [status, setStatus] = useState('');
+  const [page, setPage] = useState(1);
   const [showForm, setShowForm] = useState(false);
   const [showImport, setShowImport] = useState(false);
   const [form, setForm] = useState({ firstName: '', lastName: '', email: '', phone: '', familyId: '' });
@@ -25,7 +26,7 @@ export function ContactsPage() {
   const remove = useDeleteContact();
   const families = useFamilies();
 
-  const contacts = useContacts({ search: search || undefined, status: status || undefined });
+  const contacts = useContacts({ search: search || undefined, status: status || undefined, page });
 
   const handleCreate = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -96,13 +97,13 @@ export function ContactsPage() {
                 type="text"
                 placeholder="Search contacts…"
                 value={search}
-                onChange={(e) => setSearch(e.target.value)}
+                onChange={(e) => { setSearch(e.target.value); setPage(1); }}
                 className="w-full pl-9 pr-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-indigo-500"
               />
             </div>
             <select
               value={status}
-              onChange={(e) => setStatus(e.target.value)}
+              onChange={(e) => { setStatus(e.target.value); setPage(1); }}
               className="appearance-none bg-white dark:bg-gray-800 dark:text-gray-100 text-sm border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 pr-8 focus:outline-none focus:ring-2 focus:ring-indigo-500"
             >
               <option value="">All statuses</option>
@@ -213,6 +214,16 @@ export function ContactsPage() {
                   </tbody>
                 </table>
               </div>
+
+              {contacts.data.totalPages > 1 && (
+                <div className="flex items-center justify-between px-6 py-3 border-t border-gray-100 dark:border-gray-700 text-sm text-gray-500 dark:text-gray-400">
+                  <span>Page {contacts.data.page} of {contacts.data.totalPages}</span>
+                  <div className="flex gap-2">
+                    <Button variant="secondary" size="sm" onClick={() => setPage((p) => p - 1)} disabled={page <= 1}>Previous</Button>
+                    <Button variant="secondary" size="sm" onClick={() => setPage((p) => p + 1)} disabled={page >= contacts.data.totalPages}>Next</Button>
+                  </div>
+                </div>
+              )}
             </>
           )}
         </CardBody>
