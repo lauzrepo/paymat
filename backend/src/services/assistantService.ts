@@ -5,6 +5,10 @@ import invoiceService from './invoiceService';
 import paymentService from './paymentService';
 import enrollmentService from './enrollmentService';
 import contactService from './contactService';
+import familyService from './familyService';
+import programService from './programService';
+import billingService from './billingService';
+import feedbackService from './feedbackService';
 import { sendInvoiceGenerated, sendPaymentReminder, sendMemberPortalInvite } from './emailService';
 import { config } from '../config/environment';
 
@@ -17,10 +21,15 @@ const MODEL = 'claude-haiku-4-5';
 const SYSTEM_PROMPT = `You are Mate, an AI assistant for Paymat, a SaaS billing platform for activity-based businesses (gyms, studios, tutoring centers, camps, etc.).
 
 You help administrators:
-- Answer questions about invoices, payments, contacts, families, and programs using live data
+- Answer questions about invoices, payments, contacts, families, programs, and feedback using live data
 - Provide revenue summaries and insights
-- Take billing actions: create invoices, record manual payments, void invoices, send payment reminder emails
-- Manage contacts: create new contacts, update status, enroll/unenroll from programs, resend portal invites
+- Take billing actions: create invoices, record manual payments, void invoices, send payment reminder emails, run billing manually, refund card payments
+- Manage contacts: create new contacts, update status, enroll/unenroll/pause/resume enrollments, resend portal invites
+- Manage families: create families
+- Manage programs: create programs, update programs (price, name, active status)
+- View and triage member feedback submissions
+
+Note: saving a payment method (card) for a contact or family requires the Stripe-hosted form in the admin portal — Mate cannot do this as card data must never pass through the server.
 
 Data model overview:
 - Contact: an individual member/client (firstName, lastName, email, status: active/inactive)
@@ -246,6 +255,118 @@ const TOOLS: Anthropic.Tool[] = [
         invoiceId: { type: 'string', description: 'Invoice ID to send the reminder for' },
       },
       required: ['invoiceId'],
+    },
+  },
+  {
+    name: 'create_family',
+    description: 'Create a new family (billing group) in the organization.',
+    input_schema: {
+      type: 'object' as const,
+      properties: {
+        name: { type: 'string', description: 'Family name' },
+        billingEmail: { type: 'string', description: 'Billing email address (optional)' },
+      },
+      required: ['name'],
+    },
+  },
+  {
+    name: 'create_program',
+    description: 'Create a new program (service/class) with pricing and billing frequency.',
+    input_schema: {
+      type: 'object' as const,
+      properties: {
+        name: { type: 'string', description: 'Program name' },
+        price: { type: 'number', description: 'Price per billing cycle in USD' },
+        billingFrequency: { type: 'string', enum: ['monthly', 'weekly', 'yearly', 'one_time'], description: 'How often to bill' },
+        description: { type: 'string', description: 'Optional description' },
+        capacity: { type: 'number', description: 'Max enrollments (optional)' },
+        maxBillingCycles: { type: 'number', description: 'Auto-cancel after this many billing cycles (optional)' },
+      },
+      required: ['name', 'price', 'billingFrequency'],
+    },
+  },
+  {
+    name: 'update_program',
+    description: 'Update an existing program — change price, name, status, or billing frequency.',
+    input_schema: {
+      type: 'object' as const,
+      properties: {
+        programId: { type: 'string', description: 'Program ID to update' },
+        name: { type: 'string', description: 'New name (optional)' },
+        price: { type: 'number', description: 'New price in USD (optional)' },
+        billingFrequency: { type: 'string', enum: ['monthly', 'weekly', 'yearly', 'one_time'], description: 'New billing frequency (optional)' },
+        description: { type: 'string', description: 'New description (optional)' },
+        isActive: { type: 'boolean', description: 'Set to false to deactivate (optional)' },
+        capacity: { type: 'number', description: 'New capacity limit (optional)' },
+      },
+      required: ['programId'],
+    },
+  },
+  {
+    name: 'pause_enrollment',
+    description: 'Pause an active enrollment — stops billing until resumed.',
+    input_schema: {
+      type: 'object' as const,
+      properties: {
+        enrollmentId: { type: 'string', description: 'Enrollment ID to pause' },
+      },
+      required: ['enrollmentId'],
+    },
+  },
+  {
+    name: 'resume_enrollment',
+    description: 'Resume a paused enrollment.',
+    input_schema: {
+      type: 'object' as const,
+      properties: {
+        enrollmentId: { type: 'string', description: 'Enrollment ID to resume' },
+      },
+      required: ['enrollmentId'],
+    },
+  },
+  {
+    name: 'run_billing',
+    description: 'Manually trigger the billing run for this organization — generates invoices for all due enrollments and auto-charges saved cards.',
+    input_schema: {
+      type: 'object' as const,
+      properties: {},
+      required: [],
+    },
+  },
+  {
+    name: 'refund_payment',
+    description: 'Refund a card payment that was processed through Stripe.',
+    input_schema: {
+      type: 'object' as const,
+      properties: {
+        paymentId: { type: 'string', description: 'Payment ID to refund' },
+      },
+      required: ['paymentId'],
+    },
+  },
+  {
+    name: 'list_feedback',
+    description: 'List feedback submissions from members, with optional status or type filter.',
+    input_schema: {
+      type: 'object' as const,
+      properties: {
+        status: { type: 'string', enum: ['open', 'in_progress', 'resolved', 'closed'], description: 'Filter by status (optional)' },
+        type: { type: 'string', enum: ['feedback', 'bug', 'question'], description: 'Filter by type (optional)' },
+        limit: { type: 'number', description: 'Max results, default 20' },
+      },
+      required: [],
+    },
+  },
+  {
+    name: 'update_feedback_status',
+    description: 'Update the status of a feedback submission.',
+    input_schema: {
+      type: 'object' as const,
+      properties: {
+        feedbackId: { type: 'string', description: 'Feedback submission ID' },
+        status: { type: 'string', enum: ['open', 'in_progress', 'resolved', 'closed'], description: 'New status' },
+      },
+      required: ['feedbackId', 'status'],
     },
   },
   {
@@ -836,6 +957,107 @@ async function executeTool(
       });
 
       return JSON.stringify({ success: true, sentTo: recipientEmail, invoiceNumber: invoice.invoiceNumber });
+    }
+
+    case 'create_family': {
+      const family = await familyService.createFamily({
+        organizationId,
+        name: input.name as string,
+        billingEmail: input.billingEmail as string | undefined,
+      });
+      await prisma.auditLog.create({
+        data: { organizationId, userId, action: 'ASSISTANT_CREATE_FAMILY', metadata: { familyId: family.id, name: family.name } },
+      });
+      return JSON.stringify({ success: true, familyId: family.id, name: family.name });
+    }
+
+    case 'create_program': {
+      const program = await programService.createProgram({
+        organizationId,
+        name: input.name as string,
+        price: input.price as number,
+        billingFrequency: input.billingFrequency as string,
+        description: input.description as string | undefined,
+        capacity: input.capacity as number | undefined,
+      });
+      await prisma.auditLog.create({
+        data: { organizationId, userId, action: 'ASSISTANT_CREATE_PROGRAM', metadata: { programId: program.id, name: program.name } },
+      });
+      return JSON.stringify({ success: true, programId: program.id, name: program.name, price: Number(program.price), billingFrequency: program.billingFrequency });
+    }
+
+    case 'update_program': {
+      const updated = await programService.updateProgram(input.programId as string, organizationId, {
+        name: input.name as string | undefined,
+        price: input.price as number | undefined,
+        billingFrequency: input.billingFrequency as string | undefined,
+        description: input.description as string | undefined,
+        isActive: input.isActive as boolean | undefined,
+        capacity: input.capacity as number | undefined,
+      });
+      await prisma.auditLog.create({
+        data: { organizationId, userId, action: 'ASSISTANT_UPDATE_PROGRAM', metadata: { programId: updated.id } },
+      });
+      return JSON.stringify({ success: true, programId: updated.id, name: updated.name, isActive: updated.isActive, price: Number(updated.price) });
+    }
+
+    case 'pause_enrollment': {
+      const paused = await enrollmentService.pauseEnrollment(input.enrollmentId as string, organizationId);
+      await prisma.auditLog.create({
+        data: { organizationId, userId, action: 'ASSISTANT_PAUSE_ENROLLMENT', metadata: { enrollmentId: paused.id } },
+      });
+      return JSON.stringify({ success: true, enrollmentId: paused.id, status: paused.status });
+    }
+
+    case 'resume_enrollment': {
+      const resumed = await enrollmentService.resumeEnrollment(input.enrollmentId as string, organizationId);
+      await prisma.auditLog.create({
+        data: { organizationId, userId, action: 'ASSISTANT_RESUME_ENROLLMENT', metadata: { enrollmentId: resumed.id } },
+      });
+      return JSON.stringify({ success: true, enrollmentId: resumed.id, status: resumed.status });
+    }
+
+    case 'run_billing': {
+      const result = await billingService.generateDueInvoices(organizationId);
+      await prisma.auditLog.create({
+        data: { organizationId, userId, action: 'ASSISTANT_RUN_BILLING', metadata: result as Record<string, unknown> },
+      });
+      return JSON.stringify({ success: true, ...result });
+    }
+
+    case 'refund_payment': {
+      const refunded = await paymentService.refundPayment(input.paymentId as string, organizationId);
+      await prisma.auditLog.create({
+        data: { organizationId, userId, action: 'ASSISTANT_REFUND_PAYMENT', metadata: { paymentId: refunded.id } },
+      });
+      return JSON.stringify({ success: true, paymentId: refunded.id, status: refunded.status, amount: Number(refunded.amount) });
+    }
+
+    case 'list_feedback': {
+      const result = await feedbackService.list(organizationId, {
+        status: input.status as string | undefined,
+        type: input.type as string | undefined,
+        limit: (input.limit as number | undefined) ?? 20,
+      });
+      return JSON.stringify({
+        total: result.total,
+        items: result.items.map((s: { id: string; subject: string; name: string; type: string; status: string; createdAt: Date; contact?: { firstName: string; lastName: string } | null }) => ({
+          id: s.id,
+          subject: s.subject,
+          from: s.contact ? `${s.contact.firstName} ${s.contact.lastName}` : s.name,
+          type: s.type,
+          status: s.status,
+          submitted: s.createdAt,
+        })),
+      });
+    }
+
+    case 'update_feedback_status': {
+      const submission = await feedbackService.updateStatus(input.feedbackId as string, organizationId, input.status as string);
+      await prisma.auditLog.create({
+        data: { organizationId, userId, action: 'ASSISTANT_UPDATE_FEEDBACK_STATUS', metadata: { feedbackId: submission.id, status: submission.status } },
+      });
+      return JSON.stringify({ success: true, feedbackId: submission.id, status: submission.status });
     }
 
     case 'resend_portal_invite': {
