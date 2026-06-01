@@ -123,7 +123,35 @@ Using `enrollmentId` (not just `contactId`) so the credit counter is scoped to t
 
 Cancellation decrements `classesBooked` and frees the session slot.
 
+### Admin UX: session scheduling (calendar view)
+
+The session management panel lives on a new **Program detail page** (`/programs/:id`) — this page does not exist yet and must be created as part of this feature.
+
+The scheduling UI uses a **weekly calendar view** powered by [`react-big-calendar`](https://github.com/jquense/react-big-calendar) (no other calendar library is used in the project). Install in `admin/` only:
+
+```bash
+cd admin && npm install react-big-calendar date-fns
+```
+
+(`date-fns` is the localizer; it is likely already installed as a transitive dep — check before adding.)
+
+**Interaction model:**
+- The calendar renders in week view by default, showing all sessions for the selected program
+- Clicking an empty timeslot opens a slide-over / inline form pre-filled with that date and time — fields: duration (minutes), capacity (optional), location (optional), notes (optional)
+- Clicking an existing session opens the same form in edit mode, plus a **Cancel session** button (sets `status: cancelled`; does not delete — preserves booking history)
+- Cancelled sessions render with a strikethrough style and are not bookable
+- A **"+ New session"** button above the calendar opens the form without a pre-filled time, for admins who prefer typing over clicking
+
+**Attendance roster:**
+Below the calendar, a collapsible table shows bookings for the selected session (click a session event to select it): contact name, booking status, booked-at timestamp. Admins can manually mark a booking as cancelled from this table.
+
+**No recurrence support in v1.** Each session is created individually. Recurrence (e.g. "every Monday at 6pm") is a future enhancement.
+
 ### What to build
 - **Backend**: migration, `sessionService.ts`, admin routes (`/api/sessions` CRUD + roster), client routes (`/api/client/sessions/upcoming`, `POST/DELETE /api/client/sessions/:id/book`)
-- **Admin portal**: session management panel on Program detail page; attendance roster per session
+- **Admin portal**:
+  - New `ProgramDetailPage` at `/programs/:id` (does not exist yet)
+  - Weekly calendar view using `react-big-calendar` for session scheduling
+  - Slide-over / inline form for creating and editing sessions
+  - Attendance roster panel below the calendar
 - **Client portal (`frontend/`)**: "My Classes" page listing upcoming bookable sessions with a Join/Cancel button and remaining-credits indicator
