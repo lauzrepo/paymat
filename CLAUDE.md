@@ -103,10 +103,22 @@ Billing is unchanged — a class pack is just a `Program` with `billingFrequency
 **`enrollments`** — add one column:
 - `classes_booked: int DEFAULT 0` — tracks how many sessions the member has consumed from this enrollment
 
-**New table `class_sessions`** — bookable slots admins create per program:
+**New table `recurrence_series`** — stores the rule for a recurring schedule:
 ```
-id, organization_id, program_id, starts_at, duration_minutes, location?, capacity?, status (scheduled|cancelled), notes?
+id, organization_id, program_id, days_of_week (text[] e.g. ['MON','WED','FRI']),
+time_of_day (time e.g. 06:00), duration_minutes, location?, capacity?, notes?,
+series_start_date (date), series_end_date (date?), created_at
 ```
+
+Sessions are **materialised** upfront rather than computed at query time — simpler to query, easier to override individual occurrences, no virtual expansion logic needed.
+
+**New table `class_sessions`** — one row per bookable slot:
+```
+id, organization_id, program_id, recurrence_series_id? (FK → recurrence_series, nullable),
+starts_at, duration_minutes, location?, capacity?, status (scheduled|cancelled), notes?
+```
+
+`recurrence_series_id` is null for one-off sessions. Sessions that belong to a series but have been individually modified (time, capacity, notes changed) are flagged by having a `recurrence_series_id` but values that differ from the parent series — no extra column needed, the diff is implicit.
 
 **New table `session_bookings`** — links an enrollment to a session:
 ```
@@ -123,6 +135,19 @@ Using `enrollmentId` (not just `contactId`) so the credit counter is scoped to t
 
 Cancellation decrements `classesBooked` and frees the session slot.
 
+### Recurrence logic
+
+When an admin creates a recurring series, `sessionService.createSeries()`:
+1. Saves the `recurrence_series` row
+2. Materialises sessions from `series_start_date` to `series_end_date` (or 12 weeks ahead if open-ended) by iterating over `days_of_week` — one `class_sessions` row per occurrence
+3. A nightly cron job (`expandRecurringSeries`) extends open-ended series to stay 12 weeks ahead
+
+**Edit / cancel scope** — when an admin edits or cancels a recurring session, the UI asks:
+- **This session only** — update/cancel just this `class_sessions` row
+- **This and all future sessions in the series** — update/cancel this row and all future rows with the same `recurrence_series_id`; also updates the `recurrence_series` record so new materialised sessions inherit the change
+
+Deleting an entire series cancels all future sessions (status → `cancelled`) and soft-deletes the `recurrence_series` row (`deleted_at`). Past sessions are left intact for attendance history.
+
 ### Admin UX: session scheduling (calendar view)
 
 The session management panel lives on a new **Program detail page** (`/programs/:id`) — this page does not exist yet and must be created as part of this feature.
@@ -137,21 +162,23 @@ cd admin && npm install react-big-calendar date-fns
 
 **Interaction model:**
 - The calendar renders in week view by default, showing all sessions for the selected program
-- Clicking an empty timeslot opens a slide-over / inline form pre-filled with that date and time — fields: duration (minutes), capacity (optional), location (optional), notes (optional)
-- Clicking an existing session opens the same form in edit mode, plus a **Cancel session** button (sets `status: cancelled`; does not delete — preserves booking history)
+- Clicking an empty timeslot opens a slide-over / inline form pre-filled with that date and time — fields: duration (minutes), capacity (optional), location (optional), notes (optional), plus a **Repeat** toggle
+- If **Repeat** is enabled, the form expands to show: days-of-week checkboxes (the clicked day is pre-checked), end date picker (optional — leave blank for open-ended)
+- Submitting a recurring form calls `POST /api/sessions/series` which creates the `recurrence_series` row and materialises the sessions; submitting a one-off calls `POST /api/sessions`
+- Clicking an existing session opens it in edit mode; if it belongs to a series, a scope prompt appears ("This session only" / "This and future sessions") before saving or cancelling
 - Cancelled sessions render with a strikethrough style and are not bookable
 - A **"+ New session"** button above the calendar opens the form without a pre-filled time, for admins who prefer typing over clicking
+- Recurring sessions in the calendar display a small repeat icon so they're visually distinct from one-offs
 
 **Attendance roster:**
 Below the calendar, a collapsible table shows bookings for the selected session (click a session event to select it): contact name, booking status, booked-at timestamp. Admins can manually mark a booking as cancelled from this table.
 
-**No recurrence support in v1.** Each session is created individually. Recurrence (e.g. "every Monday at 6pm") is a future enhancement.
-
 ### What to build
-- **Backend**: migration, `sessionService.ts`, admin routes (`/api/sessions` CRUD + roster), client routes (`/api/client/sessions/upcoming`, `POST/DELETE /api/client/sessions/:id/book`)
+- **Backend**: migration, `sessionService.ts` (single session CRUD + series CRUD + nightly expand cron), admin routes (`/api/sessions` and `/api/sessions/series`), client routes (`/api/client/sessions/upcoming`, `POST/DELETE /api/client/sessions/:id/book`)
 - **Admin portal**:
   - New `ProgramDetailPage` at `/programs/:id` (does not exist yet)
   - Weekly calendar view using `react-big-calendar` for session scheduling
-  - Slide-over / inline form for creating and editing sessions
+  - Slide-over / inline form with Repeat toggle and days-of-week checkboxes for recurring sessions
+  - Edit/cancel scope prompt ("this session" vs "this and future") for recurring events
   - Attendance roster panel below the calendar
 - **Client portal (`frontend/`)**: "My Classes" page listing upcoming bookable sessions with a Join/Cancel button and remaining-credits indicator
