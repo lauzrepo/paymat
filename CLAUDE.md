@@ -84,3 +84,46 @@ All frontends use: React + React Router v7, TanStack Query for server state, Axi
 ### Testing
 - Backend: Jest + Supertest integration tests in `backend/tests/integration/`, unit tests in `backend/tests/unit/services/`. Prisma is mocked via `backend/tests/helpers/prismaMock.ts`.
 - Frontend (admin): Vitest + Testing Library in `__tests__/` co-located with pages. Playwright for E2E.
+
+## Planned Feature: Class Booking
+
+**Status: not yet implemented.** Design is finalised — ready to build.
+
+### Concept
+A class pack model for personal trainers and studios. Members self-book into scheduled sessions, limited by the number of classes included in their enrolled program (e.g. a "12-class pack"). Standard recurring memberships with `maxClasses = null` have unlimited bookings.
+
+Billing is unchanged — a class pack is just a `Program` with `billingFrequency: one_time` and `maxClasses: 12`. Existing invoicing and payment flows apply as-is.
+
+### Schema changes
+
+**`programs`** — add two columns:
+- `max_classes: int?` — if set, this program is a class pack; null means unlimited
+- `allow_self_enrollment: boolean DEFAULT false` — when true, members can book via the client portal without admin intervention
+
+**`enrollments`** — add one column:
+- `classes_booked: int DEFAULT 0` — tracks how many sessions the member has consumed from this enrollment
+
+**New table `class_sessions`** — bookable slots admins create per program:
+```
+id, organization_id, program_id, starts_at, duration_minutes, location?, capacity?, status (scheduled|cancelled), notes?
+```
+
+**New table `session_bookings`** — links an enrollment to a session:
+```
+id, organization_id, session_id, enrollment_id, status (confirmed|cancelled|waitlisted), booked_at
+```
+
+Using `enrollmentId` (not just `contactId`) so the credit counter is scoped to the specific pack purchase.
+
+### Booking logic
+1. Verify the contact has an active enrollment in the session's program
+2. If `program.maxClasses` is set, check `enrollment.classesBooked < program.maxClasses`
+3. Check the session is not at capacity
+4. Create `SessionBooking`, increment `enrollment.classesBooked`
+
+Cancellation decrements `classesBooked` and frees the session slot.
+
+### What to build
+- **Backend**: migration, `sessionService.ts`, admin routes (`/api/sessions` CRUD + roster), client routes (`/api/client/sessions/upcoming`, `POST/DELETE /api/client/sessions/:id/book`)
+- **Admin portal**: session management panel on Program detail page; attendance roster per session
+- **Client portal (`frontend/`)**: "My Classes" page listing upcoming bookable sessions with a Join/Cancel button and remaining-credits indicator
