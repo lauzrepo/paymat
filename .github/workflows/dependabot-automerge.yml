@@ -57,7 +57,7 @@ jobs:
           # Safe: dependabot only touches package.json / lockfiles, never workflows
           ref: ${{ github.event.pull_request.head.sha }}
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v6
         with:
           node-version: '24'
           cache: npm
