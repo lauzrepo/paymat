@@ -52,7 +52,7 @@ jobs:
     runs-on: ubuntu-latest
     if: needs.triage.outputs.bump-level == 'minor-patch'
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
         with:
           # Safe: dependabot only touches package.json / lockfiles, never workflows
           ref: ${{ github.event.pull_request.head.sha }}
