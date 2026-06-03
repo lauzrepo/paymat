@@ -59,8 +59,9 @@ router.post('/invite', asyncHandler(async (req, res) => {
 
 // POST /api/team/invite/:id/resend — resend the email for a pending invite
 router.post('/invite/:id/resend', asyncHandler(async (req, res) => {
+  const inviteId = req.params.id as string;
   const invite = await prisma.staffInvite.findFirst({
-    where: { id: req.params.id, organizationId: req.organization!.id, usedAt: null },
+    where: { id: inviteId, organizationId: req.organization!.id, usedAt: null },
   });
   if (!invite) throw new AppError(404, 'Pending invite not found');
 
@@ -79,8 +80,9 @@ router.post('/invite/:id/resend', asyncHandler(async (req, res) => {
 
 // DELETE /api/team/invite/:id — cancel a pending invite
 router.delete('/invite/:id', asyncHandler(async (req, res) => {
+  const inviteId = req.params.id as string;
   const invite = await prisma.staffInvite.findFirst({
-    where: { id: req.params.id, organizationId: req.organization!.id, usedAt: null },
+    where: { id: inviteId, organizationId: req.organization!.id, usedAt: null },
   });
   if (!invite) throw new AppError(404, 'Pending invite not found');
 

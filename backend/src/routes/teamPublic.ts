@@ -8,15 +8,15 @@ const router = Router();
 
 // GET /api/team/invite/:token — verify token, return email + orgName (no auth, no tenant)
 router.get('/invite/:token', asyncHandler(async (req, res) => {
-  const invite = await prisma.staffInvite.findUnique({
-    where: { token: req.params.token },
-    include: { organization: { select: { name: true } } },
-  });
+  const token = req.params.token as string;
+  const invite = await prisma.staffInvite.findUnique({ where: { token } });
 
   if (!invite) throw new AppError(404, 'Invite not found');
   if (invite.usedAt) throw new AppError(410, 'This invite has already been used. Please sign in or reset your password.');
 
-  res.json({ status: 'success', data: { email: invite.email, orgName: invite.organization.name } });
+  const org = await prisma.organization.findUnique({ where: { id: invite.organizationId }, select: { name: true } });
+
+  res.json({ status: 'success', data: { email: invite.email, orgName: org!.name } });
 }));
 
 // POST /api/team/invite/:token/accept — create staff User, mark invite used (no auth, no tenant)
@@ -26,9 +26,8 @@ router.post('/invite/:token/accept', asyncHandler(async (req, res) => {
     throw new AppError(400, 'First name, last name, and password are required');
   }
 
-  const invite = await prisma.staffInvite.findUnique({
-    where: { token: req.params.token },
-  });
+  const token = req.params.token as string;
+  const invite = await prisma.staffInvite.findUnique({ where: { token } });
 
   if (!invite) throw new AppError(404, 'Invite not found');
   if (invite.usedAt) throw new AppError(410, 'This invite has already been used. Please sign in or reset your password.');
