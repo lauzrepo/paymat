@@ -11,6 +11,7 @@ import { LoginPage } from './pages/auth/LoginPage';
 import { RegisterPage } from './pages/auth/RegisterPage';
 import { ForgotPasswordPage } from './pages/auth/ForgotPasswordPage';
 import { ResetPasswordPage } from './pages/auth/ResetPasswordPage';
+import { AcceptInvitePage } from './pages/auth/AcceptInvitePage';
 
 import { DashboardPage } from './pages/dashboard/DashboardPage';
 import { ContactsPage } from './pages/contacts/ContactsPage';
@@ -36,6 +37,8 @@ function App() {
       <BrowserRouter>
         <Routes>
           <Route path="/onboarding" element={<OnboardingPage />} />
+
+          <Route path="/accept-invite" element={<AcceptInvitePage />} />
 
           <Route element={<AuthLayout />}>
             <Route path="/login" element={<LoginPage />} />

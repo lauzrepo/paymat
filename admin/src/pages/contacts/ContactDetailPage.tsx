@@ -1,10 +1,11 @@
 import { useState } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
-import { ChevronLeft, CreditCard } from 'lucide-react';
+import { ChevronLeft, CreditCard, Send } from 'lucide-react';
+import { useMutation } from '@tanstack/react-query';
 import { loadStripe } from '@stripe/stripe-js';
 import { Elements, PaymentElement, useStripe, useElements } from '@stripe/react-stripe-js';
 import { useContact, useDeactivateContact, useReactivateContact, useDeleteContact } from '../../hooks/useContacts';
-import { initializeCardCheckout, saveCardToken } from '../../api/contacts';
+import { initializeCardCheckout, saveCardToken, resendPortalInvite } from '../../api/contacts';
 import { queryClient } from '../../lib/queryClient';
 import { Card, CardHeader, CardBody } from '../../components/ui/Card';
 import { Button } from '../../components/ui/Button';
@@ -97,6 +98,15 @@ export function ContactDetailPage() {
   const [stripePromise, setStripePromise] = useState<ReturnType<typeof loadStripe> | null>(null);
   const [clientSecret, setClientSecret] = useState('');
   const [customerId, setCustomerId] = useState('');
+  const [inviteSent, setInviteSent] = useState(false);
+
+  const resendInvite = useMutation({
+    mutationFn: () => resendPortalInvite(id!),
+    onSuccess: () => {
+      setInviteSent(true);
+      setTimeout(() => setInviteSent(false), 3000);
+    },
+  });
 
   const openCardForm = async () => {
     setCardStatus('loading');
@@ -166,6 +176,23 @@ export function ContactDetailPage() {
                   <span className="text-gray-400 dark:text-gray-500 text-xs">None</span>
                 )}
               </div>
+              {contact.email && (
+                <div className="flex justify-between items-center pt-1">
+                  <span className="text-gray-500 dark:text-gray-400">Member portal</span>
+                  {contact.hasPortalAccount ? (
+                    <span className="text-green-600 dark:text-green-400 text-xs font-medium">Account active</span>
+                  ) : (
+                    <button
+                      onClick={() => resendInvite.mutate()}
+                      disabled={resendInvite.isPending || inviteSent}
+                      className="text-xs text-indigo-600 dark:text-indigo-400 hover:underline disabled:opacity-60 flex items-center gap-1"
+                    >
+                      <Send className="h-3 w-3" />
+                      {inviteSent ? 'Invite sent' : 'Resend portal invite'}
+                    </button>
+                  )}
+                </div>
+              )}
               {cardStatus === 'success' && <p className="text-sm text-green-600 dark:text-green-400 font-medium">{cardMessage}</p>}
               {cardStatus === 'error' && <p className="text-sm text-red-600 dark:text-red-400">{cardMessage}</p>}
             </CardBody>

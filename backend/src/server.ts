@@ -15,6 +15,8 @@ import waitlistRoutes from './routes/waitlist';
 import authRoutes from './routes/auth';
 import organizationRoutes from './routes/tenant';
 import contactRoutes from './routes/contacts';
+import teamPublicRoutes from './routes/teamPublic';
+import teamRoutes from './routes/team';
 import familyRoutes from './routes/families';
 import programRoutes from './routes/programs';
 import enrollmentRoutes from './routes/enrollments';
@@ -50,6 +52,9 @@ app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 // Super-admin routes bypass tenant resolution — mount before resolveTenant
 app.use('/super-admin', superAdminRoutes);
 
+// Public team invite routes bypass tenant resolution (invitee has no org context)
+app.use('/api/team', teamPublicRoutes);
+
 app.use(resolveTenant);
 app.use('/api', apiLimiter);
 
@@ -76,6 +81,7 @@ app.use('/webhooks', webhookRoutes);
 app.use('/api/client', clientRoutes);
 app.use('/api/waitlist', waitlistRoutes);
 app.use('/api/assistant', assistantRoutes);
+app.use('/api/team', teamRoutes);
 
 app.use(notFoundHandler);
 app.use(errorHandler);

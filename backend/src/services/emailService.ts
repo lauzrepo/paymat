@@ -433,6 +433,34 @@ export async function sendMemberPortalInvite(to: string, details: {
   });
 }
 
+export async function sendStaffInvite(to: string, details: {
+  adminName: string;
+  orgName: string;
+  acceptUrl: string;
+}) {
+  await resend.emails.send({
+    from: FROM,
+    to,
+    subject: `You've been invited to ${details.orgName} on Paymat`,
+    html: `
+      <div style="font-family:sans-serif;max-width:600px;margin:0 auto">
+        <div style="background:#4f46e5;padding:24px;border-radius:8px 8px 0 0;text-align:center">
+          <h1 style="color:#fff;margin:0;font-size:24px">${details.orgName}</h1>
+        </div>
+        <div style="background:#fff;border:1px solid #e5e7eb;border-top:none;border-radius:0 0 8px 8px;padding:32px">
+          <p style="font-size:16px;color:#111827">Hi there,</p>
+          <p style="color:#6b7280"><strong>${details.adminName}</strong> has invited you to help manage <strong>${details.orgName}</strong> on Cliq Paymat. Click below to set up your account.</p>
+          <div style="text-align:center;margin:32px 0">
+            <a href="${details.acceptUrl}" style="background:#4f46e5;color:#fff;padding:14px 28px;border-radius:8px;text-decoration:none;font-size:16px;font-weight:600">Accept Invitation</a>
+          </div>
+          <p style="color:#6b7280;font-size:14px">This link doesn't expire — use it whenever you're ready.</p>
+          <p style="color:#9ca3af;font-size:12px">If you weren't expecting this email, you can safely ignore it.</p>
+        </div>
+      </div>
+    `,
+  });
+}
+
 export async function sendMonthlyStatement(to: string, stmt: MonthlyStatement) {
   const fmt = (n: number) => `$${n.toFixed(2)}`;
   const paymentRows = stmt.payments.map((p) => `

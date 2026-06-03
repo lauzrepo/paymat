@@ -11,6 +11,7 @@ import {
   initializeCardCheckout,
   saveCardToken,
   bulkImportContacts,
+  resendPortalInvite,
 } from '../controllers/contactController';
 
 const router = Router();
@@ -26,6 +27,7 @@ router.put('/:id', requireRole('admin', 'staff'), updateContact);
 router.post('/:id/reactivate', requireRole('admin', 'staff'), reactivateContact);
 router.post('/:id/card/initialize', requireRole('admin', 'staff'), initializeCardCheckout);
 router.post('/:id/card/token', requireRole('admin', 'staff'), saveCardToken);
+router.post('/:id/resend-portal-invite', requireRole('admin'), resendPortalInvite);
 router.delete('/:id/permanent', requireRole('admin'), deleteContact);
 router.delete('/:id', requireRole('admin'), deactivateContact);
 

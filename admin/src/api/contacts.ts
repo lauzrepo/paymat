@@ -46,3 +46,6 @@ export interface BulkImportResult {
 
 export const bulkImportContacts = (contacts: BulkImportRow[]): Promise<BulkImportResult> =>
   apiClient.post('/contacts/bulk-import', { contacts }).then((r) => r.data.data.results);
+
+export const resendPortalInvite = (id: string): Promise<void> =>
+  apiClient.post(`/contacts/${id}/resend-portal-invite`).then(() => undefined);

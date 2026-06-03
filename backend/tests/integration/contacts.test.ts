@@ -3,17 +3,14 @@ import app from '../../src/server';
 import jwt from 'jsonwebtoken';
 import prisma from '../../src/config/database';
 
-jest.mock('../../src/middleware/rateLimiter', () => ({
-  apiLimiter: (_req: any, _res: any, next: any) => next(),
-  authLimiter: (_req: any, _res: any, next: any) => next(),
-  paymentLimiter: (_req: any, _res: any, next: any) => next(),
-}));
+// rateLimiter is redirected globally via moduleNameMapper in jest.config.ts
 jest.mock('../../src/services/emailService', () => ({
   sendPasswordResetEmail: jest.fn(),
   sendFeedbackNotification: jest.fn().mockResolvedValue(undefined),
   sendInvoiceGenerated: jest.fn().mockResolvedValue(undefined),
   sendPaymentReceived: jest.fn().mockResolvedValue(undefined),
   sendPaymentFailed: jest.fn().mockResolvedValue(undefined),
+  sendMemberPortalInvite: jest.fn().mockResolvedValue(undefined),
 }));
 jest.mock('../../src/services/stripeConnectService', () => ({
   __esModule: true,
@@ -31,10 +28,14 @@ function adminToken(orgId = 'org-1') {
   return jwt.sign({ userId: 'user-1', email: 'admin@test.com', organizationId: orgId, role: 'admin' }, SECRET, { expiresIn: '1h' });
 }
 
+function staffToken(orgId = 'org-1') {
+  return jwt.sign({ userId: 'user-2', email: 'staff@test.com', organizationId: orgId, role: 'staff' }, SECRET, { expiresIn: '1h' });
+}
+
 const mockContact = (overrides = {}) => ({
   id: 'contact-1', organizationId: 'org-1', firstName: 'Jane', lastName: 'Doe',
   email: 'jane@example.com', phone: null, status: 'active', helcimToken: null,
-  family: null, enrollments: [], invoices: [],
+  family: null, enrollments: [], invoices: [], user: null,
   createdAt: new Date(), updatedAt: new Date(), ...overrides,
 });
 
@@ -240,5 +241,61 @@ describe('POST /api/contacts/:id/card/token', () => {
       .send({});
 
     expect(res.status).toBe(400);
+  });
+});
+
+describe('POST /api/contacts/:id/resend-portal-invite', () => {
+  it('returns 200 when contact has an email and no portal account', async () => {
+    (prisma.contact.findFirst as jest.Mock).mockResolvedValue(mockContact({ user: null }));
+    (prisma.organization.findUnique as jest.Mock).mockResolvedValue(ORG);
+    (prisma.memberPortalInvite.create as jest.Mock).mockResolvedValue({ token: 'tok-new' });
+
+    const res = await request(app)
+      .post('/api/contacts/contact-1/resend-portal-invite')
+      .set('Authorization', `Bearer ${adminToken()}`)
+      .set('x-organization-slug', 'test-org');
+
+    expect(res.status).toBe(200);
+  });
+
+  it('returns 400 when contact has no email', async () => {
+    (prisma.contact.findFirst as jest.Mock).mockResolvedValue(mockContact({ email: null }));
+
+    const res = await request(app)
+      .post('/api/contacts/contact-1/resend-portal-invite')
+      .set('Authorization', `Bearer ${adminToken()}`)
+      .set('x-organization-slug', 'test-org');
+
+    expect(res.status).toBe(400);
+  });
+
+  it('returns 400 when contact already has an active portal account', async () => {
+    (prisma.contact.findFirst as jest.Mock).mockResolvedValue(
+      mockContact({ user: { role: 'client', deletedAt: null } })
+    );
+
+    const res = await request(app)
+      .post('/api/contacts/contact-1/resend-portal-invite')
+      .set('Authorization', `Bearer ${adminToken()}`)
+      .set('x-organization-slug', 'test-org');
+
+    expect(res.status).toBe(400);
+  });
+
+  it('returns 403 for staff role', async () => {
+    const res = await request(app)
+      .post('/api/contacts/contact-1/resend-portal-invite')
+      .set('Authorization', `Bearer ${staffToken()}`)
+      .set('x-organization-slug', 'test-org');
+
+    expect(res.status).toBe(403);
+  });
+
+  it('returns 401 without auth', async () => {
+    const res = await request(app)
+      .post('/api/contacts/contact-1/resend-portal-invite')
+      .set('x-organization-slug', 'test-org');
+
+    expect(res.status).toBe(401);
   });
 });

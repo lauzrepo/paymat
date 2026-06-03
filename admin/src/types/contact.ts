@@ -13,6 +13,7 @@ export interface Contact {
   status: string;
   createdAt: string;
   updatedAt: string;
+  hasPortalAccount?: boolean;
   family?: { id: string; name: string } | null;
   enrollments?: ContactEnrollment[];
   invoices?: ContactInvoice[];

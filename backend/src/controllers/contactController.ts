@@ -108,6 +108,12 @@ export const deleteContact = asyncHandler(async (req: Request, res: Response) =>
   res.status(204).send();
 });
 
+export const resendPortalInvite = asyncHandler(async (req: Request, res: Response) => {
+  if (!req.user) throw new AppError(401, 'Not authenticated');
+  await contactService.resendPortalInvite(req.params.id as string, req.organization!.id);
+  res.status(200).json({ status: 'success', message: 'Portal invite sent' });
+});
+
 export const bulkImportContacts = asyncHandler(async (req: Request, res: Response) => {
   if (!req.user) throw new AppError(401, 'Not authenticated');
   const { contacts } = req.body;
