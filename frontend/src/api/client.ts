@@ -144,3 +144,28 @@ export const confirmAutopay = (setupIntentId: string) =>
 export const removeAutopay = () =>
   apiClient.delete('/client/autopay').then((r) => r.data.data);
 
+// ── Sessions ──────────────────────────────────────────────────────────────────
+
+export interface UpcomingSession {
+  id: string;
+  programId: string;
+  startsAt: string;
+  durationMinutes: number;
+  location: string | null;
+  capacity: number | null;
+  status: string;
+  notes: string | null;
+  _count: { bookings: number };
+  enrollment: { id: string; creditsLeft: number | null };
+  myBooking: { id: string; enrollmentId: string } | null;
+}
+
+export const getUpcomingSessions = () =>
+  apiClient.get('/client/sessions/upcoming').then((r) => r.data.data as UpcomingSession[]);
+
+export const bookSession = (sessionId: string) =>
+  apiClient.post(`/client/sessions/${sessionId}/book`).then((r) => r.data.data);
+
+export const cancelSessionBooking = (sessionId: string) =>
+  apiClient.delete(`/client/sessions/${sessionId}/book`).then((r) => r.data.data);
+

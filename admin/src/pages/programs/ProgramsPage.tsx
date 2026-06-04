@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Plus } from 'lucide-react';
 import { usePrograms, useCreateProgram, useUpdateProgram, useDeleteProgram } from '../../hooks/usePrograms';
 import { Card, CardHeader, CardBody } from '../../components/ui/Card';
@@ -98,6 +99,7 @@ function EditRow({ program, onDone }: { program: Program; onDone: () => void }) 
 }
 
 export function ProgramsPage() {
+  const navigate = useNavigate();
   const [showForm, setShowForm] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [page, setPage] = useState(1);
@@ -167,6 +169,7 @@ export function ProgramsPage() {
                     </p>
                     {p.description && <p className="text-xs text-gray-400 dark:text-gray-500 truncate">{p.description}</p>}
                     <div className="flex gap-2 pt-1">
+                      <Button variant="ghost" size="sm" onClick={() => navigate(`/programs/${p.id}`)}>View</Button>
                       <Button variant="ghost" size="sm" onClick={() => setEditingId(p.id)}>Edit</Button>
                       <Button variant="ghost" size="sm" className="text-red-500 hover:text-red-700"
                         loading={deleteProgram.isPending}
@@ -219,6 +222,7 @@ export function ProgramsPage() {
                           </td>
                           <td className="px-6 py-3">
                             <div className="flex gap-1">
+                              <Button variant="ghost" size="sm" onClick={() => navigate(`/programs/${p.id}`)}>View</Button>
                               <Button variant="ghost" size="sm" onClick={() => setEditingId(p.id)}>Edit</Button>
                               <Button variant="ghost" size="sm" className="text-red-500 hover:text-red-700"
                                 loading={deleteProgram.isPending}

@@ -5,6 +5,7 @@ import { useTenantBranding } from '../../hooks/useTenant';
 import { updateOrgSettings } from '../../api/tenant';
 import { getTeam, inviteStaff, revokeAccess, resendInvite, cancelInvite } from '../../api/team';
 import type { TeamMember, PendingInvite } from '../../api/team';
+import { useCurrentUser } from '../../hooks/useAuth';
 import { queryClient } from '../../lib/queryClient';
 import { Card, CardHeader, CardBody } from '../../components/ui/Card';
 import { Button } from '../../components/ui/Button';
@@ -322,14 +323,18 @@ function TeamTab() {
 // ── Main page ─────────────────────────────────────────────────────────────────
 
 export function SettingsPage() {
+  const { data: currentUser } = useCurrentUser();
+  const isAdmin = currentUser?.role === 'admin';
   const [tab, setTab] = useState<Tab>('organization');
+
+  const tabs = isAdmin ? (['organization', 'team'] as Tab[]) : (['organization'] as Tab[]);
 
   return (
     <div className="space-y-6 max-w-2xl">
       <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">Settings</h1>
 
       <div className="flex gap-1 border-b border-gray-200 dark:border-gray-700">
-        {(['organization', 'team'] as Tab[]).map((t) => (
+        {tabs.map((t) => (
           <button
             key={t}
             onClick={() => setTab(t)}
