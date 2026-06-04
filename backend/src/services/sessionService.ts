@@ -13,6 +13,17 @@ function addWeeks(date: Date, n: number): Date {
   return addDays(date, n * 7);
 }
 
+function parseTimeOfDay(timeOfDay: string): { h: number; m: number } {
+  if (!/^\d{2}:\d{2}$/.test(timeOfDay)) {
+    throw new AppError(400, `Invalid timeOfDay format "${timeOfDay}" — expected HH:MM`);
+  }
+  const [h, m] = timeOfDay.split(':').map(Number);
+  if (h > 23 || m > 59) {
+    throw new AppError(400, `Invalid timeOfDay "${timeOfDay}" — hours must be 0–23 and minutes 0–59`);
+  }
+  return { h, m };
+}
+
 function buildSessionsInRange(
   series: {
     id: string;
@@ -28,6 +39,7 @@ function buildSessionsInRange(
   from: Date,
   to: Date,
 ) {
+  const { h, m } = parseTimeOfDay(series.timeOfDay);
   const sessions = [];
   const cursor = new Date(from);
   cursor.setHours(0, 0, 0, 0);
@@ -35,7 +47,6 @@ function buildSessionsInRange(
   while (cursor <= to) {
     const dayKey = DAY_NAMES[cursor.getDay()];
     if (series.daysOfWeek.includes(dayKey)) {
-      const [h, m] = series.timeOfDay.split(':').map(Number);
       const startsAt = new Date(cursor);
       startsAt.setHours(h, m, 0, 0);
       sessions.push({
@@ -66,6 +77,9 @@ class SessionService {
     capacity?: number;
     notes?: string;
   }) {
+    const program = await prisma.program.findFirst({ where: { id: data.programId, organizationId } });
+    if (!program) throw new AppError(404, 'Program not found');
+
     return prisma.classSession.create({
       data: {
         organizationId,
@@ -139,15 +153,25 @@ class SessionService {
       return prisma.classSession.update({ where: { id: sessionId }, data: update });
     }
 
-    // future sessions in same series
-    await prisma.classSession.updateMany({
-      where: {
-        recurrenceSeriesId: session.recurrenceSeriesId,
-        startsAt: { gte: session.startsAt },
-        status: 'scheduled',
-      },
-      data: update,
-    });
+    // Capture the original startsAt before applying the update so the boundary
+    // is correct even if this session was previously shifted by a scope=one edit.
+    const originalStartsAt = session.startsAt;
+
+    // Update this session explicitly, then all later sessions in the series.
+    // Using two operations instead of a single updateMany so the current session
+    // is always included regardless of its current startsAt position.
+    await prisma.$transaction([
+      prisma.classSession.update({ where: { id: sessionId }, data: update }),
+      prisma.classSession.updateMany({
+        where: {
+          recurrenceSeriesId: session.recurrenceSeriesId,
+          id: { not: sessionId },
+          startsAt: { gte: originalStartsAt },
+          status: 'scheduled',
+        },
+        data: update,
+      }),
+    ]);
 
     // also update the series template so new materialisations inherit the change
     if (data.durationMinutes !== undefined || data.location !== undefined || data.capacity !== undefined || data.notes !== undefined) {
@@ -175,14 +199,19 @@ class SessionService {
       return;
     }
 
-    await prisma.classSession.updateMany({
-      where: {
-        recurrenceSeriesId: session.recurrenceSeriesId,
-        startsAt: { gte: session.startsAt },
-        status: 'scheduled',
-      },
-      data: { status: 'cancelled' },
-    });
+    const originalStartsAt = session.startsAt;
+    await prisma.$transaction([
+      prisma.classSession.update({ where: { id: sessionId }, data: { status: 'cancelled' } }),
+      prisma.classSession.updateMany({
+        where: {
+          recurrenceSeriesId: session.recurrenceSeriesId,
+          id: { not: sessionId },
+          startsAt: { gte: originalStartsAt },
+          status: 'scheduled',
+        },
+        data: { status: 'cancelled' },
+      }),
+    ]);
   }
 
   // ── Series ───────────────────────────────────────────────────────────────────
@@ -198,6 +227,11 @@ class SessionService {
     seriesStartDate: string;
     seriesEndDate?: string;
   }) {
+    parseTimeOfDay(data.timeOfDay); // validates format/range before any DB work
+
+    const program = await prisma.program.findFirst({ where: { id: data.programId, organizationId } });
+    if (!program) throw new AppError(404, 'Program not found');
+
     const seriesStart = new Date(data.seriesStartDate);
     const seriesEnd = data.seriesEndDate
       ? new Date(data.seriesEndDate)
@@ -236,15 +270,21 @@ class SessionService {
 
     const horizon = addWeeks(new Date(), 12);
 
-    for (const series of openSeries) {
-      const lastSession = await prisma.classSession.findFirst({
-        where: { recurrenceSeriesId: series.id },
-        orderBy: { startsAt: 'desc' },
-      });
+    // Single query to get the latest materialised startsAt for all open series,
+    // replacing what would otherwise be one findFirst per series (N+1).
+    const lastBySeriesId = await prisma.classSession.groupBy({
+      by: ['recurrenceSeriesId'],
+      where: { recurrenceSeriesId: { in: openSeries.map((s) => s.id) } },
+      _max: { startsAt: true },
+    });
 
-      const from = lastSession
-        ? addDays(lastSession.startsAt, 1)
-        : new Date();
+    const lastMap = new Map(
+      lastBySeriesId.map((r) => [r.recurrenceSeriesId as string, r._max.startsAt]),
+    );
+
+    for (const series of openSeries) {
+      const lastStartsAt = lastMap.get(series.id) ?? null;
+      const from = lastStartsAt ? addDays(lastStartsAt, 1) : new Date();
 
       if (from >= horizon) continue;
 
@@ -269,6 +309,7 @@ class SessionService {
     if (!session) throw new AppError(404, 'Session not found');
     if (session.status === 'cancelled') throw new AppError(400, 'Session is cancelled');
     if (enrollment?.programId !== session.programId) throw new AppError(400, 'Enrollment does not match session program');
+    if (!enrollment!.program.allowSelfEnrollment) throw new AppError(403, 'This program does not allow self-booking');
 
     if (enrollment!.program.maxClasses !== null) {
       if (enrollment!.classesBooked >= enrollment!.program.maxClasses) {
@@ -344,17 +385,18 @@ class SessionService {
       take: 50,
     });
 
-    return sessions.map((s) => {
-      const enrollment = enrollments.find((e) => e.programId === s.programId)!;
+    return sessions.flatMap((s) => {
+      const enrollment = enrollments.find((e) => e.programId === s.programId);
+      if (!enrollment) return []; // defensive: skip sessions with no matching enrollment
       const myBooking = s.bookings[0] ?? null;
       const creditsLeft = enrollment.program.maxClasses !== null
         ? enrollment.program.maxClasses - enrollment.classesBooked
         : null;
-      return {
+      return [{
         ...s,
         enrollment: { id: enrollment.id, creditsLeft },
         myBooking,
-      };
+      }];
     });
   }
 }
