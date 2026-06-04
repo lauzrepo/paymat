@@ -237,26 +237,27 @@ class SessionService {
       ? new Date(data.seriesEndDate)
       : addWeeks(seriesStart, 12);
 
-    const series = await prisma.recurrenceSeries.create({
-      data: {
-        organizationId,
-        programId: data.programId,
-        daysOfWeek: data.daysOfWeek,
-        timeOfDay: data.timeOfDay,
-        durationMinutes: data.durationMinutes,
-        location: data.location ?? null,
-        capacity: data.capacity ?? null,
-        notes: data.notes ?? null,
-        seriesStartDate: seriesStart,
-        seriesEndDate: data.seriesEndDate ? new Date(data.seriesEndDate) : null,
-      },
+    return prisma.$transaction(async (tx) => {
+      const series = await tx.recurrenceSeries.create({
+        data: {
+          organizationId,
+          programId: data.programId,
+          daysOfWeek: data.daysOfWeek,
+          timeOfDay: data.timeOfDay,
+          durationMinutes: data.durationMinutes,
+          location: data.location ?? null,
+          capacity: data.capacity ?? null,
+          notes: data.notes ?? null,
+          seriesStartDate: seriesStart,
+          seriesEndDate: data.seriesEndDate ? new Date(data.seriesEndDate) : null,
+        },
+      });
+      const sessionData = buildSessionsInRange(series, seriesStart, seriesEnd);
+      if (sessionData.length > 0) {
+        await tx.classSession.createMany({ data: sessionData });
+      }
+      return series;
     });
-
-    const sessionData = buildSessionsInRange(series, seriesStart, seriesEnd);
-    if (sessionData.length > 0) {
-      await prisma.classSession.createMany({ data: sessionData });
-    }
-    return series;
   }
 
   // Extend open-ended series that are running out of materialised sessions (12-week window)

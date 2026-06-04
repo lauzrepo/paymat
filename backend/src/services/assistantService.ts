@@ -1168,39 +1168,37 @@ async function executeTool(
       const status = input.status as string | undefined;
       const limit = Math.min((input.limit as number) ?? 20, 50);
 
-      // Fetch a capped batch, then filter in-memory — cleaner than trying to
-      // express the OR/AND across nullable contact + family columns in Prisma.
+      // Push the card-on-file filter to the DB so large orgs never get silently
+      // truncated results. hasCard=true: either billed party has a saved method.
+      // hasCard=false: NOT (contact has card) AND NOT (family has card).
+      const cardFilter = hasCard
+        ? {
+            OR: [
+              { contact: { stripeDefaultPaymentMethodId: { not: null } } },
+              { family: { stripeDefaultPaymentMethodId: { not: null } } },
+            ],
+          }
+        : {
+            NOT: [
+              { contact: { stripeDefaultPaymentMethodId: { not: null } } },
+              { family: { stripeDefaultPaymentMethodId: { not: null } } },
+            ],
+          };
+
       const invoices = await prisma.invoice.findMany({
-        where: {
-          organizationId,
-          ...(status && { status }),
-        },
+        where: { organizationId, ...(status && { status }), ...cardFilter },
         orderBy: { dueDate: 'asc' },
-        take: 200,
+        take: limit,
         include: {
-          contact: {
-            select: { id: true, firstName: true, lastName: true, stripeDefaultPaymentMethodId: true },
-          },
-          family: {
-            select: { id: true, name: true, stripeDefaultPaymentMethodId: true },
-          },
+          contact: { select: { id: true, firstName: true, lastName: true } },
+          family: { select: { id: true, name: true } },
         },
       });
 
-      const filtered = invoices
-        .filter((inv) => {
-          const cardOnFile = !!(
-            inv.contact?.stripeDefaultPaymentMethodId ||
-            inv.family?.stripeDefaultPaymentMethodId
-          );
-          return cardOnFile === hasCard;
-        })
-        .slice(0, limit);
-
       return JSON.stringify({
-        count: filtered.length,
+        count: invoices.length,
         hasCard,
-        invoices: filtered.map((inv) => ({
+        invoices: invoices.map((inv) => ({
           id: inv.id,
           invoiceNumber: inv.invoiceNumber,
           status: inv.status,

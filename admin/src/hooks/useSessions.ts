@@ -52,7 +52,9 @@ export function useCancelBooking(sessionId: string) {
   return useMutation({
     mutationFn: (bookingId: string) => api.cancelBooking(sessionId, bookingId),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['sessions', sessionId] });
+      // Invalidate all 'sessions' queries: clears both the detail view (booking
+      // roster) and all calendar list views (_count.bookings on each session).
+      queryClient.invalidateQueries({ queryKey: ['sessions'] });
     },
   });
 }

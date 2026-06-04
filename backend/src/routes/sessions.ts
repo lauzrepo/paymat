@@ -12,11 +12,16 @@ router.use(requireRole('admin', 'staff'));
 router.get('/', asyncHandler(async (req, res) => {
   const { programId, from, to } = req.query;
   if (!programId || !from || !to) throw new AppError(400, 'programId, from, and to are required');
+  const fromDate = new Date(from as string);
+  const toDate = new Date(to as string);
+  if (isNaN(fromDate.getTime()) || isNaN(toDate.getTime())) {
+    throw new AppError(400, 'from and to must be valid ISO date strings');
+  }
   const sessions = await sessionService.getSessions(
     req.organization!.id,
     programId as string,
-    new Date(from as string),
-    new Date(to as string),
+    fromDate,
+    toDate,
   );
   res.json({ status: 'success', data: sessions });
 }));
