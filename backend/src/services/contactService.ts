@@ -102,10 +102,44 @@ class ContactService {
         family: true,
         enrollments: { include: { program: true } },
         invoices: { orderBy: { createdAt: 'desc' }, take: 10 },
+        user: { select: { id: true, role: true, deletedAt: true } },
       },
     });
     if (!contact) throw new AppError(404, 'Contact not found');
-    return contact;
+    const hasPortalAccount = !!(contact.user && contact.user.role === 'client' && !contact.user.deletedAt);
+    return { ...contact, hasPortalAccount };
+  }
+
+  async resendPortalInvite(contactId: string, organizationId: string) {
+    const contact = await prisma.contact.findFirst({
+      where: { id: contactId, organizationId },
+      include: { user: { select: { role: true, deletedAt: true } } },
+    });
+    if (!contact) throw new AppError(404, 'Contact not found');
+    if (!contact.email) throw new AppError(400, 'Contact has no email address');
+
+    const hasPortalAccount = !!(contact.user && contact.user.role === 'client' && !contact.user.deletedAt);
+    if (hasPortalAccount) throw new AppError(400, 'Contact already has an active portal account');
+
+    const org = await prisma.organization.findUnique({
+      where: { id: organizationId },
+      select: { name: true, slug: true },
+    });
+    if (!org) throw new AppError(404, 'Organization not found');
+
+    const invite = await prisma.memberPortalInvite.create({
+      data: { contactId, email: contact.email },
+    });
+
+    await sendMemberPortalInvite(contact.email, {
+      firstName: contact.firstName,
+      orgName: org.name,
+      orgSlug: org.slug,
+      token: invite.token,
+      baseDomain: config.multiTenant.baseDomain,
+    });
+
+    return { sent: true };
   }
 
   async updateContact(contactId: string, organizationId: string, data: UpdateContactData) {

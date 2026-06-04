@@ -3,12 +3,6 @@ import jwt from 'jsonwebtoken';
 import app from '../../src/server';
 import prisma from '../../src/config/database';
 
-// Bypass rate limiters in tests
-jest.mock('../../src/middleware/rateLimiter', () => ({
-  apiLimiter: (_req: any, _res: any, next: any) => next(),
-  authLimiter: (_req: any, _res: any, next: any) => next(),
-  paymentLimiter: (_req: any, _res: any, next: any) => next(),
-}));
 
 jest.mock('bcrypt', () => ({
   hash: jest.fn().mockResolvedValue('hashedpw'),

@@ -3,11 +3,6 @@ import app from '../../src/server';
 import jwt from 'jsonwebtoken';
 import prisma from '../../src/config/database';
 
-jest.mock('../../src/middleware/rateLimiter', () => ({
-  apiLimiter: (_req: any, _res: any, next: any) => next(),
-  authLimiter: (_req: any, _res: any, next: any) => next(),
-  paymentLimiter: (_req: any, _res: any, next: any) => next(),
-}));
 jest.mock('../../src/services/emailService', () => ({
   sendPasswordResetEmail: jest.fn(),
   sendFeedbackNotification: jest.fn().mockResolvedValue(undefined),

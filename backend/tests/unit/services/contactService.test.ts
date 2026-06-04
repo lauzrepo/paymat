@@ -1,6 +1,10 @@
 import prisma from '../../../src/config/database';
 import contactService from '../../../src/services/contactService';
 
+jest.mock('../../../src/services/emailService', () => ({
+  sendMemberPortalInvite: jest.fn().mockResolvedValue(undefined),
+}));
+
 const ORG_ID = 'org-1';
 const CONTACT_ID = 'contact-1';
 
@@ -110,15 +114,6 @@ describe('ContactService', () => {
   });
 
   describe('getContactById', () => {
-    it('returns the contact when found', async () => {
-      const contact = makeContact();
-      (prisma.contact.findFirst as jest.Mock).mockResolvedValue(contact);
-
-      const result = await contactService.getContactById(CONTACT_ID, ORG_ID);
-
-      expect(result).toEqual(contact);
-    });
-
     it('throws 404 when contact is not found', async () => {
       (prisma.contact.findFirst as jest.Mock).mockResolvedValue(null);
 
@@ -139,6 +134,78 @@ describe('ContactService', () => {
           where: { id: CONTACT_ID, organizationId: ORG_ID },
         }),
       );
+    });
+
+    it('sets hasPortalAccount true when linked user has role client and is not deleted', async () => {
+      const contact = makeContact({ user: { id: 'u-1', role: 'client', deletedAt: null } });
+      (prisma.contact.findFirst as jest.Mock).mockResolvedValue(contact);
+
+      const result = await contactService.getContactById(CONTACT_ID, ORG_ID);
+
+      expect(result.hasPortalAccount).toBe(true);
+    });
+
+    it('sets hasPortalAccount false when linked client user has been soft-deleted', async () => {
+      const contact = makeContact({ user: { id: 'u-1', role: 'client', deletedAt: new Date() } });
+      (prisma.contact.findFirst as jest.Mock).mockResolvedValue(contact);
+
+      const result = await contactService.getContactById(CONTACT_ID, ORG_ID);
+
+      expect(result.hasPortalAccount).toBe(false);
+    });
+
+    it('sets hasPortalAccount false when no linked user', async () => {
+      const contact = makeContact({ user: null });
+      (prisma.contact.findFirst as jest.Mock).mockResolvedValue(contact);
+
+      const result = await contactService.getContactById(CONTACT_ID, ORG_ID);
+
+      expect(result.hasPortalAccount).toBe(false);
+    });
+  });
+
+  describe('resendPortalInvite', () => {
+    it('creates a new invite and calls sendMemberPortalInvite', async () => {
+      const { sendMemberPortalInvite } = require('../../../src/services/emailService');
+      (prisma.contact.findFirst as jest.Mock).mockResolvedValue(makeContact({ user: null }));
+      (prisma.organization.findUnique as jest.Mock).mockResolvedValue({ id: ORG_ID, name: 'Test Org', slug: 'test-org' });
+      (prisma.memberPortalInvite.create as jest.Mock).mockResolvedValue({ token: 'new-tok' });
+
+      const result = await contactService.resendPortalInvite(CONTACT_ID, ORG_ID);
+
+      expect(prisma.memberPortalInvite.create).toHaveBeenCalledWith({
+        data: { contactId: CONTACT_ID, email: 'jane@example.com' },
+      });
+      expect(sendMemberPortalInvite).toHaveBeenCalled();
+      expect(result).toEqual({ sent: true });
+    });
+
+    it('throws 404 when contact is not found', async () => {
+      (prisma.contact.findFirst as jest.Mock).mockResolvedValue(null);
+
+      await expect(contactService.resendPortalInvite(CONTACT_ID, ORG_ID)).rejects.toMatchObject({
+        statusCode: 404,
+      });
+    });
+
+    it('throws 400 when contact has no email', async () => {
+      (prisma.contact.findFirst as jest.Mock).mockResolvedValue(makeContact({ email: null }));
+
+      await expect(contactService.resendPortalInvite(CONTACT_ID, ORG_ID)).rejects.toMatchObject({
+        statusCode: 400,
+        message: 'Contact has no email address',
+      });
+    });
+
+    it('throws 400 when contact already has an active portal account', async () => {
+      (prisma.contact.findFirst as jest.Mock).mockResolvedValue(
+        makeContact({ user: { role: 'client', deletedAt: null } })
+      );
+
+      await expect(contactService.resendPortalInvite(CONTACT_ID, ORG_ID)).rejects.toMatchObject({
+        statusCode: 400,
+        message: 'Contact already has an active portal account',
+      });
     });
   });
 
@@ -257,7 +324,8 @@ describe('ContactService', () => {
 
       expect(prisma.enrollment.deleteMany).toHaveBeenCalledWith({ where: { contactId: CONTACT_ID } });
       expect((prisma.contact as any).delete).toHaveBeenCalledWith({ where: { id: CONTACT_ID } });
-      expect(result).toEqual(contact);
+      // getContactById now spreads hasPortalAccount onto the returned object
+      expect(result).toMatchObject({ id: CONTACT_ID, firstName: 'Jane' });
     });
 
     it('throws 404 if the contact does not exist', async () => {

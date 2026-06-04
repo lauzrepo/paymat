@@ -10,6 +10,8 @@ const config: Config = {
   moduleNameMapper: {
     // Redirect all imports of src/config/database to the mock
     '.*/config/database': '<rootDir>/tests/helpers/prismaMock.ts',
+    // Redirect rate limiter so all tests get passthrough middleware (incl. webhookLimiter)
+    '.*/middleware/rateLimiter': '<rootDir>/tests/helpers/rateLimiterMock.ts',
     // Provide Prisma.Decimal without requiring the generated .prisma/client
     // (generated client needs Node ≥24; local dev runs Node 18)
     '^@prisma/client$': '<rootDir>/tests/helpers/prismaClientMock.ts',
