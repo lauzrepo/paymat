@@ -397,6 +397,26 @@ const TOOLS: Anthropic.Tool[] = [
       required: ['firstName', 'lastName'],
     },
   },
+  {
+    name: 'filter_invoices_by_card_status',
+    description: 'List invoices filtered by whether the billed contact or family has a card on file (saved payment method). Use this to find members who need manual follow-up because they have no autopay set up, or to identify who can be auto-charged.',
+    input_schema: {
+      type: 'object' as const,
+      properties: {
+        hasCard: {
+          type: 'boolean',
+          description: 'true = only invoices where the billed party has a card on file; false = only invoices where they do not',
+        },
+        status: {
+          type: 'string',
+          enum: ['draft', 'sent', 'paid', 'overdue', 'void'],
+          description: 'Filter by invoice status (optional — omit for all statuses)',
+        },
+        limit: { type: 'number', description: 'Max results, default 20, max 50' },
+      },
+      required: ['hasCard'],
+    },
+  },
 ];
 
 function toTitleCase(str: string): string {
@@ -1140,6 +1160,59 @@ async function executeTool(
         name: `${contact.firstName} ${contact.lastName}`,
         email: contact.email,
         status: contact.status,
+      });
+    }
+
+    case 'filter_invoices_by_card_status': {
+      const hasCard = input.hasCard as boolean;
+      const status = input.status as string | undefined;
+      const limit = Math.min((input.limit as number) ?? 20, 50);
+
+      // Fetch a capped batch, then filter in-memory — cleaner than trying to
+      // express the OR/AND across nullable contact + family columns in Prisma.
+      const invoices = await prisma.invoice.findMany({
+        where: {
+          organizationId,
+          ...(status && { status }),
+        },
+        orderBy: { dueDate: 'asc' },
+        take: 200,
+        include: {
+          contact: {
+            select: { id: true, firstName: true, lastName: true, stripeDefaultPaymentMethodId: true },
+          },
+          family: {
+            select: { id: true, name: true, stripeDefaultPaymentMethodId: true },
+          },
+        },
+      });
+
+      const filtered = invoices
+        .filter((inv) => {
+          const cardOnFile = !!(
+            inv.contact?.stripeDefaultPaymentMethodId ||
+            inv.family?.stripeDefaultPaymentMethodId
+          );
+          return cardOnFile === hasCard;
+        })
+        .slice(0, limit);
+
+      return JSON.stringify({
+        count: filtered.length,
+        hasCard,
+        invoices: filtered.map((inv) => ({
+          id: inv.id,
+          invoiceNumber: inv.invoiceNumber,
+          status: inv.status,
+          amountDue: Number(inv.amountDue),
+          amountPaid: Number(inv.amountPaid),
+          dueDate: inv.dueDate,
+          billedTo: inv.contact
+            ? { type: 'contact', id: inv.contact.id, name: `${inv.contact.firstName} ${inv.contact.lastName}` }
+            : inv.family
+            ? { type: 'family', id: inv.family.id, name: inv.family.name }
+            : null,
+        })),
       });
     }
 
