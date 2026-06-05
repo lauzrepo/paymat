@@ -385,7 +385,6 @@ export function ProgramDetailPage() {
             ) : (
               <SessionDetailPanel
                 sessionId={panel.sessionId}
-                programId={id!}
                 sessions={sessions}
                 onCancelRequest={(s) => setCancelTarget({ session: s, action: 'cancel' })}
               />
@@ -401,12 +400,10 @@ export function ProgramDetailPage() {
 
 function SessionDetailPanel({
   sessionId,
-  programId,
   sessions,
   onCancelRequest,
 }: {
   sessionId: string;
-  programId: string;
   sessions: ClassSession[];
   onCancelRequest: (s: ClassSession) => void;
 }) {
