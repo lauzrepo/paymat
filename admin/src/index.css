@@ -1,3 +1,93 @@
 @import "tailwindcss";
 @plugin "@tailwindcss/forms";
 @variant dark (&:where(.dark, .dark *));
+
+/* ── react-big-calendar dark mode overrides ─────────────────────────────────── */
+.dark .rbc-calendar,
+.dark .rbc-time-view,
+.dark .rbc-month-view {
+  background: transparent;
+  color: #e5e7eb;
+  border-color: #374151;
+}
+
+.dark .rbc-header {
+  background: transparent;
+  color: #9ca3af;
+  border-color: #374151;
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.dark .rbc-header + .rbc-header {
+  border-left-color: #374151;
+}
+
+.dark .rbc-today {
+  background-color: rgba(99, 102, 241, 0.08);
+}
+
+.dark .rbc-header.rbc-today {
+  color: #818cf8;
+  background: rgba(99, 102, 241, 0.1);
+}
+
+.dark .rbc-time-header-content {
+  border-left-color: #374151;
+}
+
+.dark .rbc-time-content {
+  border-top-color: #374151;
+}
+
+.dark .rbc-time-content > * + * > * {
+  border-left-color: #374151;
+}
+
+.dark .rbc-timeslot-group {
+  border-bottom-color: #1f2937;
+}
+
+.dark .rbc-time-slot {
+  color: #6b7280;
+}
+
+.dark .rbc-time-gutter .rbc-timeslot-group {
+  border-bottom-color: #374151;
+}
+
+.dark .rbc-day-slot .rbc-time-slot {
+  border-top-color: #1f2937;
+}
+
+.dark .rbc-time-header.rbc-overflowing {
+  border-right-color: #374151;
+}
+
+.dark .rbc-allday-cell {
+  background: #111827;
+}
+
+.dark .rbc-off-range-bg {
+  background: rgba(0, 0, 0, 0.2);
+}
+
+.dark .rbc-current-time-indicator {
+  background-color: #818cf8;
+}
+
+.dark .rbc-label {
+  color: #6b7280;
+  font-size: 0.7rem;
+}
+
+.dark .rbc-btn-group button {
+  background: #1f2937;
+  color: #d1d5db;
+  border-color: #374151;
+}
+
+.dark .rbc-btn-group button:hover {
+  background: #374151;
+}

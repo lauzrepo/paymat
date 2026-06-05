@@ -289,6 +289,15 @@ export function ProgramDetailPage() {
     setCancelTarget(null);
   };
 
+  const scrollToTime = useMemo(() => {
+    const t = new Date();
+    t.setHours(8, 0, 0, 0);
+    return t;
+  }, []);
+
+  const minTime = useMemo(() => { const t = new Date(); t.setHours(6, 0, 0, 0); return t; }, []);
+  const maxTime = useMemo(() => { const t = new Date(); t.setHours(22, 0, 0, 0); return t; }, []);
+
   const eventStyleGetter = (event: Event) => {
     const s = event.resource as ClassSession;
     if (s.status === 'cancelled') {
@@ -350,6 +359,9 @@ export function ProgramDetailPage() {
               onSelectEvent={handleSelectEvent}
               eventPropGetter={eventStyleGetter}
               toolbar={false}
+              scrollToTime={scrollToTime}
+              min={minTime}
+              max={maxTime}
               style={{ height: '100%' }}
             />
           </div>
