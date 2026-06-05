@@ -19,6 +19,7 @@ import { ContactDetailPage } from './pages/contacts/ContactDetailPage';
 import { FamiliesPage } from './pages/families/FamiliesPage';
 import { FamilyDetailPage } from './pages/families/FamilyDetailPage';
 import { ProgramsPage } from './pages/programs/ProgramsPage';
+import { ProgramDetailPage } from './pages/programs/ProgramDetailPage';
 import { EnrollmentsPage } from './pages/enrollments/EnrollmentsPage';
 import { InvoicesPage } from './pages/invoices/InvoicesPage';
 import { InvoiceDetailPage } from './pages/invoices/InvoiceDetailPage';
@@ -62,6 +63,7 @@ function App() {
             <Route path="/families" element={<FamiliesPage />} />
             <Route path="/families/:id" element={<FamilyDetailPage />} />
             <Route path="/programs" element={<ProgramsPage />} />
+            <Route path="/programs/:id" element={<ProgramDetailPage />} />
             <Route path="/enrollments" element={<EnrollmentsPage />} />
             <Route path="/invoices" element={<InvoicesPage />} />
             <Route path="/invoices/:id" element={<InvoiceDetailPage />} />

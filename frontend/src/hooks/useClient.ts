@@ -10,6 +10,9 @@ import {
   initializeAutopay,
   confirmAutopay,
   removeAutopay,
+  getUpcomingSessions,
+  bookSession,
+  cancelSessionBooking,
 } from '../api/client';
 
 export const useClientMe = () =>
@@ -49,6 +52,25 @@ export const useRemoveAutopay = () => {
   return useMutation({
     mutationFn: removeAutopay,
     onSuccess: () => qc.invalidateQueries({ queryKey: ['client', 'autopay'] }),
+  });
+};
+
+export const useUpcomingSessions = () =>
+  useQuery({ queryKey: ['client', 'sessions'], queryFn: getUpcomingSessions });
+
+export const useBookSession = () => {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: bookSession,
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['client', 'sessions'] }),
+  });
+};
+
+export const useCancelSessionBooking = () => {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: cancelSessionBooking,
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['client', 'sessions'] }),
   });
 };
 

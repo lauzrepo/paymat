@@ -34,6 +34,9 @@ model Organization {
   auditLogs           AuditLog[]
   feedbackSubmissions FeedbackSubmission[]
   staffInvites        StaffInvite[]
+  recurrenceSeries    RecurrenceSeries[]
+  classSessions       ClassSession[]
+  sessionBookings     SessionBooking[]
 
   @@map("organizations")
 }
@@ -111,20 +114,24 @@ model Family {
 }
 
 model Program {
-  id               String   @id @default(uuid())
-  organizationId   String   @map("organization_id")
-  name             String
-  description      String?
-  price            Decimal  @db.Decimal(10, 2)
-  billingFrequency String   @map("billing_frequency")
-  capacity         Int?
-  maxBillingCycles Int?     @map("max_billing_cycles")
-  isActive         Boolean  @default(true) @map("is_active")
-  createdAt        DateTime @default(now()) @map("created_at")
-  updatedAt        DateTime @updatedAt @map("updated_at")
+  id                  String   @id @default(uuid())
+  organizationId      String   @map("organization_id")
+  name                String
+  description         String?
+  price               Decimal  @db.Decimal(10, 2)
+  billingFrequency    String   @map("billing_frequency")
+  capacity            Int?
+  maxBillingCycles    Int?     @map("max_billing_cycles")
+  maxClasses          Int?     @map("max_classes")
+  allowSelfEnrollment Boolean  @default(false) @map("allow_self_enrollment")
+  isActive            Boolean  @default(true) @map("is_active")
+  createdAt           DateTime @default(now()) @map("created_at")
+  updatedAt           DateTime @updatedAt @map("updated_at")
 
-  organization Organization @relation(fields: [organizationId], references: [id])
-  enrollments  Enrollment[]
+  organization      Organization       @relation(fields: [organizationId], references: [id])
+  enrollments       Enrollment[]
+  classSessions     ClassSession[]
+  recurrenceSeries  RecurrenceSeries[]
 
   @@index([organizationId])
   @@map("programs")
@@ -138,12 +145,14 @@ model Enrollment {
   startDate       DateTime  @map("start_date")
   endDate         DateTime? @map("end_date")
   nextBillingDate DateTime? @map("next_billing_date")
+  classesBooked   Int       @default(0) @map("classes_booked")
   createdAt       DateTime  @default(now()) @map("created_at")
   updatedAt       DateTime  @updatedAt @map("updated_at")
 
-  contact   Contact          @relation(fields: [contactId], references: [id])
-  program   Program          @relation(fields: [programId], references: [id])
-  lineItems InvoiceLineItem[]
+  contact         Contact          @relation(fields: [contactId], references: [id])
+  program         Program          @relation(fields: [programId], references: [id])
+  lineItems       InvoiceLineItem[]
+  sessionBookings SessionBooking[]
 
   @@unique([contactId, programId])
   @@map("enrollments")
@@ -312,4 +321,69 @@ model MemberPortalInvite {
 
   @@index([token])
   @@map("member_portal_invites")
+}
+
+model RecurrenceSeries {
+  id              String    @id @default(uuid())
+  organizationId  String    @map("organization_id")
+  programId       String    @map("program_id")
+  daysOfWeek      String[]  @map("days_of_week")
+  timeOfDay       String    @map("time_of_day")
+  durationMinutes Int       @map("duration_minutes")
+  location        String?
+  capacity        Int?
+  notes           String?
+  seriesStartDate DateTime  @map("series_start_date") @db.Date
+  seriesEndDate   DateTime? @map("series_end_date") @db.Date
+  deletedAt       DateTime? @map("deleted_at")
+  createdAt       DateTime  @default(now()) @map("created_at")
+  updatedAt       DateTime  @updatedAt @map("updated_at")
+
+  organization Organization   @relation(fields: [organizationId], references: [id])
+  program      Program        @relation(fields: [programId], references: [id])
+  sessions     ClassSession[]
+
+  @@index([organizationId])
+  @@map("recurrence_series")
+}
+
+model ClassSession {
+  id                 String    @id @default(uuid())
+  organizationId     String    @map("organization_id")
+  programId          String    @map("program_id")
+  recurrenceSeriesId String?   @map("recurrence_series_id")
+  startsAt           DateTime  @map("starts_at")
+  durationMinutes    Int       @map("duration_minutes")
+  location           String?
+  capacity           Int?
+  status             String    @default("scheduled")
+  notes              String?
+
+  organization     Organization      @relation(fields: [organizationId], references: [id])
+  program          Program           @relation(fields: [programId], references: [id])
+  recurrenceSeries RecurrenceSeries? @relation(fields: [recurrenceSeriesId], references: [id])
+  bookings         SessionBooking[]
+
+  @@index([organizationId])
+  @@index([programId])
+  @@index([startsAt])
+  @@map("class_sessions")
+}
+
+model SessionBooking {
+  id             String   @id @default(uuid())
+  organizationId String   @map("organization_id")
+  sessionId      String   @map("session_id")
+  enrollmentId   String   @map("enrollment_id")
+  status         String   @default("confirmed")
+  bookedAt       DateTime @default(now()) @map("booked_at")
+
+  organization Organization @relation(fields: [organizationId], references: [id])
+  session      ClassSession @relation(fields: [sessionId], references: [id])
+  enrollment   Enrollment   @relation(fields: [enrollmentId], references: [id])
+
+  @@unique([sessionId, enrollmentId])
+  @@index([organizationId])
+  @@index([enrollmentId])
+  @@map("session_bookings")
 }

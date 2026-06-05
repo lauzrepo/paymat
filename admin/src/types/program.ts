@@ -7,6 +7,8 @@ export interface Program {
   billingFrequency: string;
   capacity: number | null;
   maxBillingCycles: number | null;
+  maxClasses: number | null;
+  allowSelfEnrollment: boolean;
   isActive: boolean;
   createdAt: string;
   _count?: { enrollments: number };

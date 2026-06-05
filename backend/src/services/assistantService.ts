@@ -1,4 +1,4 @@
-import Anthropic from '@anthropic-ai/sdk';
+import Anthropic, { APIError } from '@anthropic-ai/sdk';
 import { Prisma } from '@prisma/client';
 import prisma from '../config/database';
 import invoiceService from './invoiceService';
@@ -11,6 +11,7 @@ import billingService from './billingService';
 import feedbackService from './feedbackService';
 import { sendInvoiceGenerated, sendPaymentReminder, sendMemberPortalInvite } from './emailService';
 import { config } from '../config/environment';
+import { AppError } from '../middleware/errorHandler';
 
 const PORTAL_URL = config.email.appUrl.replace('app.', 'portal.');
 
@@ -395,6 +396,26 @@ const TOOLS: Anthropic.Tool[] = [
         notes: { type: 'string', description: 'Internal notes (optional)' },
       },
       required: ['firstName', 'lastName'],
+    },
+  },
+  {
+    name: 'filter_invoices_by_card_status',
+    description: 'List invoices filtered by whether the billed contact or family has a card on file (saved payment method). Use this to find members who need manual follow-up because they have no autopay set up, or to identify who can be auto-charged.',
+    input_schema: {
+      type: 'object' as const,
+      properties: {
+        hasCard: {
+          type: 'boolean',
+          description: 'true = only invoices where the billed party has a card on file; false = only invoices where they do not',
+        },
+        status: {
+          type: 'string',
+          enum: ['draft', 'sent', 'paid', 'overdue', 'void'],
+          description: 'Filter by invoice status (optional — omit for all statuses)',
+        },
+        limit: { type: 'number', description: 'Max results, default 20, max 50' },
+      },
+      required: ['hasCard'],
     },
   },
 ];
@@ -1143,6 +1164,57 @@ async function executeTool(
       });
     }
 
+    case 'filter_invoices_by_card_status': {
+      const hasCard = input.hasCard as boolean;
+      const status = input.status as string | undefined;
+      const limit = Math.min((input.limit as number) ?? 20, 50);
+
+      // Push the card-on-file filter to the DB so large orgs never get silently
+      // truncated results. hasCard=true: either billed party has a saved method.
+      // hasCard=false: NOT (contact has card) AND NOT (family has card).
+      const cardFilter = hasCard
+        ? {
+            OR: [
+              { contact: { stripeDefaultPaymentMethodId: { not: null } } },
+              { family: { stripeDefaultPaymentMethodId: { not: null } } },
+            ],
+          }
+        : {
+            NOT: [
+              { contact: { stripeDefaultPaymentMethodId: { not: null } } },
+              { family: { stripeDefaultPaymentMethodId: { not: null } } },
+            ],
+          };
+
+      const invoices = await prisma.invoice.findMany({
+        where: { organizationId, ...(status && { status }), ...cardFilter },
+        orderBy: { dueDate: 'asc' },
+        take: limit,
+        include: {
+          contact: { select: { id: true, firstName: true, lastName: true } },
+          family: { select: { id: true, name: true } },
+        },
+      });
+
+      return JSON.stringify({
+        count: invoices.length,
+        hasCard,
+        invoices: invoices.map((inv) => ({
+          id: inv.id,
+          invoiceNumber: inv.invoiceNumber,
+          status: inv.status,
+          amountDue: Number(inv.amountDue),
+          amountPaid: Number(inv.amountPaid),
+          dueDate: inv.dueDate,
+          billedTo: inv.contact
+            ? { type: 'contact', id: inv.contact.id, name: `${inv.contact.firstName} ${inv.contact.lastName}` }
+            : inv.family
+            ? { type: 'family', id: inv.family.id, name: inv.family.name }
+            : null,
+        })),
+      });
+    }
+
     default:
       return JSON.stringify({ error: `Unknown tool: ${name}` });
   }
@@ -1151,6 +1223,13 @@ async function executeTool(
 export interface ChatMessage {
   role: 'user' | 'assistant';
   content: string;
+}
+
+function rethrowIfUnavailable(err: unknown): never {
+  if (err instanceof APIError && (err.status === 429 || err.status === 402 || err.status === 529)) {
+    throw new AppError(503, 'Mate is temporarily unavailable. Please try again later.');
+  }
+  throw err;
 }
 
 export async function chat(
@@ -1173,7 +1252,7 @@ export async function chat(
     system: SYSTEM_PROMPT,
     tools: TOOLS,
     messages: anthropicMessages,
-  });
+  }).catch(rethrowIfUnavailable);
 
   while (response.stop_reason === 'tool_use' && iterations < MAX_ITERATIONS) {
     iterations++;
@@ -1208,7 +1287,7 @@ export async function chat(
       system: SYSTEM_PROMPT,
       tools: TOOLS,
       messages: anthropicMessages,
-    });
+    }).catch(rethrowIfUnavailable);
   }
 
   const textBlock = response.content.find((b): b is Anthropic.TextBlock => b.type === 'text');

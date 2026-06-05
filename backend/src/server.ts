@@ -5,6 +5,7 @@ import cron from 'node-cron';
 import { config } from './config/environment';
 import logger from './utils/logger';
 import billingService from './services/billingService';
+import sessionService from './services/sessionService';
 import prisma from './config/database';
 import { errorHandler, notFoundHandler } from './middleware/errorHandler';
 import { apiLimiter } from './middleware/rateLimiter';
@@ -27,6 +28,7 @@ import feedbackRoutes from './routes/feedback';
 import clientRoutes from './routes/client';
 import webhookRoutes from './routes/webhooks';
 import assistantRoutes from './routes/assistant';
+import sessionRoutes from './routes/sessions';
 
 const app: Application = express();
 
@@ -82,6 +84,7 @@ app.use('/api/client', clientRoutes);
 app.use('/api/waitlist', waitlistRoutes);
 app.use('/api/assistant', assistantRoutes);
 app.use('/api/team', teamRoutes);
+app.use('/api/sessions', sessionRoutes);
 
 app.use(notFoundHandler);
 app.use(errorHandler);
@@ -125,6 +128,17 @@ cron.schedule('0 * * * *', async () => {
     } catch (err) {
       logger.error('Cron: billing run failed', { org: org.name, err });
     }
+  }
+});
+
+// Expand open-ended recurring series to stay 12 weeks ahead — runs nightly at midnight
+cron.schedule('0 0 * * *', async () => {
+  logger.info('Cron: expanding recurring series');
+  try {
+    await sessionService.expandRecurringSeries();
+    logger.info('Cron: recurring series expansion complete');
+  } catch (err) {
+    logger.error('Cron: recurring series expansion failed', { err });
   }
 });
 
