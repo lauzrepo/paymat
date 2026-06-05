@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Calendar, dateFnsLocalizer, type SlotInfo, type Event } from 'react-big-calendar';
 import { format, parse, startOfWeek, getDay, addMonths, subMonths } from 'date-fns';
@@ -240,9 +240,20 @@ function AttendanceRoster({ sessionId }: { sessionId: string }) {
 
 type Panel = { type: 'new'; defaultDate?: Date } | { type: 'detail'; sessionId: string };
 
+function useIsMobile() {
+  const [mobile, setMobile] = useState(() => window.innerWidth < 768);
+  useEffect(() => {
+    const handler = () => setMobile(window.innerWidth < 768);
+    window.addEventListener('resize', handler);
+    return () => window.removeEventListener('resize', handler);
+  }, []);
+  return mobile;
+}
+
 export function ProgramDetailPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const isMobile = useIsMobile();
   const [calendarDate, setCalendarDate] = useState(new Date());
   const [panel, setPanel] = useState<Panel | null>(null);
   const [cancelTarget, setCancelTarget] = useState<{ session: ClassSession; action: 'cancel' } | null>(null);
@@ -351,7 +362,8 @@ export function ProgramDetailPage() {
             <Calendar
               localizer={localizer}
               events={events}
-              defaultView="week"
+              view={isMobile ? 'day' : 'week'}
+              onView={() => {}}
               date={calendarDate}
               onNavigate={setCalendarDate}
               selectable

@@ -2,6 +2,61 @@
 @plugin "@tailwindcss/forms";
 @variant dark (&:where(.dark, .dark *));
 
+/* ── react-big-calendar light mode overrides ────────────────────────────────── */
+.rbc-header {
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: #6b7280;
+  border-bottom-color: #e5e7eb;
+}
+
+.rbc-header + .rbc-header {
+  border-left-color: #e5e7eb;
+}
+
+.rbc-today {
+  background-color: rgba(99, 102, 241, 0.06);
+}
+
+.rbc-header.rbc-today {
+  color: #4f46e5;
+  background: rgba(99, 102, 241, 0.08);
+}
+
+.rbc-time-header-content {
+  border-left-color: #e5e7eb;
+}
+
+.rbc-time-content {
+  border-top-color: #e5e7eb;
+}
+
+.rbc-time-content > * + * > * {
+  border-left-color: #e5e7eb;
+}
+
+.rbc-timeslot-group {
+  border-bottom-color: #f3f4f6;
+}
+
+.rbc-day-slot .rbc-time-slot {
+  border-top-color: #f3f4f6;
+}
+
+.rbc-time-header.rbc-overflowing {
+  border-right-color: #e5e7eb;
+}
+
+.rbc-label {
+  font-size: 0.7rem;
+  color: #9ca3af;
+}
+
+.rbc-current-time-indicator {
+  background-color: #4f46e5;
+}
+
 /* ── react-big-calendar dark mode overrides ─────────────────────────────────── */
 .dark .rbc-calendar,
 .dark .rbc-time-view,
