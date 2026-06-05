@@ -180,7 +180,7 @@ function ScopePrompt({ onSelect, onCancel, action }: { onSelect: (scope: 'one' |
 
 // ── Attendance roster ─────────────────────────────────────────────────────────
 
-function AttendanceRoster({ sessionId, programId }: { sessionId: string; programId: string }) {
+function AttendanceRoster({ sessionId }: { sessionId: string }) {
   const { data: session, isLoading } = useSession(sessionId);
   const cancelBooking = useCancelBooking(sessionId);
 
@@ -388,7 +388,6 @@ export function ProgramDetailPage() {
                 programId={id!}
                 sessions={sessions}
                 onCancelRequest={(s) => setCancelTarget({ session: s, action: 'cancel' })}
-                onClose={() => setPanel(null)}
               />
             )}
           </CardBody>
@@ -405,13 +404,11 @@ function SessionDetailPanel({
   programId,
   sessions,
   onCancelRequest,
-  onClose,
 }: {
   sessionId: string;
   programId: string;
   sessions: ClassSession[];
   onCancelRequest: (s: ClassSession) => void;
-  onClose: () => void;
 }) {
   const session = sessions.find((s) => s.id === sessionId);
 
@@ -456,7 +453,7 @@ function SessionDetailPanel({
       )}
 
       <div className="border-t border-gray-100 dark:border-gray-700 pt-4">
-        <AttendanceRoster sessionId={sessionId} programId={programId} />
+        <AttendanceRoster sessionId={sessionId} />
       </div>
     </div>
   );
