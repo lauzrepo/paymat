@@ -10,6 +10,8 @@ import {
   initializeAutopay,
   confirmAutopay,
   removeAutopay,
+  getEnrollablePrograms,
+  selfEnroll,
   getUpcomingSessions,
   bookSession,
   cancelSessionBooking,
@@ -52,6 +54,22 @@ export const useRemoveAutopay = () => {
   return useMutation({
     mutationFn: removeAutopay,
     onSuccess: () => qc.invalidateQueries({ queryKey: ['client', 'autopay'] }),
+  });
+};
+
+export const useEnrollablePrograms = () =>
+  useQuery({ queryKey: ['client', 'enrollable-programs'], queryFn: getEnrollablePrograms });
+
+export const useSelfEnroll = () => {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: selfEnroll,
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['client', 'enrollable-programs'] });
+      qc.invalidateQueries({ queryKey: ['client', 'enrollments'] });
+      qc.invalidateQueries({ queryKey: ['client', 'sessions'] });
+      qc.invalidateQueries({ queryKey: ['client', 'invoices'] });
+    },
   });
 };
 

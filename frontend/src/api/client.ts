@@ -144,6 +144,28 @@ export const confirmAutopay = (setupIntentId: string) =>
 export const removeAutopay = () =>
   apiClient.delete('/client/autopay').then((r) => r.data.data);
 
+// ── Self-enrollment ───────────────────────────────────────────────────────────
+
+export interface EnrollableProgram {
+  id: string;
+  name: string;
+  description: string | null;
+  price: string;
+  billingFrequency: string;
+  maxClasses: number | null;
+}
+
+export interface SelfEnrollResult {
+  enrollment: { id: string };
+  invoice: { id: string; invoiceNumber: string; amountDue: string };
+}
+
+export const getEnrollablePrograms = () =>
+  apiClient.get('/client/programs').then((r) => r.data.data.programs as EnrollableProgram[]);
+
+export const selfEnroll = (programId: string) =>
+  apiClient.post(`/client/programs/${programId}/enroll`).then((r) => r.data.data as SelfEnrollResult);
+
 // ── Sessions ──────────────────────────────────────────────────────────────────
 
 export interface UpcomingSession {
