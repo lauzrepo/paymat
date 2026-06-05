@@ -1,4 +1,4 @@
-import Anthropic from '@anthropic-ai/sdk';
+import Anthropic, { APIError } from '@anthropic-ai/sdk';
 import { Prisma } from '@prisma/client';
 import prisma from '../config/database';
 import invoiceService from './invoiceService';
@@ -11,6 +11,7 @@ import billingService from './billingService';
 import feedbackService from './feedbackService';
 import { sendInvoiceGenerated, sendPaymentReminder, sendMemberPortalInvite } from './emailService';
 import { config } from '../config/environment';
+import { AppError } from '../middleware/errorHandler';
 
 const PORTAL_URL = config.email.appUrl.replace('app.', 'portal.');
 
@@ -1224,6 +1225,13 @@ export interface ChatMessage {
   content: string;
 }
 
+function rethrowIfUnavailable(err: unknown): never {
+  if (err instanceof APIError && (err.status === 429 || err.status === 402 || err.status === 529)) {
+    throw new AppError(503, 'Mate is temporarily unavailable. Please try again later.');
+  }
+  throw err;
+}
+
 export async function chat(
   messages: ChatMessage[],
   organizationId: string,
@@ -1244,7 +1252,7 @@ export async function chat(
     system: SYSTEM_PROMPT,
     tools: TOOLS,
     messages: anthropicMessages,
-  });
+  }).catch(rethrowIfUnavailable);
 
   while (response.stop_reason === 'tool_use' && iterations < MAX_ITERATIONS) {
     iterations++;
@@ -1279,7 +1287,7 @@ export async function chat(
       system: SYSTEM_PROMPT,
       tools: TOOLS,
       messages: anthropicMessages,
-    });
+    }).catch(rethrowIfUnavailable);
   }
 
   const textBlock = response.content.find((b): b is Anthropic.TextBlock => b.type === 'text');
