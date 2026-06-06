@@ -94,7 +94,20 @@ A class pack model for personal trainers and studios. Members self-book into sch
 
 Billing is unchanged — a class pack is just a `Program` with `billingFrequency: one_time` and `maxClasses: 12`. Existing invoicing and payment flows apply as-is.
 
+### Feature flag
+
+Class booking is gated per org via a `class_booking_enabled` boolean on the `organizations` table (`DEFAULT false`). Super admins enable it per org from the super admin portal.
+
+**Enforcement:**
+- Backend: all `/api/sessions` and `/api/sessions/series` routes check `req.organization.classBookingEnabled` and return `403` if false. Same check on the client booking routes.
+- Admin portal: the "Sessions" panel on `ProgramDetailPage` and the sidebar nav entry are hidden when the flag is off.
+- Client portal: "My Classes" page is hidden and its route redirects to home when the flag is off.
+- Super admin portal: a toggle on the Organization detail page to enable/disable the feature per org.
+
 ### Schema changes
+
+**`organizations`** — add one column:
+- `class_booking_enabled: boolean DEFAULT false`
 
 **`programs`** — add two columns:
 - `max_classes: int?` — if set, this program is a class pack; null means unlimited
