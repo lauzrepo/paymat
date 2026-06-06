@@ -54,6 +54,15 @@ export function useDeleteOrganization() {
   });
 }
 
+export function useSetClassBookingEnabled(id: string) {
+  return useMutation({
+    mutationFn: (enabled: boolean) => api.setClassBookingEnabled(id, enabled),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['organizations', id] });
+    },
+  });
+}
+
 export function usePromoteToProduction(id: string) {
   return useMutation({
     mutationFn: () => api.promoteToProduction(id),

@@ -13,6 +13,7 @@ import {
   createOrganization,
   updateOrganization,
   setOrganizationActive,
+  setClassBookingEnabled,
   deleteOrganization,
   promoteOrganizationToProduction,
   revertOrganizationToSandbox,
@@ -38,6 +39,7 @@ router.post('/organizations', apiLimiter, authenticateSuperAdmin, createOrganiza
 router.get('/organizations/:id', apiLimiter, authenticateSuperAdmin, getOrganization);
 router.put('/organizations/:id', apiLimiter, authenticateSuperAdmin, updateOrganization);
 router.patch('/organizations/:id/status', apiLimiter, authenticateSuperAdmin, setOrganizationActive);
+router.patch('/organizations/:id/class-booking', apiLimiter, authenticateSuperAdmin, setClassBookingEnabled);
 router.post('/organizations/:id/promote', apiLimiter, authenticateSuperAdmin, promoteOrganizationToProduction);
 router.post('/organizations/:id/revert-sandbox', apiLimiter, authenticateSuperAdmin, revertOrganizationToSandbox);
 router.delete('/organizations/:id', apiLimiter, authenticateSuperAdmin, deleteOrganization);

@@ -1,5 +1,6 @@
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Navigate } from 'react-router-dom';
+import { useTenantBranding } from '../../hooks/useClient';
 import { Calendar, MapPin, Clock, CheckCircle2, ChevronDown, ChevronUp, Zap } from 'lucide-react';
 import {
   useUpcomingSessions,
@@ -206,7 +207,12 @@ function ExploreSection() {
 }
 
 export function ClassesPage() {
+  const { data: branding } = useTenantBranding();
   const { data: sessions, isLoading } = useUpcomingSessions();
+
+  if (branding && !branding.classBookingEnabled) {
+    return <Navigate to=".." replace />;
+  }
 
   return (
     <div className="space-y-6 max-w-2xl">

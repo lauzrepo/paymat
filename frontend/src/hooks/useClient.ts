@@ -1,4 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { getTenantBranding } from '../api/tenant';
 import {
   getMe,
   getMyEnrollments,
@@ -16,6 +17,9 @@ import {
   bookSession,
   cancelSessionBooking,
 } from '../api/client';
+
+export const useTenantBranding = () =>
+  useQuery({ queryKey: ['tenant', 'branding'], queryFn: getTenantBranding, staleTime: 1000 * 60 * 5 });
 
 export const useClientMe = () =>
   useQuery({ queryKey: ['client', 'me'], queryFn: getMe });

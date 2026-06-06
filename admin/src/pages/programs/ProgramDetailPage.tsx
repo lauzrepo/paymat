@@ -6,6 +6,7 @@ import { enUS } from 'date-fns/locale';
 import 'react-big-calendar/lib/css/react-big-calendar.css';
 import { ArrowLeft, RefreshCw, X, ChevronLeft, ChevronRight } from 'lucide-react';
 import { useProgram } from '../../hooks/usePrograms';
+import { useTenantBranding } from '../../hooks/useTenant';
 import { useSessions, useCreateSession, useCreateSeries, useCancelSession, useCancelBooking, useSession } from '../../hooks/useSessions';
 import { Card, CardHeader, CardBody } from '../../components/ui/Card';
 import { Button } from '../../components/ui/Button';
@@ -259,6 +260,8 @@ export function ProgramDetailPage() {
   const [cancelTarget, setCancelTarget] = useState<{ session: ClassSession; action: 'cancel' } | null>(null);
 
   const { data: program, isLoading: programLoading } = useProgram(id!);
+  const { data: branding } = useTenantBranding();
+  const classBookingEnabled = branding?.classBookingEnabled ?? false;
 
   const from = useMemo(() => {
     const d = new Date(calendarDate.getFullYear(), calendarDate.getMonth(), 1);
@@ -335,8 +338,14 @@ export function ProgramDetailPage() {
         </div>
       </div>
 
+      {!classBookingEnabled && (
+        <div className="rounded-xl border border-amber-200 bg-amber-50 dark:bg-amber-900/20 dark:border-amber-800 px-5 py-4 text-sm text-amber-800 dark:text-amber-300">
+          Class scheduling is disabled for this organization. A super admin can enable it from the organization settings.
+        </div>
+      )}
+
       {/* Calendar card */}
-      <Card>
+      {classBookingEnabled && <><Card>
         <CardHeader>
           <div className="flex items-center justify-between gap-2 flex-wrap">
             <div className="flex items-center gap-2">
@@ -416,6 +425,7 @@ export function ProgramDetailPage() {
           </CardBody>
         </Card>
       )}
+      </>}
     </div>
   );
 }

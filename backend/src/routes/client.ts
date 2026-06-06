@@ -140,8 +140,15 @@ router.post('/programs/:id/enroll', asyncHandler(async (req, res) => {
 
 // ── Class sessions ────────────────────────────────────────────────────────────
 
+function requireClassBooking(req: import('express').Request, _res: import('express').Response, next: import('express').NextFunction) {
+  if (!req.organization!.classBookingEnabled) {
+    throw new AppError(403, 'Class booking is not enabled for this organization');
+  }
+  next();
+}
+
 // GET /api/client/sessions/upcoming
-router.get('/sessions/upcoming', asyncHandler(async (req, res) => {
+router.get('/sessions/upcoming', requireClassBooking, asyncHandler(async (req, res) => {
   const contact = await prisma.contact.findFirst({
     where: { user: { id: req.user!.userId }, organizationId: req.organization!.id },
     select: { id: true },
@@ -152,7 +159,7 @@ router.get('/sessions/upcoming', asyncHandler(async (req, res) => {
 }));
 
 // POST /api/client/sessions/:id/book
-router.post('/sessions/:id/book', asyncHandler(async (req, res) => {
+router.post('/sessions/:id/book', requireClassBooking, asyncHandler(async (req, res) => {
   const contact = await prisma.contact.findFirst({
     where: { user: { id: req.user!.userId }, organizationId: req.organization!.id },
     select: { id: true },
@@ -181,7 +188,7 @@ router.post('/sessions/:id/book', asyncHandler(async (req, res) => {
 }));
 
 // DELETE /api/client/sessions/:id/book
-router.delete('/sessions/:id/book', asyncHandler(async (req, res) => {
+router.delete('/sessions/:id/book', requireClassBooking, asyncHandler(async (req, res) => {
   const contact = await prisma.contact.findFirst({
     where: { user: { id: req.user!.userId }, organizationId: req.organization!.id },
     select: { id: true },
