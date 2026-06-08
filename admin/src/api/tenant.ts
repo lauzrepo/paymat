@@ -8,6 +8,7 @@ export interface TenantBranding {
   primaryColor: string | null;
   sandboxMode?: boolean;
   stripeConnectOnboardingComplete?: boolean;
+  classBookingEnabled?: boolean;
 }
 
 export const getTenantBranding = (): Promise<TenantBranding> =>

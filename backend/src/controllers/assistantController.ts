@@ -21,7 +21,7 @@ export const chatWithAssistant = asyncHandler(async (req: Request, res: Response
     }
   }
 
-  const reply = await chat(messages, req.organization!.id, req.user.userId);
+  const reply = await chat(messages, req.organization!.id, req.user.userId, !!req.organization!.classBookingEnabled);
 
   res.status(200).json({ status: 'success', data: { reply } });
 });

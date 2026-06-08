@@ -262,6 +262,18 @@ export const setOrganizationActive = asyncHandler(async (req: Request, res: Resp
   res.json({ status: 'success', data: { organization: org } });
 });
 
+export const setClassBookingEnabled = asyncHandler(async (req: Request, res: Response) => {
+  const { enabled } = req.body as { enabled: boolean };
+  if (typeof enabled !== 'boolean') throw new AppError(400, 'enabled must be a boolean');
+  const existing = await prisma.organization.findUnique({ where: { id: req.params.id as string } });
+  if (!existing) throw new AppError(404, 'Organization not found');
+  const org = await prisma.organization.update({
+    where: { id: req.params.id as string },
+    data: { classBookingEnabled: enabled },
+  });
+  res.json({ status: 'success', data: { organization: org } });
+});
+
 // POST /super-admin/organizations/:id/promote
 // Promotes an org from sandbox (Stripe test) to production (Stripe live).
 // Clears the existing test Connect account so the org re-onboards on the live key.

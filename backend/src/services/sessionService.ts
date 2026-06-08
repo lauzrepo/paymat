@@ -275,7 +275,7 @@ class SessionService {
     // replacing what would otherwise be one findFirst per series (N+1).
     const lastBySeriesId = await prisma.classSession.groupBy({
       by: ['recurrenceSeriesId'],
-      where: { recurrenceSeriesId: { in: openSeries.map((s) => s.id) } },
+      where: { recurrenceSeriesId: { in: openSeries.map((s) => s.id) }, status: 'scheduled' },
       _max: { startsAt: true },
     });
 
@@ -318,22 +318,22 @@ class SessionService {
       }
     }
 
-    if (session.capacity !== null) {
-      const confirmed = await prisma.sessionBooking.count({
-        where: { sessionId, status: 'confirmed' },
-      });
-      if (confirmed >= session.capacity) throw new AppError(400, 'Session is at capacity');
-    }
-
-    const [booking] = await prisma.$transaction([
-      prisma.sessionBooking.create({
+    const booking = await prisma.$transaction(async (tx) => {
+      if (session.capacity !== null) {
+        const confirmed = await tx.sessionBooking.count({
+          where: { sessionId, status: 'confirmed' },
+        });
+        if (confirmed >= session.capacity) throw new AppError(400, 'Session is at capacity');
+      }
+      const newBooking = await tx.sessionBooking.create({
         data: { organizationId, sessionId, enrollmentId, status: 'confirmed' },
-      }),
-      prisma.enrollment.update({
+      });
+      await tx.enrollment.update({
         where: { id: enrollmentId },
         data: { classesBooked: { increment: 1 } },
-      }),
-    ]);
+      });
+      return newBooking;
+    });
     return booking;
   }
 
@@ -343,13 +343,20 @@ class SessionService {
     });
     if (!booking) throw new AppError(404, 'Booking not found');
 
-    await prisma.$transaction([
-      prisma.sessionBooking.update({ where: { id: bookingId }, data: { status: 'cancelled' } }),
-      prisma.enrollment.update({
-        where: { id: booking.enrollmentId },
-        data: { classesBooked: { decrement: 1 } },
-      }),
-    ]);
+    const enrollment = await prisma.enrollment.findFirst({
+      where: { id: booking.enrollmentId },
+      include: { program: { select: { maxClasses: true } } },
+    });
+
+    await prisma.$transaction(async (tx) => {
+      await tx.sessionBooking.update({ where: { id: bookingId }, data: { status: 'cancelled' } });
+      if (enrollment?.program.maxClasses !== null) {
+        await tx.enrollment.update({
+          where: { id: booking.enrollmentId },
+          data: { classesBooked: { decrement: 1 } },
+        });
+      }
+    });
   }
 
   async getUpcomingSessions(organizationId: string, contactId: string) {

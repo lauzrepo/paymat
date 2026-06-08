@@ -3,11 +3,13 @@ import { Outlet, NavLink, useNavigate } from 'react-router-dom';
 import { LayoutDashboard, BookOpen, FileText, Receipt, MessageSquare, User, HelpCircle, LogOut, Menu, X, Sun, Moon, CalendarDays } from 'lucide-react';
 import { cn } from '../../lib/utils';
 import { useMe, useLogout } from '../../hooks/useAuth';
+import { useTenantBranding } from '../../hooks/useClient';
 import { useOrgSlug } from '../../context/OrgSlugContext';
 import { useTheme } from '../../hooks/useTheme';
 
 export function AppLayout() {
   const { data: user } = useMe();
+  const { data: branding } = useTenantBranding();
   const logout = useLogout();
   const navigate = useNavigate();
   const orgSlug = useOrgSlug();
@@ -15,11 +17,12 @@ export function AppLayout() {
   const { dark, toggle } = useTheme();
 
   const base = `/${orgSlug}`;
+  const classBookingEnabled = branding?.classBookingEnabled ?? false;
 
   const nav = [
     { to: base,                   label: 'Home',            icon: LayoutDashboard, end: true },
     { to: `${base}/enrollments`,  label: 'My Programs',     icon: BookOpen },
-    { to: `${base}/classes`,      label: 'My Classes',      icon: CalendarDays },
+    ...(classBookingEnabled ? [{ to: `${base}/classes`, label: 'My Classes', icon: CalendarDays }] : []),
     { to: `${base}/invoices`,     label: 'Invoices',        icon: FileText },
     { to: `${base}/payments`,     label: 'Payment History', icon: Receipt },
     { to: `${base}/feedback`,     label: 'Support',         icon: MessageSquare },

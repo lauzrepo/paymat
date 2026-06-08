@@ -7,6 +7,12 @@ const router = Router();
 
 router.use(authenticateToken);
 router.use(requireRole('admin', 'staff'));
+router.use((_req, _res, next) => {
+  if (!_req.organization!.classBookingEnabled) {
+    throw new AppError(403, 'Class booking is not enabled for this organization');
+  }
+  next();
+});
 
 // GET /api/sessions?programId=&from=&to=
 router.get('/', asyncHandler(async (req, res) => {

@@ -18,6 +18,7 @@ router.get('/branding', (req: Request, res: Response) => {
       primaryColor: org.primaryColor,
       sandboxMode: org.sandboxMode,
       stripeConnectOnboardingComplete: org.stripeConnectOnboardingComplete,
+      classBookingEnabled: org.classBookingEnabled,
     },
   });
 });

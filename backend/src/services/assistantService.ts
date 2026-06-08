@@ -9,6 +9,7 @@ import familyService from './familyService';
 import programService from './programService';
 import billingService from './billingService';
 import feedbackService from './feedbackService';
+import sessionService from './sessionService';
 import { sendInvoiceGenerated, sendPaymentReminder, sendMemberPortalInvite } from './emailService';
 import { config } from '../config/environment';
 import { AppError } from '../middleware/errorHandler';
@@ -28,6 +29,7 @@ You help administrators:
 - Manage contacts: create new contacts, update status, enroll/unenroll/pause/resume enrollments, resend portal invites
 - Manage families: create families
 - Manage programs: create programs, update programs (price, name, active status)
+- Manage class schedules (when class booking is enabled): list upcoming sessions, create one-off or recurring sessions, view attendance rosters, cancel sessions
 - View and triage member feedback submissions
 
 Note: saving a payment method (card) for a contact or family requires the Stripe-hosted form in the admin portal — Mate cannot do this as card data must never pass through the server.
@@ -39,6 +41,8 @@ Data model overview:
 - Enrollment: a contact enrolled in a program
 - Invoice: a bill (status: draft/sent/paid/overdue/void; amountDue, amountPaid, dueDate)
 - Payment: a recorded payment against an invoice (status: succeeded/failed/refunded; paymentMethodType: cash/check/bank_transfer/other/card)
+- ClassSession: a bookable class slot linked to a Program (startsAt, durationMinutes, capacity, status: scheduled|cancelled)
+- SessionBooking: a member's booking for a session (status: confirmed|cancelled)
 
 Rules:
 - Always query live data before answering data-specific questions
@@ -418,6 +422,84 @@ const TOOLS: Anthropic.Tool[] = [
       required: ['hasCard'],
     },
   },
+  {
+    name: 'list_sessions',
+    description: 'List upcoming class sessions for a program, or all programs in the org. Returns start time, duration, location, capacity, and confirmed booking count.',
+    input_schema: {
+      type: 'object' as const,
+      properties: {
+        programId: { type: 'string', description: 'Filter to a specific program ID (optional — omit to see all programs)' },
+        days: { type: 'number', description: 'How many days ahead to look (default 14, max 90)' },
+      },
+      required: [],
+    },
+  },
+  {
+    name: 'create_session',
+    description: 'Create a one-off class session for a program.',
+    input_schema: {
+      type: 'object' as const,
+      properties: {
+        programId: { type: 'string', description: 'Program ID this session belongs to' },
+        startsAt: { type: 'string', description: 'ISO datetime when the session starts (e.g. 2026-06-10T09:00:00)' },
+        durationMinutes: { type: 'number', description: 'Duration of the session in minutes' },
+        location: { type: 'string', description: 'Location or room (optional)' },
+        capacity: { type: 'number', description: 'Max number of bookings (optional — omit for unlimited)' },
+        notes: { type: 'string', description: 'Notes visible to members (optional)' },
+      },
+      required: ['programId', 'startsAt', 'durationMinutes'],
+    },
+  },
+  {
+    name: 'create_recurring_series',
+    description: 'Create a recurring class schedule for a program — e.g. every Mon/Wed/Fri at 9 AM. Sessions are materialised automatically.',
+    input_schema: {
+      type: 'object' as const,
+      properties: {
+        programId: { type: 'string', description: 'Program ID this series belongs to' },
+        daysOfWeek: {
+          type: 'array',
+          items: { type: 'string', enum: ['SUN', 'MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT'] },
+          description: 'Days of the week the session repeats',
+        },
+        timeOfDay: { type: 'string', description: 'Time in HH:MM format (e.g. 09:00)' },
+        durationMinutes: { type: 'number', description: 'Duration of each session in minutes' },
+        seriesStartDate: { type: 'string', description: 'Date the series begins in YYYY-MM-DD format' },
+        seriesEndDate: { type: 'string', description: 'Date the series ends in YYYY-MM-DD format (optional — leave blank for open-ended)' },
+        location: { type: 'string', description: 'Location or room (optional)' },
+        capacity: { type: 'number', description: 'Max bookings per session (optional)' },
+        notes: { type: 'string', description: 'Notes visible to members (optional)' },
+      },
+      required: ['programId', 'daysOfWeek', 'timeOfDay', 'durationMinutes', 'seriesStartDate'],
+    },
+  },
+  {
+    name: 'get_session_roster',
+    description: 'Get the attendance roster for a specific session — who has booked, their status, and when they booked.',
+    input_schema: {
+      type: 'object' as const,
+      properties: {
+        sessionId: { type: 'string', description: 'Session ID to fetch the roster for' },
+      },
+      required: ['sessionId'],
+    },
+  },
+  {
+    name: 'cancel_session',
+    description: 'Cancel a class session. For recurring sessions, choose whether to cancel only this occurrence or this and all future sessions in the series.',
+    input_schema: {
+      type: 'object' as const,
+      properties: {
+        sessionId: { type: 'string', description: 'Session ID to cancel' },
+        scope: {
+          type: 'string',
+          enum: ['one', 'future'],
+          description: '"one" cancels only this session; "future" cancels this and all future sessions in the same series',
+        },
+      },
+      required: ['sessionId', 'scope'],
+    },
+  },
 ];
 
 function toTitleCase(str: string): string {
@@ -432,7 +514,8 @@ async function executeTool(
   name: string,
   input: Record<string, unknown>,
   organizationId: string,
-  userId: string
+  userId: string,
+  classBookingEnabled: boolean
 ): Promise<string> {
   switch (name) {
     case 'get_revenue_summary': {
@@ -1215,6 +1298,152 @@ async function executeTool(
       });
     }
 
+    case 'list_sessions': {
+      if (!classBookingEnabled) return JSON.stringify({ error: 'Class booking is not enabled for this organization.' });
+      const days = Math.min((input.days as number) ?? 14, 90);
+      const from = new Date();
+      const to = new Date(Date.now() + days * 24 * 60 * 60 * 1000);
+      const programId = input.programId as string | undefined;
+
+      const sessions = await prisma.classSession.findMany({
+        where: {
+          organizationId,
+          ...(programId ? { programId } : {}),
+          startsAt: { gte: from, lte: to },
+          status: 'scheduled',
+        },
+        include: {
+          program: { select: { name: true } },
+          _count: { select: { bookings: { where: { status: 'confirmed' } } } },
+        },
+        orderBy: { startsAt: 'asc' },
+        take: 50,
+      });
+
+      return JSON.stringify(
+        sessions.map((s) => ({
+          id: s.id,
+          program: s.program.name,
+          startsAt: s.startsAt,
+          durationMinutes: s.durationMinutes,
+          location: s.location,
+          capacity: s.capacity,
+          confirmed: s._count.bookings,
+          spotsLeft: s.capacity !== null ? s.capacity - s._count.bookings : null,
+          isRecurring: !!s.recurrenceSeriesId,
+        }))
+      );
+    }
+
+    case 'create_session': {
+      if (!classBookingEnabled) return JSON.stringify({ error: 'Class booking is not enabled for this organization.' });
+      const session = await sessionService.createSession(organizationId, {
+        programId: input.programId as string,
+        startsAt: input.startsAt as string,
+        durationMinutes: input.durationMinutes as number,
+        location: input.location as string | undefined,
+        capacity: input.capacity as number | undefined,
+        notes: input.notes as string | undefined,
+      });
+
+      await prisma.auditLog.create({
+        data: {
+          organizationId,
+          userId,
+          action: 'ASSISTANT_CREATE_SESSION',
+          metadata: { sessionId: session.id, programId: session.programId, startsAt: session.startsAt },
+        },
+      });
+
+      return JSON.stringify({
+        success: true,
+        sessionId: session.id,
+        startsAt: session.startsAt,
+        durationMinutes: session.durationMinutes,
+        location: session.location,
+      });
+    }
+
+    case 'create_recurring_series': {
+      if (!classBookingEnabled) return JSON.stringify({ error: 'Class booking is not enabled for this organization.' });
+      const series = await sessionService.createSeries(organizationId, {
+        programId: input.programId as string,
+        daysOfWeek: input.daysOfWeek as string[],
+        timeOfDay: input.timeOfDay as string,
+        durationMinutes: input.durationMinutes as number,
+        seriesStartDate: input.seriesStartDate as string,
+        seriesEndDate: input.seriesEndDate as string | undefined,
+        location: input.location as string | undefined,
+        capacity: input.capacity as number | undefined,
+        notes: input.notes as string | undefined,
+      });
+
+      const sessionCount = await prisma.classSession.count({
+        where: { recurrenceSeriesId: series.id },
+      });
+
+      await prisma.auditLog.create({
+        data: {
+          organizationId,
+          userId,
+          action: 'ASSISTANT_CREATE_SERIES',
+          metadata: { seriesId: series.id, programId: series.programId, daysOfWeek: series.daysOfWeek, sessionsCreated: sessionCount },
+        },
+      });
+
+      return JSON.stringify({
+        success: true,
+        seriesId: series.id,
+        daysOfWeek: series.daysOfWeek,
+        timeOfDay: series.timeOfDay,
+        seriesStartDate: series.seriesStartDate,
+        seriesEndDate: series.seriesEndDate,
+        sessionsCreated: sessionCount,
+      });
+    }
+
+    case 'get_session_roster': {
+      if (!classBookingEnabled) return JSON.stringify({ error: 'Class booking is not enabled for this organization.' });
+      const session = await sessionService.getSession(input.sessionId as string, organizationId);
+      const confirmed = session.bookings.filter((b) => b.status === 'confirmed');
+
+      return JSON.stringify({
+        sessionId: session.id,
+        startsAt: session.startsAt,
+        durationMinutes: session.durationMinutes,
+        location: session.location,
+        capacity: session.capacity,
+        confirmedCount: confirmed.length,
+        roster: confirmed.map((b) => ({
+          name: `${b.enrollment.contact.firstName} ${b.enrollment.contact.lastName}`,
+          email: b.enrollment.contact.email,
+          bookedAt: b.bookedAt,
+        })),
+      });
+    }
+
+    case 'cancel_session': {
+      if (!classBookingEnabled) return JSON.stringify({ error: 'Class booking is not enabled for this organization.' });
+      const scope = (input.scope as string) === 'future' ? 'future' : 'one';
+      await sessionService.cancelSession(input.sessionId as string, organizationId, scope);
+
+      await prisma.auditLog.create({
+        data: {
+          organizationId,
+          userId,
+          action: 'ASSISTANT_CANCEL_SESSION',
+          metadata: { sessionId: input.sessionId as string, scope },
+        },
+      });
+
+      return JSON.stringify({
+        success: true,
+        sessionId: input.sessionId as string,
+        scope,
+        message: scope === 'future' ? 'This session and all future sessions in the series have been cancelled.' : 'Session cancelled.',
+      });
+    }
+
     default:
       return JSON.stringify({ error: `Unknown tool: ${name}` });
   }
@@ -1235,7 +1464,8 @@ function rethrowIfUnavailable(err: unknown): never {
 export async function chat(
   messages: ChatMessage[],
   organizationId: string,
-  userId: string
+  userId: string,
+  classBookingEnabled = false
 ): Promise<string> {
   const anthropicMessages: Anthropic.MessageParam[] = messages.map((m) => ({
     role: m.role,
@@ -1268,7 +1498,8 @@ export async function chat(
             toolUse.name,
             toolUse.input as Record<string, unknown>,
             organizationId,
-            userId
+            userId,
+            classBookingEnabled
           );
         } catch (err) {
           content = JSON.stringify({ error: (err as Error).message });

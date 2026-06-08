@@ -72,6 +72,8 @@ Programs define the services or classes you offer.
    - **Billing frequency** — `weekly`, `monthly`, `yearly`, or `one_time`
    - **Capacity** (optional) — enrollment cap; leave blank for unlimited
    - **Max billing cycles** (optional) — for fixed-term programs (e.g., a 12-week course); leave blank for ongoing
+   - **Max classes** (optional, class booking only) — sets the session credit budget for a class pack (e.g. `12` for a 12-class pack); leave blank for unlimited bookings
+   - **Allow self-enrollment** (class booking only) — when enabled, members can join this program and book sessions directly from their portal without admin intervention
 
 ### Editing a Program
 
@@ -210,6 +212,95 @@ A summary of invoice totals:
 
 ---
 
+## Class Booking
+
+Class booking lets personal trainers and studios schedule sessions that members can self-book from their portal. It is an optional feature enabled per organisation by a super admin.
+
+### Enabling Class Booking
+
+A platform super admin must toggle **Class Booking** on from the super admin portal under the organisation's detail page. Once enabled, the session calendar appears in the admin portal and the **My Classes** page appears in the member portal.
+
+### Class Packs vs Unlimited Programs
+
+| Program type | Max classes setting | How booking works |
+|---|---|---|
+| **Class pack** | Set (e.g. `12`) | Members consume one credit per session; no more bookings once credits run out |
+| **Unlimited** | Left blank | Members can book as many sessions as they like while enrolled |
+
+Billing is unchanged — a class pack is typically set to `one_time` billing frequency and generates a single invoice on enrollment.
+
+### Program Detail Page
+
+Click **View** on any program in the Programs list to open the program detail page. This page has two sections:
+
+- **Session calendar** — a weekly view showing all scheduled sessions for that program
+- **Session detail / attendance roster** — appears when you click a session event
+
+### Scheduling Sessions
+
+**One-off session:**
+
+1. Click an empty time slot on the calendar (or click **+ New session** above it)
+2. Fill in: Date, Time, Duration, Capacity (optional), Location (optional), Notes (optional)
+3. Click **Save session**
+
+**Recurring series:**
+
+1. Open the new session form
+2. Check **Repeat**
+3. Select the days of the week (e.g. Mon / Wed / Fri)
+4. Optionally set an **End date** — leave blank to run indefinitely (sessions are materialised 12 weeks ahead automatically)
+5. Click **Save session**
+
+Recurring sessions display a repeat icon (↻) on the calendar to distinguish them from one-offs.
+
+### Editing and Cancelling Sessions
+
+Click a session event to open its detail panel, then click **Cancel session**.
+
+For **recurring sessions**, you will be prompted to choose scope:
+
+| Option | Effect |
+|---|---|
+| **This session only** | Cancels only the selected occurrence |
+| **This and all future sessions** | Cancels this occurrence and all future sessions in the series |
+
+For **one-off sessions**, a simple confirmation dialog is shown — no scope prompt.
+
+Cancelled sessions appear with a strikethrough on the calendar and cannot be booked.
+
+### Attendance Roster
+
+Clicking a session event also loads the **Attendance** panel below the calendar. It shows:
+
+- Member name and email
+- Time of booking
+- Booking status (confirmed / cancelled)
+
+You can cancel any individual booking from this table by clicking the **×** button next to the member's name.
+
+### Session Capacity
+
+Set a **Capacity** on a session to limit how many members can book it. Once full, the session is closed to new bookings. Members see a colour-coded availability indicator:
+
+| Colour | Meaning |
+|---|---|
+| Green | Under 50% booked |
+| Yellow | 50–99% booked |
+| Red | Full |
+
+### Mate and Class Booking
+
+When class booking is enabled, Mate gains additional session tools:
+
+- **"List upcoming sessions for the Yoga program"** — see all scheduled slots
+- **"Create a session for Pilates on Friday at 9 AM, 60 minutes, capacity 8"**
+- **"Create a recurring session every Monday and Wednesday at 7 PM for Personal Training"**
+- **"Show the roster for the 6 AM session on June 10"**
+- **"Cancel all future sessions in the Tuesday kickboxing series"**
+
+---
+
 ## Mate — AI Assistant
 
 Mate is your AI assistant, accessible from the **Mate** page in the sidebar.
@@ -239,11 +330,17 @@ Type your question or request in the chat box and press **Enter** (or **Shift+En
 
 When you open Mate with no prior messages, a set of quick-start suggestions appears. Click any to populate the input box.
 
+**If class booking is enabled, Mate can also:**
+- List and create sessions and recurring series
+- Show attendance rosters
+- Cancel sessions (one or all future)
+
 ### What Mate Cannot Do
 
 - Access data from other organizations
 - Process card payments (use the member portal for that)
 - Actions requiring super-admin access
+- Session tools when class booking is disabled for the org
 
 ---
 

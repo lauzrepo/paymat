@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { ChevronLeft, CreditCard, ExternalLink, Rocket, RotateCcw } from 'lucide-react';
-import { useOrganization, useUpdateOrganization, useSetOrganizationActive, useDeleteOrganization, usePromoteToProduction, useRevertToSandbox } from '../../hooks/useOrganizations';
+import { useOrganization, useUpdateOrganization, useSetOrganizationActive, useDeleteOrganization, usePromoteToProduction, useRevertToSandbox, useSetClassBookingEnabled } from '../../hooks/useOrganizations';
 import { sendBillingCheckout, getBillingPortalLink } from '../../api/organizations';
 import { Card, CardHeader, CardBody } from '../../components/ui/Card';
 import { Button } from '../../components/ui/Button';
@@ -26,6 +26,7 @@ export function OrganizationDetailPage() {
   const deleteOrg = useDeleteOrganization();
   const promote = usePromoteToProduction(id!);
   const revert = useRevertToSandbox(id!);
+  const setClassBooking = useSetClassBookingEnabled(id!);
 
   const [editing, setEditing] = useState(false);
   const [billingLoading, setBillingLoading] = useState(false);
@@ -391,6 +392,34 @@ export function OrganizationDetailPage() {
           </CardBody>
         </Card>
       )}
+
+      {/* Features */}
+      <Card>
+        <CardHeader><h2 className="text-base font-semibold text-gray-900 dark:text-gray-100">Features</h2></CardHeader>
+        <CardBody className="!py-0">
+          <div className="flex items-center justify-between py-4">
+            <div>
+              <p className="text-sm font-medium text-gray-900 dark:text-gray-100">Class booking</p>
+              <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
+                Enables session scheduling and member self-booking (class packs and unlimited programs).
+              </p>
+            </div>
+            <button
+              onClick={() => setClassBooking.mutate(!org.classBookingEnabled)}
+              disabled={setClassBooking.isPending}
+              className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none disabled:opacity-50 ${
+                org.classBookingEnabled ? 'bg-violet-600' : 'bg-gray-300 dark:bg-gray-600'
+              }`}
+            >
+              <span
+                className={`inline-block h-4 w-4 transform rounded-full bg-white shadow transition-transform ${
+                  org.classBookingEnabled ? 'translate-x-6' : 'translate-x-1'
+                }`}
+              />
+            </button>
+          </div>
+        </CardBody>
+      </Card>
 
       {/* Danger zone */}
       <Card>

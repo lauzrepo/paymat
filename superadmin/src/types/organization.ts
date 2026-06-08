@@ -36,4 +36,5 @@ export interface Organization {
   stripeConnectAccountId?: string | null;
   stripeConnectOnboardingComplete?: boolean;
   sandboxMode?: boolean;
+  classBookingEnabled?: boolean;
 }
