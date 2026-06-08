@@ -39,7 +39,47 @@ For each enrollment the member can see:
 - Current status (active, paused, ended)
 - Next billing date (for active enrollments)
 
-> Members cannot enroll or unenroll themselves — this is managed by your admin. If a member wants to change their enrollment, they should contact your organization directly.
+> Members cannot enroll or unenroll themselves from standard programs — this is managed by your admin. Programs with self-enrollment enabled can be joined directly from **My Classes** (see below).
+
+---
+
+## My Classes
+
+> **My Classes** is only visible when your organization has the class booking feature enabled.
+
+The **My Classes** page shows all upcoming sessions across every program you are enrolled in. Use it to book your spot, cancel a booking, and track how many class credits you have left.
+
+### Session Availability
+
+Each session card has a colour strip on the left indicating how full it is:
+
+| Colour | Meaning |
+|---|---|
+| Green | Under 50% of spots taken |
+| Yellow | 50–99% of spots taken |
+| Red | Full — no bookings accepted |
+
+The number of spots remaining is also shown in the session card.
+
+### Booking a Session
+
+Click **Join** on any available session. Your spot is confirmed immediately and the session moves to your booked list. If you have a class pack (limited credits), your remaining credit count decreases by one.
+
+### Cancelling a Booking
+
+Click **Cancel** on a session you have already booked. The spot is released and, if you are on a class pack, your credit is returned.
+
+### Class Credits
+
+If you are enrolled in a class pack (a program with a fixed number of classes, such as a "10-class pack"), a **credits remaining** counter appears at the bottom of each session card. Once your credits reach zero, the **Join** button is disabled.
+
+To add more credits you need to enroll in an additional class pack — contact your organization or self-enroll below.
+
+### Joining a New Program (Self-Enrollment)
+
+If your organization has programs open for self-enrollment, an **Explore programs** section appears at the bottom of the My Classes page. Click it to expand the list.
+
+Each program card shows the name, description, price, billing frequency, and class count (for packs). Click **Enroll** to join — an invoice is generated immediately and you are redirected to pay it. Once paid, the program's sessions appear in your upcoming list.
 
 ---
 
@@ -161,3 +201,12 @@ Refund requests are handled by your organization's admin. Submit a **Feedback** 
 
 **Q: How do I cancel my enrollment?**
 Enrollment changes are managed by your organization. Please contact them directly to pause or end an enrollment.
+
+**Q: I can't see My Classes — where is it?**
+My Classes is only available when your organization has class booking enabled. If you do not see it in the sidebar, your organization has not activated this feature yet.
+
+**Q: I have credits left but the Join button is greyed out.**
+The session may be at capacity (fully booked). Check the colour strip and spots-remaining label on the session card. If the session is not full, your credits may be from a different enrollment — credits are scoped to the specific program the session belongs to.
+
+**Q: I cancelled a booking — why didn't my credits come back?**
+Credits are returned automatically when you cancel. If the credit count hasn't updated, try refreshing the page. If the issue persists, contact your organization.
