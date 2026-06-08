@@ -265,6 +265,8 @@ export const setOrganizationActive = asyncHandler(async (req: Request, res: Resp
 export const setClassBookingEnabled = asyncHandler(async (req: Request, res: Response) => {
   const { enabled } = req.body as { enabled: boolean };
   if (typeof enabled !== 'boolean') throw new AppError(400, 'enabled must be a boolean');
+  const existing = await prisma.organization.findUnique({ where: { id: req.params.id as string } });
+  if (!existing) throw new AppError(404, 'Organization not found');
   const org = await prisma.organization.update({
     where: { id: req.params.id as string },
     data: { classBookingEnabled: enabled },

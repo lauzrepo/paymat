@@ -420,6 +420,7 @@ export function ProgramDetailPage() {
                 sessionId={panel.sessionId}
                 sessions={sessions}
                 onCancelRequest={(s) => setCancelTarget({ session: s, action: 'cancel' })}
+                onDirectCancel={(s) => handleCancelSession(s, 'one')}
               />
             )}
           </CardBody>
@@ -436,10 +437,12 @@ function SessionDetailPanel({
   sessionId,
   sessions,
   onCancelRequest,
+  onDirectCancel,
 }: {
   sessionId: string;
   sessions: ClassSession[];
   onCancelRequest: (s: ClassSession) => void;
+  onDirectCancel: (s: ClassSession) => void;
 }) {
   const session = sessions.find((s) => s.id === sessionId);
 
@@ -473,8 +476,7 @@ function SessionDetailPanel({
               if (isRecurring) {
                 onCancelRequest(session);
               } else if (window.confirm('Cancel this session?')) {
-                // handled inline for one-off
-                onCancelRequest(session);
+                onDirectCancel(session);
               }
             }}
           >

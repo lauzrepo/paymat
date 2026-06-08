@@ -14,9 +14,11 @@ import {
   removeAutopay,
 } from '../controllers/clientController';
 import { asyncHandler, AppError } from '../middleware/errorHandler';
+import { Prisma } from '@prisma/client';
 import sessionService from '../services/sessionService';
 import enrollmentService from '../services/enrollmentService';
 import { nextInvoiceNumber } from '../utils/invoiceNumber';
+import { advanceBillingDate } from '../utils/billing';
 import prisma from '../config/database';
 
 const router = Router();
@@ -39,8 +41,15 @@ router.delete('/autopay', removeAutopay);
 
 // ── Self-enrollment ───────────────────────────────────────────────────────────
 
+function requireClassBookingForEnroll(req: import('express').Request, _res: import('express').Response, next: import('express').NextFunction) {
+  if (!req.organization!.classBookingEnabled) {
+    throw new AppError(403, 'Class booking is not enabled for this organization');
+  }
+  next();
+}
+
 // GET /api/client/programs — programs open for self-enrollment the member isn't already in
-router.get('/programs', asyncHandler(async (req, res) => {
+router.get('/programs', requireClassBookingForEnroll, asyncHandler(async (req, res) => {
   const contact = await prisma.contact.findFirst({
     where: { user: { id: req.user!.userId }, organizationId: req.organization!.id },
     select: { id: true },
@@ -68,7 +77,7 @@ router.get('/programs', asyncHandler(async (req, res) => {
 }));
 
 // POST /api/client/programs/:id/enroll — self-enroll in a program
-router.post('/programs/:id/enroll', asyncHandler(async (req, res) => {
+router.post('/programs/:id/enroll', requireClassBookingForEnroll, asyncHandler(async (req, res) => {
   const contact = await prisma.contact.findFirst({
     where: { user: { id: req.user!.userId }, organizationId: req.organization!.id },
     select: { id: true },
@@ -90,14 +99,22 @@ router.post('/programs/:id/enroll', asyncHandler(async (req, res) => {
   });
   if (existing) throw new AppError(409, 'Already enrolled in this program');
 
-  // Create enrollment — nextBillingDate starts as today; we'll null it out below
-  // after creating the invoice so the billing cron doesn't double-bill.
-  const enrollment = await enrollmentService.enroll({
-    contactId: contact.id,
-    programId: program.id,
-    organizationId: req.organization!.id,
-    startDate: new Date(),
-  });
+  // Create enrollment. Catch P2002 (unique constraint) from concurrent requests
+  // so the second request gets a clean 409 rather than a 500.
+  let enrollment;
+  try {
+    enrollment = await enrollmentService.enroll({
+      contactId: contact.id,
+      programId: program.id,
+      organizationId: req.organization!.id,
+      startDate: new Date(),
+    });
+  } catch (err) {
+    if (err instanceof Prisma.PrismaClientKnownRequestError && err.code === 'P2002') {
+      throw new AppError(409, 'Already enrolled in this program');
+    }
+    throw err;
+  }
 
   // Create the invoice immediately so the member can pay via the portal
   const today = new Date();
@@ -125,14 +142,7 @@ router.post('/programs/:id/enroll', asyncHandler(async (req, res) => {
   });
 
   // Advance nextBillingDate past today so the billing cron doesn't re-invoice
-  const nextBillingDate = (() => {
-    const d = new Date(today);
-    if (program.billingFrequency === 'one_time') return null;
-    if (program.billingFrequency === 'weekly') { d.setUTCDate(d.getUTCDate() + 7); return d; }
-    if (program.billingFrequency === 'monthly') { d.setUTCMonth(d.getUTCMonth() + 1); return d; }
-    if (program.billingFrequency === 'yearly') { d.setUTCFullYear(d.getUTCFullYear() + 1); return d; }
-    return null;
-  })();
+  const nextBillingDate = advanceBillingDate(today, program.billingFrequency);
   await prisma.enrollment.update({ where: { id: enrollment.id }, data: { nextBillingDate } });
 
   res.status(201).json({ status: 'success', data: { enrollment, invoice } });

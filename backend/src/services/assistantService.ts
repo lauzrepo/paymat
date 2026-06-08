@@ -514,7 +514,8 @@ async function executeTool(
   name: string,
   input: Record<string, unknown>,
   organizationId: string,
-  userId: string
+  userId: string,
+  classBookingEnabled: boolean
 ): Promise<string> {
   switch (name) {
     case 'get_revenue_summary': {
@@ -1298,6 +1299,7 @@ async function executeTool(
     }
 
     case 'list_sessions': {
+      if (!classBookingEnabled) return JSON.stringify({ error: 'Class booking is not enabled for this organization.' });
       const days = Math.min((input.days as number) ?? 14, 90);
       const from = new Date();
       const to = new Date(Date.now() + days * 24 * 60 * 60 * 1000);
@@ -1334,6 +1336,7 @@ async function executeTool(
     }
 
     case 'create_session': {
+      if (!classBookingEnabled) return JSON.stringify({ error: 'Class booking is not enabled for this organization.' });
       const session = await sessionService.createSession(organizationId, {
         programId: input.programId as string,
         startsAt: input.startsAt as string,
@@ -1362,6 +1365,7 @@ async function executeTool(
     }
 
     case 'create_recurring_series': {
+      if (!classBookingEnabled) return JSON.stringify({ error: 'Class booking is not enabled for this organization.' });
       const series = await sessionService.createSeries(organizationId, {
         programId: input.programId as string,
         daysOfWeek: input.daysOfWeek as string[],
@@ -1399,6 +1403,7 @@ async function executeTool(
     }
 
     case 'get_session_roster': {
+      if (!classBookingEnabled) return JSON.stringify({ error: 'Class booking is not enabled for this organization.' });
       const session = await sessionService.getSession(input.sessionId as string, organizationId);
       const confirmed = session.bookings.filter((b) => b.status === 'confirmed');
 
@@ -1418,6 +1423,7 @@ async function executeTool(
     }
 
     case 'cancel_session': {
+      if (!classBookingEnabled) return JSON.stringify({ error: 'Class booking is not enabled for this organization.' });
       const scope = (input.scope as string) === 'future' ? 'future' : 'one';
       await sessionService.cancelSession(input.sessionId as string, organizationId, scope);
 
@@ -1458,7 +1464,8 @@ function rethrowIfUnavailable(err: unknown): never {
 export async function chat(
   messages: ChatMessage[],
   organizationId: string,
-  userId: string
+  userId: string,
+  classBookingEnabled = false
 ): Promise<string> {
   const anthropicMessages: Anthropic.MessageParam[] = messages.map((m) => ({
     role: m.role,
@@ -1491,7 +1498,8 @@ export async function chat(
             toolUse.name,
             toolUse.input as Record<string, unknown>,
             organizationId,
-            userId
+            userId,
+            classBookingEnabled
           );
         } catch (err) {
           content = JSON.stringify({ error: (err as Error).message });
