@@ -47,7 +47,7 @@
     "jsonwebtoken": "^9.0.3",
     "node-cron": "^4.2.1",
     "resend": "^6.12.4",
-    "stripe": "^22.2.1",
+    "stripe": "^22.2.2",
     "winston": "^3.19.0",
     "zod": "^4.4.3"
   },
