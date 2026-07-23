@@ -11,7 +11,7 @@
   },
   "dependencies": {
     "@stripe/react-stripe-js": "^6.8.0",
-    "@stripe/stripe-js": "^9.10.0",
+    "@stripe/stripe-js": "^9.12.0",
     "@tanstack/react-query": "^5.101.3",
     "axios": "^1.18.1",
     "lucide-react": "^1.25.0",
