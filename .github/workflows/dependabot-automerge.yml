@@ -19,7 +19,7 @@ jobs:
     steps:
       - name: Parse PR metadata
         id: parse
-        uses: actions/github-script@v7
+        uses: actions/github-script@v9
         with:
           script: |
             const { data: pr } = await github.rest.pulls.get({
@@ -94,7 +94,7 @@ jobs:
       needs.triage.outputs.bump-level == 'unknown'
     steps:
       - name: Ensure label exists
-        uses: actions/github-script@v7
+        uses: actions/github-script@v9
         with:
           script: |
             try {
@@ -110,7 +110,7 @@ jobs:
             }
 
       - name: Apply label
-        uses: actions/github-script@v7
+        uses: actions/github-script@v9
         with:
           script: |
             await github.rest.issues.addLabels({
