@@ -53,7 +53,7 @@
   },
   "devDependencies": {
     "@types/bcrypt": "^6.0.0",
-    "@types/pg": "^8.11.14",
+    "@types/pg": "^8.20.4",
     "@types/cors": "^2.8.19",
     "@types/express": "^5.0.6",
     "@types/jest": "^30.0.0",
