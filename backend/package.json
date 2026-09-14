@@ -46,7 +46,7 @@
     "joi": "^18.2.8",
     "jsonwebtoken": "^9.0.3",
     "node-cron": "^4.6.0",
-    "resend": "^6.21.0",
+    "resend": "^6.27.0",
     "stripe": "^22.6.2",
     "winston": "^3.19.0",
     "zod": "^4.6.2"
