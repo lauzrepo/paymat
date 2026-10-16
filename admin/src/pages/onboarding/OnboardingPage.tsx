@@ -3,6 +3,7 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 import axios from 'axios';
 import { authStore } from '../../store/authStore';
 import { getTenantBranding, getStripeOnboardingLink } from '../../api/tenant';
+import { INDUSTRIES } from '../../lib/industries';
 
 const API_BASE = import.meta.env.VITE_API_URL ?? '';
 
@@ -12,6 +13,7 @@ interface InviteInfo {
   email: string;
   recipientName: string;
   orgName: string;
+  industry?: string | null;
 }
 
 export function OnboardingPage() {
@@ -23,7 +25,7 @@ export function OnboardingPage() {
   const [invite, setInvite] = useState<InviteInfo | null>(null);
   const [errorMsg, setErrorMsg] = useState('');
 
-  const [form, setForm] = useState({ slug: '', password: '', confirmPassword: '' });
+  const [form, setForm] = useState({ slug: '', industry: '', password: '', confirmPassword: '' });
   const [submitting, setSubmitting] = useState(false);
   const [formError, setFormError] = useState('');
   const [connectOnboardingUrl, setConnectOnboardingUrl] = useState<string | null>(null);
@@ -67,7 +69,7 @@ export function OnboardingPage() {
           .toLowerCase()
           .replace(/[^a-z0-9]+/g, '-')
           .replace(/^-|-$/g, '');
-        setForm((f) => ({ ...f, slug: autoSlug }));
+        setForm((f) => ({ ...f, slug: autoSlug, industry: res.data.data.invite.industry ?? '' }));
         setStep('setup');
       })
       .catch((err) => {
@@ -110,6 +112,7 @@ export function OnboardingPage() {
     try {
       const res = await axios.post(`${API_BASE}/super-admin/invites/redeem/${token}`, {
         slug: form.slug,
+        industry: form.industry || undefined,
         adminPassword: form.password,
       });
       authStore.setSlug(form.slug);
@@ -295,6 +298,21 @@ export function OnboardingPage() {
               />
             </div>
             <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">Lowercase letters, numbers, hyphens only. This can be changed later.</p>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">What kind of business do you run? <span className="text-gray-400 dark:text-gray-500 font-normal">(optional)</span></label>
+            <select
+              value={form.industry}
+              onChange={(e) => setForm({ ...form, industry: e.target.value })}
+              className="w-full text-sm border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-violet-500"
+            >
+              <option value="">Select…</option>
+              {INDUSTRIES.map((i) => (
+                <option key={i.value} value={i.value}>{i.label}</option>
+              ))}
+            </select>
+            <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">We&apos;ll suggest starter programs for your business.</p>
           </div>
 
           <div>

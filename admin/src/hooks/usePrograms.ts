@@ -37,3 +37,22 @@ export function useDeleteProgram() {
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['programs'] }),
   });
 }
+
+export function useProgramTemplates(enabled = true) {
+  return useQuery({
+    queryKey: ['program-templates'],
+    queryFn: api.getProgramTemplates,
+    enabled,
+    staleTime: 5 * 60 * 1000,
+  });
+}
+
+export function useApplyProgramTemplate() {
+  return useMutation({
+    mutationFn: api.applyProgramTemplate,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['programs'] });
+      queryClient.invalidateQueries({ queryKey: ['program-templates'] });
+    },
+  });
+}
