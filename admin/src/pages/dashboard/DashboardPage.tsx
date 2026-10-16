@@ -11,6 +11,7 @@ import { Spinner } from '../../components/ui/Spinner';
 import { Badge } from '../../components/ui/Badge';
 import { formatCurrency, formatDate } from '../../lib/utils';
 import { useMate } from '../../context/MateContext';
+import { GetStartedProgramsCard } from '../../components/programs/GetStartedProgramsCard';
 
 const STATUS_COLORS: Record<string, string> = {
   paid: 'green',
@@ -97,6 +98,8 @@ export function DashboardPage() {
   return (
     <div className="space-y-6">
       <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">Dashboard</h1>
+
+      <GetStartedProgramsCard />
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <StatCard label="Active Members" value={contacts.data?.total ?? '—'} icon={<Users className="h-5 w-5" />} />

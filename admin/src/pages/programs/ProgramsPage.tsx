@@ -1,12 +1,15 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Plus } from 'lucide-react';
+import { Plus, Sparkles } from 'lucide-react';
 import { usePrograms, useCreateProgram, useUpdateProgram, useDeleteProgram } from '../../hooks/usePrograms';
 import { Card, CardHeader, CardBody } from '../../components/ui/Card';
 import { Button } from '../../components/ui/Button';
 import { Input } from '../../components/ui/Input';
 import { Badge } from '../../components/ui/Badge';
 import { Spinner } from '../../components/ui/Spinner';
+import { GetStartedProgramsCard } from '../../components/programs/GetStartedProgramsCard';
+import { TemplatePickerModal } from '../../components/programs/TemplatePickerModal';
+import { useCurrentUser } from '../../hooks/useAuth';
 import { formatCurrency } from '../../lib/utils';
 import type { Program } from '../../types/program';
 
@@ -101,6 +104,8 @@ function EditRow({ program, onDone }: { program: Program; onDone: () => void }) 
 export function ProgramsPage() {
   const navigate = useNavigate();
   const [showForm, setShowForm] = useState(false);
+  const [showTemplates, setShowTemplates] = useState(false);
+  const { data: currentUser } = useCurrentUser();
   const [editingId, setEditingId] = useState<string | null>(null);
   const [page, setPage] = useState(1);
   const programs = usePrograms({ page });
@@ -111,10 +116,20 @@ export function ProgramsPage() {
     <div className="space-y-6">
       <div className="flex items-center justify-between gap-2 flex-wrap">
         <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">Programs</h1>
-        <Button onClick={() => setShowForm(true)}>
-          <Plus className="h-4 w-4 mr-1" /> Add Program
-        </Button>
+        <div className="flex gap-2">
+          {currentUser?.role === 'admin' && (
+            <Button variant="secondary" onClick={() => setShowTemplates(true)}>
+              <Sparkles className="h-4 w-4 mr-1" /> Use a template
+            </Button>
+          )}
+          <Button onClick={() => setShowForm(true)}>
+            <Plus className="h-4 w-4 mr-1" /> Add Program
+          </Button>
+        </div>
       </div>
+
+      <GetStartedProgramsCard onScratch={() => setShowForm(true)} />
+      <TemplatePickerModal open={showTemplates} onClose={() => setShowTemplates(false)} />
 
       {showForm && (
         <Card>
