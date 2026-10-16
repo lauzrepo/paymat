@@ -15,6 +15,7 @@ export interface Enrollment {
   endDate: string | null;
   nextBillingDate: string | null;
   program: Program;
+  contact?: { id: string; firstName: string; lastName: string };
 }
 
 export interface Family {

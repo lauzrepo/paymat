@@ -1177,10 +1177,11 @@ async function executeTool(
     case 'resend_portal_invite': {
       const contact = await prisma.contact.findFirst({
         where: { id: input.contactId as string, organizationId },
-        select: { id: true, firstName: true, email: true },
+        select: { id: true, firstName: true, email: true, familyRole: true },
       });
 
       if (!contact) return JSON.stringify({ error: 'Contact not found' });
+      if (contact.familyRole === 'dependent') return JSON.stringify({ error: 'Dependents cannot have a portal account — invite a guardian instead' });
       if (!contact.email) return JSON.stringify({ error: 'Contact has no email address — add one first' });
 
       const existingUser = await prisma.user.findFirst({

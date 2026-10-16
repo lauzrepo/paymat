@@ -1,5 +1,5 @@
 import { BookOpen, Calendar } from 'lucide-react';
-import { useMyEnrollments } from '../../hooks/useClient';
+import { useMyEnrollments, useClientMe } from '../../hooks/useClient';
 
 const FREQ_LABEL: Record<string, string> = {
   monthly: '/mo',
@@ -16,6 +16,7 @@ const STATUS_COLORS: Record<string, string> = {
 
 export function EnrollmentsPage() {
   const { data: enrollments, isLoading } = useMyEnrollments();
+  const { data: me } = useClientMe();
 
   return (
     <div className="space-y-6 max-w-2xl">
@@ -34,6 +35,11 @@ export function EnrollmentsPage() {
         <div key={enrollment.id} className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 overflow-hidden">
           <div className="px-5 py-4 flex items-start justify-between">
             <div>
+              {enrollment.contact && enrollment.contact.id !== me?.contact?.id && (
+                <p className="text-xs font-medium text-indigo-600 dark:text-indigo-400 mb-0.5">
+                  {enrollment.contact.firstName} {enrollment.contact.lastName}
+                </p>
+              )}
               <h2 className="text-base font-semibold text-gray-900 dark:text-gray-100">{enrollment.program.name}</h2>
               {enrollment.program.description && (
                 <p className="text-sm text-gray-500 dark:text-gray-400 mt-0.5">{enrollment.program.description}</p>
