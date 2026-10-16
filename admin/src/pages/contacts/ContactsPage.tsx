@@ -76,7 +76,7 @@ export function ContactsPage() {
                 </select>
               </div>
               {form.familyId && (
-                <div className="sm:col-span-2">
+                <div>
                   <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Role in family</label>
                   <select
                     value={form.familyRole}
