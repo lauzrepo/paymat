@@ -13,6 +13,8 @@ import {
   removeAutopay,
   getEnrollablePrograms,
   selfEnroll,
+  getChildren,
+  addChild,
   getUpcomingSessions,
   bookSession,
   cancelSessionBooking,
@@ -61,8 +63,25 @@ export const useRemoveAutopay = () => {
   });
 };
 
-export const useEnrollablePrograms = () =>
-  useQuery({ queryKey: ['client', 'enrollable-programs'], queryFn: getEnrollablePrograms });
+export const useEnrollablePrograms = (contactId?: string) =>
+  useQuery({
+    queryKey: ['client', 'enrollable-programs', contactId ?? 'me'],
+    queryFn: () => getEnrollablePrograms(contactId),
+  });
+
+export const useChildren = (enabled = true) =>
+  useQuery({ queryKey: ['client', 'children'], queryFn: getChildren, enabled });
+
+export const useAddChild = () => {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: addChild,
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['client', 'children'] });
+      qc.invalidateQueries({ queryKey: ['client', 'me'] });
+    },
+  });
+};
 
 export const useSelfEnroll = () => {
   const qc = useQueryClient();

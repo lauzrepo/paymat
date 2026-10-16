@@ -8,6 +8,7 @@ import {
   useCancelSessionBooking,
   useEnrollablePrograms,
   useSelfEnroll,
+  useChildren,
 } from '../../hooks/useClient';
 import type { UpcomingSession, EnrollableProgram } from '../../api/client';
 import { useOrgSlug } from '../../context/OrgSlugContext';
@@ -137,7 +138,7 @@ function SessionCard({ session }: { session: UpcomingSession }) {
   );
 }
 
-function ProgramCard({ program }: { program: EnrollableProgram }) {
+function ProgramCard({ program, contactId }: { program: EnrollableProgram; contactId?: string }) {
   const enroll = useSelfEnroll();
   const navigate = useNavigate();
   const orgSlug = useOrgSlug();
@@ -145,7 +146,7 @@ function ProgramCard({ program }: { program: EnrollableProgram }) {
 
   const handleEnroll = async () => {
     try {
-      const result = await enroll.mutateAsync(program.id);
+      const result = await enroll.mutateAsync({ programId: program.id, contactId });
       setDone(true);
       // Give React Query a tick to invalidate, then redirect to the invoice
       setTimeout(() => navigate(`/${orgSlug}/invoices/${result.invoice.id}`), 400);
@@ -181,10 +182,12 @@ function ProgramCard({ program }: { program: EnrollableProgram }) {
 }
 
 function ExploreSection() {
-  const { data: programs, isLoading } = useEnrollablePrograms();
+  const { data: children } = useChildren();
+  const [forId, setForId] = useState('');
+  const { data: programs, isLoading } = useEnrollablePrograms(forId || undefined);
   const [open, setOpen] = useState(false);
 
-  if (isLoading || !programs?.length) return null;
+  if (isLoading || (!programs?.length && !forId)) return null;
 
   return (
     <div className="space-y-3">
@@ -193,12 +196,26 @@ function ExploreSection() {
         className="flex items-center gap-2 text-sm font-semibold text-gray-700 dark:text-gray-300 hover:text-gray-900 dark:hover:text-gray-100"
       >
         {open ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
-        Explore programs ({programs.length})
+        Explore programs{programs ? ` (${programs.length})` : ''}
       </button>
       {open && (
         <div className="space-y-3">
-          {programs.map((p) => (
-            <ProgramCard key={p.id} program={p} />
+          {!!children?.length && (
+            <select
+              value={forId}
+              onChange={(e) => setForId(e.target.value)}
+              className="text-sm border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 bg-white dark:bg-gray-800 dark:text-gray-100"
+              aria-label="Enroll for"
+            >
+              <option value="">Enroll myself</option>
+              {children.map((c) => (
+                <option key={c.id} value={c.id}>Enroll {c.firstName}</option>
+              ))}
+            </select>
+          )}
+          {!programs?.length && <p className="text-sm text-gray-500 dark:text-gray-400">No programs available.</p>}
+          {programs?.map((p) => (
+            <ProgramCard key={p.id} program={p} contactId={forId || undefined} />
           ))}
         </div>
       )}

@@ -32,6 +32,7 @@ export interface Contact {
   phone: string | null;
   dateOfBirth: string | null;
   status: string;
+  familyRole?: 'guardian' | 'dependent';
   family: Family | null;
   enrollments: Enrollment[];
 }
@@ -161,11 +162,30 @@ export interface SelfEnrollResult {
   invoice: { id: string; invoiceNumber: string; amountDue: string };
 }
 
-export const getEnrollablePrograms = () =>
-  apiClient.get('/client/programs').then((r) => r.data.data.programs as EnrollableProgram[]);
+export const getEnrollablePrograms = (contactId?: string) =>
+  apiClient
+    .get('/client/programs', { params: contactId ? { contactId } : undefined })
+    .then((r) => r.data.data.programs as EnrollableProgram[]);
 
-export const selfEnroll = (programId: string) =>
-  apiClient.post(`/client/programs/${programId}/enroll`).then((r) => r.data.data as SelfEnrollResult);
+export const selfEnroll = ({ programId, contactId }: { programId: string; contactId?: string }) =>
+  apiClient
+    .post(`/client/programs/${programId}/enroll`, contactId ? { contactId } : {})
+    .then((r) => r.data.data as SelfEnrollResult);
+
+// ── Family: children ──────────────────────────────────────────────────────────
+
+export interface Child {
+  id: string;
+  firstName: string;
+  lastName: string;
+  dateOfBirth: string | null;
+}
+
+export const getChildren = () =>
+  apiClient.get('/client/children').then((r) => r.data.data.children as Child[]);
+
+export const addChild = (body: { firstName: string; lastName: string; dateOfBirth?: string }) =>
+  apiClient.post('/client/children', body).then((r) => r.data.data.child as Child);
 
 // ── Sessions ──────────────────────────────────────────────────────────────────
 

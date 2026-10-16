@@ -39,6 +39,86 @@ router.post('/autopay/initialize', initializeAutopay);
 router.post('/autopay/confirm', confirmAutopay);
 router.delete('/autopay', removeAutopay);
 
+// ── Family: children ──────────────────────────────────────────────────────────
+
+/**
+ * Resolves the contact an action applies to: the logged-in user's own contact,
+ * or — if `targetId` is given — a dependent in the same family. Only guardians
+ * may act on behalf of dependents.
+ */
+async function resolveActingContact(req: import('express').Request, targetId?: string) {
+  const me = await prisma.contact.findFirst({
+    where: { user: { id: req.user!.userId }, organizationId: req.organization!.id },
+    select: { id: true, familyId: true, familyRole: true },
+  });
+  if (!me) throw new AppError(404, 'Contact not found');
+  if (!targetId || targetId === me.id) return me;
+
+  if (me.familyRole !== 'guardian' || !me.familyId) {
+    throw new AppError(403, 'Only a guardian can act on behalf of a family member');
+  }
+  const child = await prisma.contact.findFirst({
+    where: {
+      id: targetId,
+      organizationId: req.organization!.id,
+      familyId: me.familyId,
+      familyRole: 'dependent',
+      status: 'active',
+    },
+    select: { id: true, familyId: true, familyRole: true },
+  });
+  if (!child) throw new AppError(404, 'Family member not found');
+  return child;
+}
+
+// GET /api/client/children — dependents in the guardian's family
+router.get('/children', asyncHandler(async (req, res) => {
+  const me = await resolveActingContact(req);
+  const children = me.familyRole === 'guardian' && me.familyId
+    ? await prisma.contact.findMany({
+        where: { organizationId: req.organization!.id, familyId: me.familyId, familyRole: 'dependent', status: 'active' },
+        select: { id: true, firstName: true, lastName: true, dateOfBirth: true },
+        orderBy: { firstName: 'asc' },
+      })
+    : [];
+  res.json({ status: 'success', data: { children } });
+}));
+
+// POST /api/client/children — add a dependent (no email or login needed)
+router.post('/children', asyncHandler(async (req, res) => {
+  const me = await resolveActingContact(req);
+  if (me.familyRole !== 'guardian') throw new AppError(403, 'Only a guardian can add family members');
+
+  const firstName = typeof req.body.firstName === 'string' ? req.body.firstName.trim() : '';
+  const lastName = typeof req.body.lastName === 'string' ? req.body.lastName.trim() : '';
+  if (!firstName || !lastName) throw new AppError(400, 'First and last name are required');
+
+  let dateOfBirth: Date | undefined;
+  if (req.body.dateOfBirth) {
+    dateOfBirth = new Date(req.body.dateOfBirth);
+    if (Number.isNaN(dateOfBirth.getTime()) || dateOfBirth > new Date()) {
+      throw new AppError(400, 'Invalid date of birth');
+    }
+  }
+
+  // Parents without a family yet get one created, so billing can be shared
+  let familyId = me.familyId;
+  if (!familyId) {
+    const parent = await prisma.contact.findUnique({ where: { id: me.id }, select: { lastName: true } });
+    const family = await prisma.family.create({
+      data: { organizationId: req.organization!.id, name: `${parent?.lastName ?? lastName} Family` },
+    });
+    familyId = family.id;
+    await prisma.contact.update({ where: { id: me.id }, data: { familyId } });
+  }
+
+  const child = await prisma.contact.create({
+    data: { organizationId: req.organization!.id, familyId, familyRole: 'dependent', firstName, lastName, dateOfBirth },
+    select: { id: true, firstName: true, lastName: true, dateOfBirth: true },
+  });
+  res.status(201).json({ status: 'success', data: { child } });
+}));
+
 // ── Self-enrollment ───────────────────────────────────────────────────────────
 
 function requireClassBookingForEnroll(req: import('express').Request, _res: import('express').Response, next: import('express').NextFunction) {
@@ -50,11 +130,7 @@ function requireClassBookingForEnroll(req: import('express').Request, _res: impo
 
 // GET /api/client/programs — programs open for self-enrollment the member isn't already in
 router.get('/programs', requireClassBookingForEnroll, asyncHandler(async (req, res) => {
-  const contact = await prisma.contact.findFirst({
-    where: { user: { id: req.user!.userId }, organizationId: req.organization!.id },
-    select: { id: true },
-  });
-  if (!contact) throw new AppError(404, 'Contact not found');
+  const contact = await resolveActingContact(req, req.query.contactId as string | undefined);
 
   const activeEnrollments = await prisma.enrollment.findMany({
     where: { contactId: contact.id, status: 'active' },
@@ -78,11 +154,7 @@ router.get('/programs', requireClassBookingForEnroll, asyncHandler(async (req, r
 
 // POST /api/client/programs/:id/enroll — self-enroll in a program
 router.post('/programs/:id/enroll', requireClassBookingForEnroll, asyncHandler(async (req, res) => {
-  const contact = await prisma.contact.findFirst({
-    where: { user: { id: req.user!.userId }, organizationId: req.organization!.id },
-    select: { id: true },
-  });
-  if (!contact) throw new AppError(404, 'Contact not found');
+  const contact = await resolveActingContact(req, req.body?.contactId as string | undefined);
 
   const program = await prisma.program.findFirst({
     where: {
@@ -122,7 +194,8 @@ router.post('/programs/:id/enroll', requireClassBookingForEnroll, asyncHandler(a
   const invoice = await prisma.invoice.create({
     data: {
       organizationId: req.organization!.id,
-      contactId: contact.id,
+      // Dependents are billed to the family so the guardian can see and pay the invoice
+      ...(contact.familyRole === 'dependent' ? { familyId: contact.familyId } : { contactId: contact.id }),
       invoiceNumber,
       amountDue: program.price,
       dueDate: today,

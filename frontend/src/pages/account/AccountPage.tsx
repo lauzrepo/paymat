@@ -1,6 +1,7 @@
 import { User, Phone, Calendar, Users } from 'lucide-react';
 import { useClientMe } from '../../hooks/useClient';
 import { AutoPaySection } from '../../components/AutoPaySection';
+import { FamilyMembersSection } from './FamilyMembersSection';
 
 function Field({ label, value }: { label: string; value: string | null | undefined }) {
   return (
@@ -72,6 +73,8 @@ export function AccountPage() {
           </dl>
         </div>
       )}
+
+      {contact?.familyRole !== 'dependent' && <FamilyMembersSection />}
 
       <AutoPaySection userEmail={data?.email} />
     </div>
