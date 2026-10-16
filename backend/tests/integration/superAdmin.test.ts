@@ -7,6 +7,7 @@ jest.mock('../../src/services/emailService', () => ({
   sendPasswordResetEmail: jest.fn(),
   sendFeedbackNotification: jest.fn().mockResolvedValue(undefined),
   sendInvoiceGenerated: jest.fn().mockResolvedValue(undefined),
+  sendStripeOnboardingEmail: jest.fn().mockResolvedValue(undefined),
 }));
 jest.mock('bcrypt', () => ({
   hash: jest.fn().mockResolvedValue('hashed'),
@@ -224,13 +225,13 @@ describe('POST /super-admin/organizations/:id/promote', () => {
     (prisma.organization.update as jest.Mock).mockResolvedValue(mockOrg({ sandboxMode: false }));
   });
 
-  it('returns 200 with connectOnboardingUrl for a sandbox org', async () => {
+  it('returns 200 and emails the onboarding link to the org admin', async () => {
     const res = await request(app)
       .post('/super-admin/organizations/org-1/promote')
       .set('Authorization', `Bearer ${superAdminToken()}`);
 
     expect(res.status).toBe(200);
-    expect(res.body.data.connectOnboardingUrl).toBe('https://connect.stripe.com/onboard/live');
+    expect(res.body.data.emailSentTo).toBe('admin@test.com');
   });
 
   it('creates a live Connect account (sandboxMode=false)', async () => {

@@ -35,7 +35,7 @@ export const getEnrollment = asyncHandler(async (req: Request, res: Response) =>
 
 export const unenroll = asyncHandler(async (req: Request, res: Response) => {
   if (!req.user) throw new AppError(401, 'Not authenticated');
-  const { endDate } = req.body;
+  const { endDate } = req.body ?? {}; // DELETE requests may have no body (Express 5 leaves req.body undefined)
   const enrollment = await enrollmentService.unenroll(req.params.id as string, req.organization!.id, endDate ? new Date(endDate) : undefined);
   res.status(200).json({ status: 'success', data: { enrollment } });
 });
