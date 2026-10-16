@@ -4,7 +4,7 @@ import { ChevronLeft, CreditCard, Send } from 'lucide-react';
 import { useMutation } from '@tanstack/react-query';
 import { loadStripe } from '@stripe/stripe-js';
 import { Elements, PaymentElement, useStripe, useElements } from '@stripe/react-stripe-js';
-import { useContact, useDeactivateContact, useReactivateContact, useDeleteContact } from '../../hooks/useContacts';
+import { useContact, useUpdateContact, useDeactivateContact, useReactivateContact, useDeleteContact } from '../../hooks/useContacts';
 import { initializeCardCheckout, saveCardToken, resendPortalInvite } from '../../api/contacts';
 import { queryClient } from '../../lib/queryClient';
 import { Card, CardHeader, CardBody } from '../../components/ui/Card';
@@ -100,6 +100,7 @@ export function ContactDetailPage() {
   const [customerId, setCustomerId] = useState('');
   const [inviteSent, setInviteSent] = useState(false);
 
+  const updateContact = useUpdateContact(id!);
   const resendInvite = useMutation({
     mutationFn: () => resendPortalInvite(id!),
     onSuccess: () => {
@@ -163,6 +164,26 @@ export function ContactDetailPage() {
               <Row label="Email" value={contact.email ?? '—'} />
               <Row label="Phone" value={contact.phone ?? '—'} />
               <Row label="Family" value={contact.family?.name ?? '—'} />
+              {contact.familyId && (
+                <div className="flex justify-between items-center">
+                  <span className="text-gray-500 dark:text-gray-400">Role in family</span>
+                  <span className="flex items-center gap-2">
+                    <span className="text-gray-900 dark:text-gray-100 capitalize">{contact.familyRole}</span>
+                    <button
+                      onClick={() => updateContact.mutate({ familyRole: contact.familyRole === 'guardian' ? 'dependent' : 'guardian' })}
+                      disabled={updateContact.isPending}
+                      className="text-xs text-indigo-600 dark:text-indigo-400 hover:underline disabled:opacity-60"
+                    >
+                      Make {contact.familyRole === 'guardian' ? 'dependent' : 'guardian'}
+                    </button>
+                  </span>
+                </div>
+              )}
+              {updateContact.isError && (
+                <p className="text-sm text-red-600 dark:text-red-400">
+                  {(updateContact.error as { response?: { data?: { message?: string } } })?.response?.data?.message ?? 'Could not update role'}
+                </p>
+              )}
               <Row label="Date of birth" value={contact.dateOfBirth ? formatDate(contact.dateOfBirth) : '—'} />
               {contact.notes && <Row label="Notes" value={contact.notes} />}
               <Row label="Added" value={formatDate(contact.createdAt)} />
@@ -176,7 +197,7 @@ export function ContactDetailPage() {
                   <span className="text-gray-400 dark:text-gray-500 text-xs">None</span>
                 )}
               </div>
-              {contact.email && (
+              {contact.email && contact.familyRole !== 'dependent' && (
                 <div className="flex justify-between items-center pt-1">
                   <span className="text-gray-500 dark:text-gray-400">Member portal</span>
                   {contact.hasPortalAccount ? (

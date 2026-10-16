@@ -17,7 +17,7 @@ export function ContactsPage() {
   const [page, setPage] = useState(1);
   const [showForm, setShowForm] = useState(false);
   const [showImport, setShowImport] = useState(false);
-  const [form, setForm] = useState({ firstName: '', lastName: '', email: '', phone: '', familyId: '' });
+  const [form, setForm] = useState({ firstName: '', lastName: '', email: '', phone: '', familyId: '', familyRole: 'guardian' as 'guardian' | 'dependent' });
   const [addCard, setAddCard] = useState(false);
   const navigate = useNavigate();
   const create = useCreateContact();
@@ -30,9 +30,9 @@ export function ContactsPage() {
 
   const handleCreate = async (e: React.FormEvent) => {
     e.preventDefault();
-    const contact = await create.mutateAsync({ ...form, familyId: form.familyId || undefined });
+    const contact = await create.mutateAsync({ ...form, familyId: form.familyId || undefined, familyRole: form.familyId ? form.familyRole : 'guardian' });
     setShowForm(false);
-    setForm({ firstName: '', lastName: '', email: '', phone: '', familyId: '' });
+    setForm({ firstName: '', lastName: '', email: '', phone: '', familyId: '', familyRole: 'guardian' as 'guardian' | 'dependent' });
     setAddCard(false);
     navigate(`/contacts/${contact.id}${addCard ? '?addCard=true' : ''}`);
   };
@@ -75,6 +75,19 @@ export function ContactsPage() {
                   ))}
                 </select>
               </div>
+              {form.familyId && (
+                <div className="sm:col-span-2">
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Role in family</label>
+                  <select
+                    value={form.familyRole}
+                    onChange={(e) => setForm({ ...form, familyRole: e.target.value as 'guardian' | 'dependent' })}
+                    className="appearance-none bg-white dark:bg-gray-800 dark:text-gray-100 w-full text-sm border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 pr-8 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  >
+                    <option value="guardian">Guardian — can log in and pay</option>
+                    <option value="dependent">Dependent — no login or email needed</option>
+                  </select>
+                </div>
+              )}
               <div className="sm:col-span-2 flex items-center gap-2">
                 <input id="addCard" type="checkbox" checked={addCard} onChange={(e) => setAddCard(e.target.checked)} className="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500" />
                 <label htmlFor="addCard" className="text-sm text-gray-700 dark:text-gray-300">Add card on file after saving</label>

@@ -2,6 +2,7 @@ export interface Contact {
   id: string;
   organizationId: string;
   familyId: string | null;
+  familyRole: 'guardian' | 'dependent';
   firstName: string;
   lastName: string;
   email: string | null;

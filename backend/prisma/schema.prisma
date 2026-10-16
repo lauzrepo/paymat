@@ -70,6 +70,7 @@ model Contact {
   id             String    @id @default(uuid())
   organizationId String    @map("organization_id")
   familyId       String?   @map("family_id")
+  familyRole     String    @default("guardian") @map("family_role")
   firstName      String    @map("first_name")
   lastName       String    @map("last_name")
   email          String?

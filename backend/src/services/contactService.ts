@@ -7,6 +7,7 @@ import logger from '../utils/logger';
 export interface CreateContactData {
   organizationId: string;
   familyId?: string;
+  familyRole?: 'guardian' | 'dependent';
   firstName: string;
   lastName: string;
   email?: string;
@@ -17,6 +18,7 @@ export interface CreateContactData {
 
 export interface UpdateContactData {
   familyId?: string | null;
+  familyRole?: 'guardian' | 'dependent';
   firstName?: string;
   lastName?: string;
   email?: string;
@@ -36,14 +38,24 @@ export interface BulkImportContactRow {
   notes?: string;
 }
 
+const assertFamilyRole = (role?: string) => {
+  if (role !== undefined && role !== 'guardian' && role !== 'dependent') {
+    throw new AppError(400, "familyRole must be 'guardian' or 'dependent'");
+  }
+};
+
 class ContactService {
   async createContact(data: CreateContactData) {
+    assertFamilyRole(data.familyRole);
+    if (data.familyRole === 'dependent' && !data.familyId) {
+      throw new AppError(400, 'A dependent must belong to a family');
+    }
     const contact = await prisma.contact.create({
       data,
       include: { family: true, enrollments: { include: { program: true } } },
     });
 
-    if (contact.email) {
+    if (contact.email && contact.familyRole === 'guardian') {
       const org = await prisma.organization.findUnique({ where: { id: contact.organizationId }, select: { name: true, slug: true } });
       if (org) {
         prisma.memberPortalInvite.create({
@@ -116,6 +128,7 @@ class ContactService {
       include: { user: { select: { role: true, deletedAt: true } } },
     });
     if (!contact) throw new AppError(404, 'Contact not found');
+    if (contact.familyRole === 'dependent') throw new AppError(400, 'Dependents cannot have a portal account — invite a guardian instead');
     if (!contact.email) throw new AppError(400, 'Contact has no email address');
 
     const hasPortalAccount = !!(contact.user && contact.user.role === 'client' && !contact.user.deletedAt);
@@ -143,7 +156,13 @@ class ContactService {
   }
 
   async updateContact(contactId: string, organizationId: string, data: UpdateContactData) {
-    await this.getContactById(contactId, organizationId);
+    assertFamilyRole(data.familyRole);
+    const existing = await this.getContactById(contactId, organizationId);
+    const familyId = data.familyId !== undefined ? data.familyId : existing.familyId;
+    if ((data.familyRole ?? existing.familyRole) === 'dependent') {
+      if (!familyId) throw new AppError(400, 'A dependent must belong to a family');
+      if (existing.hasPortalAccount) throw new AppError(400, 'This contact already has a portal account and cannot be made a dependent');
+    }
     return prisma.contact.update({
       where: { id: contactId },
       data,

@@ -35,14 +35,28 @@ export const getMe = asyncHandler(async (req: Request, res: Response) => {
 export const getMyEnrollments = asyncHandler(async (req: Request, res: Response) => {
   if (!req.user) throw new AppError(401, 'Not authenticated');
 
-  const user = await prisma.user.findUnique({ where: { id: req.user.userId } });
+  const user = await prisma.user.findUnique({
+    where: { id: req.user.userId },
+    include: { contact: true },
+  });
   if (!user?.contactId) {
     res.json({ status: 'success', data: { enrollments: [] } }); return;
   }
 
+  // Include enrollments for everyone in the same family (e.g. a parent sees their children's)
+  const familyId = (user.contact?.familyRole === 'guardian' ? user.contact.familyId : null);
+
   const enrollments = await prisma.enrollment.findMany({
-    where: { contactId: user.contactId },
-    include: { program: true },
+    where: {
+      contact: {
+        organizationId: req.organization!.id,
+        ...(familyId ? { OR: [{ id: user.contactId }, { familyId }] } : { id: user.contactId }),
+      },
+    },
+    include: {
+      program: true,
+      contact: { select: { id: true, firstName: true, lastName: true } },
+    },
     orderBy: { startDate: 'desc' },
   });
 
@@ -62,7 +76,7 @@ export const getMyInvoices = asyncHandler(async (req: Request, res: Response) =>
     res.json({ status: 'success', data: { invoices: [], total: 0 } }); return;
   }
 
-  const familyId = user.contact?.familyId ?? null;
+  const familyId = (user.contact?.familyRole === 'guardian' ? user.contact.familyId : null);
 
   const where = {
     organizationId: req.organization!.id,
@@ -100,7 +114,7 @@ export const getMyInvoice = asyncHandler(async (req: Request, res: Response) => 
 
   if (!user?.contactId) throw new AppError(403, 'No contact record linked to your account');
 
-  const familyId = user.contact?.familyId ?? null;
+  const familyId = (user.contact?.familyRole === 'guardian' ? user.contact.familyId : null);
 
   const invoice = await prisma.invoice.findFirst({
     where: {
@@ -130,7 +144,7 @@ export const initializeInvoicePayment = asyncHandler(async (req: Request, res: R
 
   if (!user?.contactId) throw new AppError(403, 'No contact record linked to your account');
 
-  const familyId = user.contact?.familyId ?? null;
+  const familyId = (user.contact?.familyRole === 'guardian' ? user.contact.familyId : null);
 
   const invoice = await prisma.invoice.findFirst({
     where: {
@@ -219,7 +233,7 @@ export const confirmInvoicePayment = asyncHandler(async (req: Request, res: Resp
   });
   if (!user?.contactId) throw new AppError(403, 'No contact record linked to your account');
 
-  const familyId = user.contact?.familyId ?? null;
+  const familyId = (user.contact?.familyRole === 'guardian' ? user.contact.familyId : null);
 
   const invoice = await prisma.invoice.findFirst({
     where: {
@@ -499,7 +513,7 @@ export const getMyPayments = asyncHandler(async (req: Request, res: Response) =>
     res.json({ status: 'success', data: { payments: [], total: 0 } }); return;
   }
 
-  const familyId = user.contact?.familyId ?? null;
+  const familyId = (user.contact?.familyRole === 'guardian' ? user.contact.familyId : null);
 
   const invoiceWhere = {
     organizationId: req.organization!.id,

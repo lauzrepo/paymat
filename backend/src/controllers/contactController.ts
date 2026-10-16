@@ -6,7 +6,7 @@ import { asyncHandler, AppError } from '../middleware/errorHandler';
 
 export const createContact = asyncHandler(async (req: Request, res: Response) => {
   if (!req.user) throw new AppError(401, 'Not authenticated');
-  const { firstName, lastName, email, phone, familyId, dateOfBirth, notes } = req.body;
+  const { firstName, lastName, email, phone, familyId, familyRole, dateOfBirth, notes } = req.body;
   const contact = await contactService.createContact({
     organizationId: req.organization!.id,
     firstName,
@@ -14,6 +14,7 @@ export const createContact = asyncHandler(async (req: Request, res: Response) =>
     email,
     phone,
     familyId,
+    familyRole,
     dateOfBirth: dateOfBirth ? new Date(dateOfBirth) : undefined,
     notes,
   });
