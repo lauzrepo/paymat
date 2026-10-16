@@ -61,7 +61,7 @@ export default function Pricing() {
               ].map(feature => (
                 <li key={feature} className="flex items-start gap-3 text-sm">
                   <span
-                    className="mt-0.5 flex-shrink-0 w-4 h-4 rounded-full flex items-center justify-center"
+                    className="mt-0.5 shrink-0 w-4 h-4 rounded-full flex items-center justify-center"
                     style={{ backgroundColor: 'rgba(99, 102, 241, 0.15)', color: 'var(--color-primary)' }}
                   >
                     <svg width="10" height="10" viewBox="0 0 12 12" fill="none">
@@ -132,7 +132,7 @@ export default function Pricing() {
               ].map(feature => (
                 <li key={feature} className="flex items-start gap-3 text-sm">
                   <span
-                    className="mt-0.5 flex-shrink-0 w-4 h-4 rounded-full flex items-center justify-center"
+                    className="mt-0.5 shrink-0 w-4 h-4 rounded-full flex items-center justify-center"
                     style={{ backgroundColor: 'rgba(113, 113, 122, 0.15)', color: 'var(--color-muted)' }}
                   >
                     <svg width="10" height="10" viewBox="0 0 12 12" fill="none">
