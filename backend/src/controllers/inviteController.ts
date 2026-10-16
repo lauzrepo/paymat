@@ -4,9 +4,11 @@ import { asyncHandler, AppError } from '../middleware/errorHandler';
 import { sendInviteEmail, sendInviteAccepted } from '../services/emailService';
 import logger from '../utils/logger';
 import stripeConnectService from '../services/stripeConnectService';
+import { parseIndustry } from '../config/industries';
 
 export const createInvite = asyncHandler(async (req: Request, res: Response) => {
   const { email, recipientName, orgName, platformFeePercent } = req.body;
+  const industry = parseIndustry(req.body.industry);
 
   if (!email?.trim()) throw new AppError(400, 'email is required');
   if (!recipientName?.trim()) throw new AppError(400, 'recipientName is required');
@@ -22,6 +24,7 @@ export const createInvite = asyncHandler(async (req: Request, res: Response) => 
       email: email.trim().toLowerCase(),
       recipientName: recipientName.trim(),
       orgName: orgName.trim(),
+      industry: industry ?? null,
       expiresAt,
     },
   });
@@ -64,7 +67,7 @@ export const verifyInvite = asyncHandler(async (req: Request, res: Response) => 
 
   res.json({
     status: 'success',
-    data: { invite: { email: invite.email, recipientName: invite.recipientName, orgName: invite.orgName } },
+    data: { invite: { email: invite.email, recipientName: invite.recipientName, orgName: invite.orgName, industry: invite.industry } },
   });
 });
 
@@ -108,6 +111,7 @@ export const deleteInvite = asyncHandler(async (req: Request, res: Response) => 
 export const redeemInvite = asyncHandler(async (req: Request, res: Response) => {
   const token = req.params.token as string;
   const { slug, adminPassword } = req.body;
+  const industryChoice = parseIndustry(req.body.industry);
 
   if (!slug?.trim()) throw new AppError(400, 'slug is required');
   if (!adminPassword || adminPassword.length < 8) throw new AppError(400, 'Password must be at least 8 characters');
@@ -132,7 +136,13 @@ export const redeemInvite = asyncHandler(async (req: Request, res: Response) => 
 
   await prisma.$transaction(async (tx) => {
     const organization = await tx.organization.create({
-      data: { name: invite.orgName, slug: slug.trim(), type: 'general', timezone: 'America/New_York' },
+      data: {
+        name: invite.orgName,
+        slug: slug.trim(),
+        type: 'general',
+        industry: industryChoice !== undefined ? industryChoice : invite.industry,
+        timezone: 'America/New_York',
+      },
     });
     orgId = organization.id;
 

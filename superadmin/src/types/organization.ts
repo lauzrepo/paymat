@@ -12,6 +12,7 @@ export interface Organization {
   slug: string;
   name: string;
   type: string;
+  industry: string | null;
   timezone: string;
   logoUrl: string | null;
   primaryColor: string | null;

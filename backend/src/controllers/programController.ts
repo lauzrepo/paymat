@@ -3,6 +3,26 @@ import programService from '../services/programService';
 import { asyncHandler, AppError } from '../middleware/errorHandler';
 import prisma from '../config/database';
 
+const positiveIntOrNull = (value: unknown, field: string): number | null | undefined => {
+  if (value === undefined) return undefined;
+  if (value === null) return null;
+  if (typeof value !== 'number' || !Number.isInteger(value) || value < 1) {
+    throw new AppError(400, `${field} must be a positive whole number`);
+  }
+  return value;
+};
+
+const parseProgramOptions = (body: Record<string, unknown>) => {
+  if (body.allowSelfEnrollment !== undefined && typeof body.allowSelfEnrollment !== 'boolean') {
+    throw new AppError(400, 'allowSelfEnrollment must be a boolean');
+  }
+  return {
+    maxClasses: positiveIntOrNull(body.maxClasses, 'maxClasses'),
+    maxBillingCycles: positiveIntOrNull(body.maxBillingCycles, 'maxBillingCycles'),
+    allowSelfEnrollment: body.allowSelfEnrollment as boolean | undefined,
+  };
+};
+
 export const createProgram = asyncHandler(async (req: Request, res: Response) => {
   if (!req.user) throw new AppError(401, 'Not authenticated');
   const { name, description, price, billingFrequency, capacity } = req.body;
@@ -13,6 +33,7 @@ export const createProgram = asyncHandler(async (req: Request, res: Response) =>
     price,
     billingFrequency,
     capacity,
+    ...parseProgramOptions(req.body),
   });
   res.status(201).json({ status: 'success', data: { program } });
 });
@@ -34,7 +55,10 @@ export const getProgram = asyncHandler(async (req: Request, res: Response) => {
 
 export const updateProgram = asyncHandler(async (req: Request, res: Response) => {
   if (!req.user) throw new AppError(401, 'Not authenticated');
-  const program = await programService.updateProgram(req.params.id as string, req.organization!.id, req.body);
+  const program = await programService.updateProgram(req.params.id as string, req.organization!.id, {
+    ...req.body,
+    ...parseProgramOptions(req.body),
+  });
   res.status(200).json({ status: 'success', data: { program } });
 });
 

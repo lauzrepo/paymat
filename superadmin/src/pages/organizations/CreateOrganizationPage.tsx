@@ -4,6 +4,7 @@ import { ChevronLeft } from 'lucide-react';
 import { useCreateOrganization } from '../../hooks/useOrganizations';
 import { Card, CardHeader, CardBody } from '../../components/ui/Card';
 import { Button } from '../../components/ui/Button';
+import { INDUSTRIES } from '../../lib/industries';
 
 const TIMEZONES = [
   'America/New_York', 'America/Chicago', 'America/Denver', 'America/Los_Angeles',
@@ -21,6 +22,7 @@ export function CreateOrganizationPage() {
     name: '',
     slug: '',
     type: 'general',
+    industry: '',
     timezone: 'America/New_York',
     adminEmail: '',
     adminPassword: '',
@@ -84,6 +86,19 @@ export function CreateOrganizationPage() {
                 <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">Lowercase letters, numbers, hyphens only</p>
               </div>
             </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Industry</label>
+                <select
+                  value={form.industry}
+                  onChange={(e) => setForm({ ...form, industry: e.target.value })}
+                  className="appearance-none bg-white dark:bg-gray-700 w-full text-sm border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-violet-500"
+                >
+                  <option value="">Not set</option>
+                  {INDUSTRIES.map((i) => (
+                    <option key={i.value} value={i.value}>{i.label}</option>
+                  ))}
+                </select>
+              </div>
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Type</label>

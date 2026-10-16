@@ -172,6 +172,32 @@ describe('POST /super-admin/organizations', () => {
     expect(res.body.data.organization.id).toBe('org-1');
   });
 
+  it('stores a valid industry on the new organization', async () => {
+    const bcrypt = require('bcrypt');
+    (bcrypt.hash as jest.Mock).mockResolvedValue('hashed');
+    (prisma.organization.findUnique as jest.Mock).mockResolvedValue(null);
+    (prisma.organization.create as jest.Mock).mockResolvedValue(mockOrg());
+    (prisma.user.create as jest.Mock).mockResolvedValue({ id: 'user-1' });
+
+    const res = await request(app)
+      .post('/super-admin/organizations')
+      .set('Authorization', `Bearer ${superAdminToken()}`)
+      .send({ name: 'Test Org', slug: 'test-org', adminEmail: 'a@test.com', adminPassword: 'password123', industry: 'dance' });
+
+    expect(res.status).toBe(201);
+    expect((prisma.organization.create as jest.Mock).mock.calls[0][0].data.industry).toBe('dance');
+  });
+
+  it('returns 400 for an unknown industry', async () => {
+    const res = await request(app)
+      .post('/super-admin/organizations')
+      .set('Authorization', `Bearer ${superAdminToken()}`)
+      .send({ name: 'Test Org', slug: 'test-org', adminEmail: 'a@test.com', adminPassword: 'password123', industry: 'plumbing' });
+
+    expect(res.status).toBe(400);
+    expect(prisma.organization.create).not.toHaveBeenCalled();
+  });
+
   it('returns 401 without token', async () => {
     const res = await request(app).post('/super-admin/organizations').send({});
     expect(res.status).toBe(401);

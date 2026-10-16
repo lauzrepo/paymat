@@ -11,6 +11,9 @@ export interface CreateProgramData {
   price: number;
   billingFrequency: string;
   capacity?: number;
+  maxClasses?: number | null;
+  maxBillingCycles?: number | null;
+  allowSelfEnrollment?: boolean;
 }
 
 class ProgramService {
@@ -61,7 +64,7 @@ class ProgramService {
     return program;
   }
 
-  async updateProgram(programId: string, organizationId: string, data: { name?: string; description?: string; price?: number; billingFrequency?: string; capacity?: number; isActive?: boolean }) {
+  async updateProgram(programId: string, organizationId: string, data: { name?: string; description?: string; price?: number; billingFrequency?: string; capacity?: number; maxClasses?: number | null; maxBillingCycles?: number | null; allowSelfEnrollment?: boolean; isActive?: boolean }) {
     await this.getProgramById(programId, organizationId);
     return prisma.program.update({
       where: { id: programId },

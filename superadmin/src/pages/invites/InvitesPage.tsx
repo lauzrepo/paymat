@@ -4,6 +4,7 @@ import { useInviteList, useCreateInvite, useResendInvite, useDeleteInvite } from
 import { Card, CardHeader, CardBody } from '../../components/ui/Card';
 import { Button } from '../../components/ui/Button';
 import type { InviteToken } from '../../api/invites';
+import { INDUSTRIES } from '../../lib/industries';
 
 function InviteStatusBadge({ invite }: { invite: InviteToken }) {
   if (invite.usedAt) {
@@ -33,7 +34,7 @@ export function InvitesPage() {
   const resendInvite = useResendInvite();
   const deleteInvite = useDeleteInvite();
 
-  const [form, setForm] = useState({ email: '', recipientName: '', orgName: '', platformFeePercent: 0.05 });
+  const [form, setForm] = useState({ email: '', recipientName: '', orgName: '', industry: '', platformFeePercent: 0.05 });
   const [error, setError] = useState('');
   const [sent, setSent] = useState(false);
   const [resending, setResending] = useState<string | null>(null); // invite id being resent
@@ -57,7 +58,7 @@ export function InvitesPage() {
     setSent(false);
     try {
       await createInvite.mutateAsync(form);
-      setForm({ email: '', recipientName: '', orgName: '', platformFeePercent: 0.05 });
+      setForm({ email: '', recipientName: '', orgName: '', industry: '', platformFeePercent: 0.05 });
       setSent(true);
     } catch (err: unknown) {
       const msg = (err as { response?: { data?: { message?: string } } })?.response?.data?.message;
@@ -100,6 +101,19 @@ export function InvitesPage() {
                   className="w-full text-sm border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-violet-500"
                   placeholder="Acme Dance Studio"
                 />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Industry</label>
+                <select
+                  value={form.industry}
+                  onChange={(e) => setForm({ ...form, industry: e.target.value })}
+                  className="w-full text-sm border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-violet-500"
+                >
+                  <option value="">Not set</option>
+                  {INDUSTRIES.map((i) => (
+                    <option key={i.value} value={i.value}>{i.label}</option>
+                  ))}
+                </select>
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Email</label>
