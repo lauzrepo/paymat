@@ -11,6 +11,7 @@ import crypto from 'crypto';
 import stripeConnectService from '../services/stripeConnectService';
 import { sendStripeOnboardingEmail, sendSuperAdminPasswordReset } from '../services/emailService';
 import logger from '../utils/logger';
+import { parseIndustry } from '../config/industries';
 
 // ---------------------------------------------------------------------------
 // Auth
@@ -203,6 +204,7 @@ export const getOrganization = asyncHandler(async (req: Request, res: Response) 
 
 export const createOrganization = asyncHandler(async (req: Request, res: Response) => {
   const { name, slug, type, timezone, adminEmail, adminPassword, adminName } = req.body;
+  const industry = parseIndustry(req.body.industry);
 
   if (!name || !slug || !adminEmail || !adminPassword) {
     throw new AppError(400, 'name, slug, adminEmail, and adminPassword are required');
@@ -215,7 +217,7 @@ export const createOrganization = asyncHandler(async (req: Request, res: Respons
 
   const org = await prisma.$transaction(async (tx) => {
     const organization = await tx.organization.create({
-      data: { name, slug, type: type ?? 'general', timezone: timezone ?? 'America/New_York' },
+      data: { name, slug, type: type ?? 'general', industry: industry ?? null, timezone: timezone ?? 'America/New_York' },
     });
 
     await tx.user.create({
@@ -237,6 +239,7 @@ export const createOrganization = asyncHandler(async (req: Request, res: Respons
 
 export const updateOrganization = asyncHandler(async (req: Request, res: Response) => {
   const { name, slug, type, timezone, logoUrl, primaryColor } = req.body;
+  const industry = parseIndustry(req.body.industry);
 
   if (slug) {
     const conflict = await prisma.organization.findFirst({
@@ -247,7 +250,7 @@ export const updateOrganization = asyncHandler(async (req: Request, res: Respons
 
   const org = await prisma.organization.update({
     where: { id: req.params.id as string },
-    data: { name, slug, type, timezone, logoUrl, primaryColor },
+    data: { name, slug, type, industry, timezone, logoUrl, primaryColor },
   });
 
   res.json({ status: 'success', data: { organization: org } });

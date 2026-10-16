@@ -8,6 +8,7 @@ import { Button } from '../../components/ui/Button';
 import { Badge } from '../../components/ui/Badge';
 import { Spinner } from '../../components/ui/Spinner';
 import { formatDate, formatCurrency } from '../../lib/utils';
+import { INDUSTRIES } from '../../lib/industries';
 
 const TIMEZONES = [
   'America/New_York', 'America/Chicago', 'America/Denver', 'America/Los_Angeles',
@@ -64,12 +65,12 @@ export function OrganizationDetailPage() {
       setBillingLoading(false);
     }
   };
-  const [form, setForm] = useState({ name: '', slug: '', type: '', timezone: '', primaryColor: '' });
+  const [form, setForm] = useState({ name: '', slug: '', type: '', industry: '', timezone: '', primaryColor: '' });
   const [saveError, setSaveError] = useState('');
 
   const startEdit = () => {
     if (!org) return;
-    setForm({ name: org.name, slug: org.slug, type: org.type, timezone: org.timezone, primaryColor: org.primaryColor ?? '' });
+    setForm({ name: org.name, slug: org.slug, type: org.type, industry: org.industry ?? '', timezone: org.timezone, primaryColor: org.primaryColor ?? '' });
     setSaveError('');
     setEditing(true);
   };
@@ -194,6 +195,19 @@ export function OrganizationDetailPage() {
                     onChange={(e) => setForm({ ...form, slug: e.target.value })}
                     className="w-full text-sm border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 font-mono bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-violet-500"
                   />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Industry</label>
+                  <select
+                    value={form.industry}
+                    onChange={(e) => setForm({ ...form, industry: e.target.value })}
+                    className="appearance-none bg-white dark:bg-gray-700 w-full text-sm border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-violet-500"
+                  >
+                    <option value="">Not set</option>
+                    {INDUSTRIES.map((i) => (
+                      <option key={i.value} value={i.value}>{i.label}</option>
+                    ))}
+                  </select>
                 </div>
                 <div className="grid grid-cols-2 gap-3">
                   <div>

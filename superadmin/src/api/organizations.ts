@@ -13,6 +13,7 @@ export const createOrganization = (body: {
   name: string;
   slug: string;
   type?: string;
+  industry?: string;
   timezone?: string;
   adminEmail: string;
   adminPassword: string;
@@ -24,6 +25,7 @@ export const updateOrganization = (id: string, body: {
   name?: string;
   slug?: string;
   type?: string;
+  industry?: string;
   timezone?: string;
   logoUrl?: string;
   primaryColor?: string;

@@ -6,6 +6,7 @@ export interface InviteToken {
   email: string;
   recipientName: string;
   orgName: string;
+  industry: string | null;
   usedAt: string | null;
   expiresAt: string;
   createdAt: string;
@@ -15,6 +16,7 @@ export interface CreateInviteInput {
   email: string;
   recipientName: string;
   orgName: string;
+  industry?: string;
   platformFeePercent?: number;
 }
 

@@ -136,6 +136,49 @@ describe('POST /api/programs', () => {
     });
   });
 
+  it('passes class pack, billing cycle and self-enrollment options through to prisma', async () => {
+    (prisma.program.create as jest.Mock).mockResolvedValue(PROGRAM_BASE);
+
+    const res = await request(app)
+      .post('/api/programs')
+      .set('x-organization-slug', 'test-org')
+      .set('Authorization', `Bearer ${makeToken()}`)
+      .send({
+        name: '12-session pack',
+        price: 420,
+        billingFrequency: 'one_time',
+        maxClasses: 12,
+        maxBillingCycles: 3,
+        allowSelfEnrollment: true,
+      });
+
+    expect(res.status).toBe(201);
+    const data = (prisma.program.create as jest.Mock).mock.calls[0][0].data;
+    expect(data).toMatchObject({
+      organizationId: 'org-1',
+      maxClasses: 12,
+      maxBillingCycles: 3,
+      allowSelfEnrollment: true,
+    });
+  });
+
+  it.each([
+    ['maxClasses', 0],
+    ['maxClasses', 1.5],
+    ['maxClasses', '12'],
+    ['maxBillingCycles', -1],
+    ['allowSelfEnrollment', 'yes'],
+  ])('returns 400 for invalid %s = %p', async (field, value) => {
+    const res = await request(app)
+      .post('/api/programs')
+      .set('x-organization-slug', 'test-org')
+      .set('Authorization', `Bearer ${makeToken()}`)
+      .send({ name: 'Bad', price: 10, billingFrequency: 'monthly', [field]: value });
+
+    expect(res.status).toBe(400);
+    expect(prisma.program.create).not.toHaveBeenCalled();
+  });
+
   it('returns 500 when name is missing (no validation layer on this route)', async () => {
     // The programs route has no validation middleware — the controller passes
     // the body straight to programService. A missing name reaches prisma.program.create
@@ -241,6 +284,21 @@ describe('PATCH /api/programs/:id', () => {
     expect(res.status).toBe(200);
     expect(res.body.status).toBe('success');
     expect(res.body.data.program).toMatchObject({ name: 'Advanced Soccer' });
+  });
+
+  it('updates class pack options, and null clears maxClasses', async () => {
+    (prisma.program.findFirst as jest.Mock).mockResolvedValue(PROGRAM_BASE);
+    (prisma.program.update as jest.Mock).mockResolvedValue(PROGRAM_BASE);
+
+    const res = await request(app)
+      .put('/api/programs/prog-1')
+      .set('x-organization-slug', 'test-org')
+      .set('Authorization', `Bearer ${makeToken()}`)
+      .send({ maxClasses: null, allowSelfEnrollment: true });
+
+    expect(res.status).toBe(200);
+    const data = (prisma.program.update as jest.Mock).mock.calls[0][0].data;
+    expect(data).toMatchObject({ maxClasses: null, allowSelfEnrollment: true });
   });
 
   it('returns 404 when updating a program that does not exist', async () => {
