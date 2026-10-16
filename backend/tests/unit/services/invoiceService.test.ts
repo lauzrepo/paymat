@@ -91,8 +91,9 @@ describe('invoiceService.createInvoice', () => {
     expect(callArg.data.invoiceNumber).toBe('INV-00001');
   });
 
-  it('generates a padded invoice number based on count + 1', async () => {
-    (prisma.invoice.count as jest.Mock).mockResolvedValue(99);
+  it('generates a padded invoice number one above the current highest', async () => {
+    (prisma.invoice.findFirst as jest.Mock).mockResolvedValue({ invoiceNumber: 'INV-00099' });
+    (prisma.invoice.findUnique as jest.Mock).mockResolvedValue(null);
     (prisma.invoice.create as jest.Mock).mockResolvedValue(makeInvoice({ invoiceNumber: 'INV-00100' }));
 
     await invoiceService.createInvoice({
