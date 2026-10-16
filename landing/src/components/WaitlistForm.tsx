@@ -54,7 +54,7 @@ export default function WaitlistForm() {
         value={email}
         onChange={e => setEmail(e.target.value)}
         placeholder="you@yourbusiness.com"
-        className="flex-1 px-4 py-3 rounded-xl text-sm outline-none border transition-colors"
+        className="flex-1 px-4 py-3 rounded-xl text-sm outline-hidden border transition-colors"
         style={{
           backgroundColor: 'var(--color-surface)',
           borderColor: status === 'error' ? '#ef4444' : 'var(--color-border)',
