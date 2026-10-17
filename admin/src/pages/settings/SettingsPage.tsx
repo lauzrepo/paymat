@@ -259,6 +259,7 @@ function TeamTab() {
                           variant="ghost"
                           size="sm"
                           className="text-red-500 hover:text-red-700"
+                          aria-label={`Remove ${m.email}`}
                           loading={revokeMutation.isPending && revokeMutation.variables === m.id}
                           onClick={() => handleRevoke(m)}
                         >
