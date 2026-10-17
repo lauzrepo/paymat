@@ -41,7 +41,6 @@ export function MateProvider({ children }: { children: ReactNode }) {
         setLoading(false);
       }
     },
-    // eslint-disable-next-line react-hooks/exhaustive-deps
     [messages, loading],
   );
 

@@ -134,3 +134,34 @@ describe('BillingPage', () => {
     await screen.findByText(/billing run failed/i);
   });
 });
+
+describe('BillingPage — reports', () => {
+  const STATEMENT = { statement: { summary: { totalCollected: 1234, totalInvoiced: 2000, outstanding: 766, invoicesCreated: 7, totalRefunded: 0 } } };
+
+  beforeEach(() => {
+    (apiClient.get as Mock).mockImplementation((url: string) => {
+      if (url === '/billing/status') return Promise.resolve({ data: { data: { billing: BILLING_INFO } } });
+      if (url === '/invoices/stats') return Promise.resolve({ data: { data: { stats: INVOICE_STATS } } });
+      if (url.startsWith('/billing/reports/monthly/')) return Promise.resolve({ data: { data: STATEMENT } });
+      return Promise.reject(new Error(`Unexpected GET ${url}`));
+    });
+  });
+
+  it('clears the preview when the report period changes', async () => {
+    renderWithProviders(<BillingPage />);
+    fireEvent.click(screen.getByRole('button', { name: 'Preview' }));
+    expect(await screen.findByText('Invoices created')).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: /annual/i }));
+    expect(screen.queryByText('Invoices created')).not.toBeInTheDocument();
+  });
+
+  it('keeps the preview when the already-selected period is clicked again', async () => {
+    renderWithProviders(<BillingPage />);
+    fireEvent.click(screen.getByRole('button', { name: 'Preview' }));
+    expect(await screen.findByText('Invoices created')).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Monthly' }));
+    expect(screen.getByText('Invoices created')).toBeInTheDocument();
+  });
+});
