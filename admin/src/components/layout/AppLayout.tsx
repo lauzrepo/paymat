@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { Outlet } from 'react-router-dom';
 import { Sidebar } from './Sidebar';
 import { Header } from './Header';
@@ -9,20 +9,17 @@ import { getStripeOnboardingLink } from '../../api/tenant';
 
 export function AppLayout() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  const [tipsOpen, setTipsOpen] = useState(false);
+  // null until the user opens or closes the panel; until then it opens automatically in sandbox mode
+  const [tipsToggled, setTipsToggled] = useState<boolean | null>(null);
   const [onboardingLoading, setOnboardingLoading] = useState(false);
   const { data: branding } = useTenantBranding();
   const isSandbox = branding?.sandboxMode !== false;
   const needsStripeOnboarding = branding?.sandboxMode === false && branding?.stripeConnectOnboardingComplete === false;
 
-  useEffect(() => {
-    if (branding?.sandboxMode === true && !localStorage.getItem('tips-dismissed')) {
-      setTipsOpen(true);
-    }
-  }, [branding?.sandboxMode]);
+  const tipsOpen = tipsToggled ?? (branding?.sandboxMode === true && !localStorage.getItem('tips-dismissed'));
 
   function handleTipsClose() {
-    setTipsOpen(false);
+    setTipsToggled(false);
     if (branding?.sandboxMode === true) {
       localStorage.setItem('tips-dismissed', '1');
     }
@@ -53,7 +50,7 @@ export function AppLayout() {
       <div className="flex-1 flex flex-col min-w-0">
         <Header
           onMenuClick={() => setSidebarOpen(true)}
-          onTipsClick={() => (tipsOpen ? handleTipsClose() : setTipsOpen(true))}
+          onTipsClick={() => (tipsOpen ? handleTipsClose() : setTipsToggled(true))}
           tipsOpen={tipsOpen}
         />
         {isSandbox && (

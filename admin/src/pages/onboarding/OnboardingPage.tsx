@@ -19,7 +19,9 @@ export function OnboardingPage() {
   const navigate = useNavigate();
   const token = searchParams.get('token') ?? '';
 
-  const [step, setStep] = useState<Step>('loading');
+  const [stepState, setStep] = useState<Step>('loading');
+  // Without a token there is nothing to verify, unless we're returning from Stripe Connect
+  const step: Step = !token && searchParams.get('stripe') !== 'connected' ? 'invalid' : stepState;
   const [invite, setInvite] = useState<InviteInfo | null>(null);
   const [errorMsg, setErrorMsg] = useState('');
 
@@ -57,7 +59,7 @@ export function OnboardingPage() {
       return;
     }
 
-    if (!token) { setStep('invalid'); return; }
+    if (!token) return;
 
     axios
       .get(`${API_BASE}/super-admin/invites/verify/${token}`)

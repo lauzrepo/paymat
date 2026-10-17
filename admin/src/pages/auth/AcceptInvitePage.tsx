@@ -20,7 +20,7 @@ export function AcceptInvitePage() {
   const [submitError, setSubmitError] = useState('');
 
   useEffect(() => {
-    if (!token) { setLoadError('Invalid invite link.'); setLoading(false); return; }
+    if (!token) return;
     getStaffInvite(token)
       .then((data) => { setInvite(data); setLoading(false); })
       .catch((err: { response?: { data?: { message?: string }; status?: number } }) => {
@@ -49,7 +49,9 @@ export function AcceptInvitePage() {
     }
   };
 
-  if (loading) {
+  const error = token ? loadError : 'Invalid invite link.';
+
+  if (loading && token) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900">
         <Spinner />
@@ -57,11 +59,11 @@ export function AcceptInvitePage() {
     );
   }
 
-  if (loadError) {
+  if (error) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900 p-4">
         <div className="w-full max-w-sm space-y-4">
-          <Alert variant="error">{loadError}</Alert>
+          <Alert variant="error">{error}</Alert>
           <p className="text-center text-sm text-gray-500">
             <a href="/login" className="text-indigo-600 hover:underline dark:text-indigo-400">Back to sign in</a>
           </p>
