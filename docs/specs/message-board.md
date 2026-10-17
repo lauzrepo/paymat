@@ -1,6 +1,6 @@
 # Spec: Message board + email/SMS notifications
 
-**Status:** Draft v1. Decisions 1–4 open (see [Open decisions](#open-decisions)). Nothing built yet.
+**Status:** Draft v2. All four [decisions](#decisions) confirmed. Nothing built yet.
 
 ## Problem
 
@@ -88,7 +88,7 @@ Skipped recipients are written as `skipped` rows so the report can say "6 not se
 - **`emailService.ts`** — add `sendPostNotification()` with escaped body, "View in portal" link, org name/logo, and an unsubscribe footer (CAN-SPAM). Set `List-Unsubscribe` header.
 
 ### Delivery pipeline
-1. Admin publishes with channels `['email','sms']` → `queueForPost` inserts rows in one transaction and returns counts. The HTTP request never calls Resend/Twilio directly.
+1. The author (admin or staff) publishes with channels `['email','sms']` → `queueForPost` inserts rows in one transaction and returns counts. The HTTP request never calls Resend/Twilio directly.
 2. A `node-cron` job every minute calls `drainOutbox()`: claim up to N rows (`UPDATE … SET status='sending' … WHERE status='queued' AND next_attempt_at <= now() … FOR UPDATE SKIP LOCKED RETURNING`), send, mark `sent` or back to `queued` with exponential backoff; `failed` after 5 attempts.
 3. Email uses Resend batch send (up to 100/call). SMS goes through a Twilio Messaging Service, which handles throughput queuing.
 4. Provider webhooks move rows to `delivered` / `failed`.
@@ -100,7 +100,7 @@ Skipped recipients are written as `skipped` rows so the report can say "6 not se
 `"{OrgName}: {title} — {first ~100 chars of body} {shortPortalLink} Reply STOP to opt out"`, kept to 2 segments (≤306 GSM-7 chars). The composer shows the rendered SMS and segment count.
 
 ### Routes
-Admin/staff (behind `resolveTenant` → `authenticateToken` → `requireRole('admin','staff')` → `messagingEnabled` check, 403 if off):
+Admin/staff (behind `resolveTenant` → `authenticateToken` → `requireRole('admin','staff')` → `messagingEnabled` check, 403 if off). Admins and staff have identical access here: anyone who can post can also send email and SMS (decision 4):
 - `GET/POST /api/posts`, `GET/PUT/DELETE /api/posts/:id`
 - `POST /api/posts/:id/publish` `{ notify: { email: bool, sms: bool } }`
 - `POST /api/posts/audience-preview` `{ audienceType, programIds, contactIds, familyIds }` → `{ total, email: {sendable, skipped: {...}}, sms: {...} }`
@@ -131,7 +131,7 @@ Add `list_posts` and `draft_post` tools (draft only — publishing/sending stays
 - **`/messages`** — list of posts (pinned first), status chips (draft / published), delivery summary per post ("42 emailed · 18 texted · 3 failed").
 - **Composer** (`/messages/new`, `/messages/:id/edit`): title, body, audience picker (All members / Programs multi-select / Specific contacts & families), pin toggle, and a **Notify** section with Email and SMS checkboxes (SMS disabled with a tooltip when `smsEnabled` is false). Live audience preview from `audience-preview`, rendered SMS preview + segment count, remaining SMS this month. Confirmation dialog before publishing with notifications.
 - **`/messages/:id`** — post view + delivery report table (contact, channel, status, reason/error, timestamps), "Retry failed" button.
-- **Contact detail page:** "Communication" card showing email/SMS status and consent timestamp. Admin can turn SMS on only by ticking "Member gave consent to receive texts" (stored as `admin_attested`). Admin can never override a STOP.
+- **Contact detail page:** "Communication" card showing email/SMS status and consent timestamp. Admin or staff can turn SMS on only by ticking "Member gave consent to receive texts" (stored as `admin_attested`, with the user who attested it in the audit log). Nobody can override a STOP.
 
 ## Member portal (`frontend/`)
 
@@ -148,7 +148,8 @@ On Organization detail: toggles for Messaging and SMS, SMS monthly limit input, 
 - Opt-in is explicit and recorded; STOP is honoured at the carrier (Twilio Advanced Opt-Out) *and* in our DB.
 - Emails include the org's name, a physical address footer (org setting, required by CAN-SPAM) and one-click unsubscribe.
 - Quiet hours: SMS rows queued between 9pm and 8am in the org's `timezone` get `next_attempt_at` pushed to 8am local.
-- The per-org monthly cap limits cost and spam exposure; only super admins can raise it.
+- The per-org monthly cap limits cost and spam exposure; only super admins can raise it. Because staff can send texts too, the cap is the main guard against a mistaken or excessive send.
+- Every publish that sends notifications writes an `AuditLog` entry (`POST_NOTIFIED`) with the author, channels and recipient counts, so admins can see which staff member sent what.
 
 ## Testing
 
@@ -166,13 +167,13 @@ On Organization detail: toggles for Messaging and SMS, SMS monthly limit input, 
 | 3. SMS | Twilio integration, phone normalisation + backfill script, opt-in UI, STOP/status webhooks, cap + quiet hours, `smsEnabled` flag | Yes, after toll-free verification is approved |
 | 4. Polish | Mate tools, retry UI, home widget, docs (`docs/admin-guide.md`, `docs/client-portal.md`) | — |
 
-## Open decisions
+## Decisions
 
-1. **Can members reply/comment on posts?** Recommendation: **no in v1** (one-way announcements). Comments bring in moderation, notifications on replies, and abuse reporting. Add later if orgs ask for it.
-2. **SMS sender: one shared platform number vs a number per org.** Recommendation: **shared toll-free number** with the org name prefixed on every message. A number per org gives better branding but means per-org registration, cost and onboarding friction.
-3. **Who pays for SMS?** Options: include it in the subscription up to the cap, or pass costs through (Stripe metered billing on the platform subscription). Recommendation: include ~500/month in the plan for v1, measure, then decide.
-4. **Can staff send notifications, or only admins?** Recommendation: staff can post to the board; only admins can attach SMS (email allowed for both).
+1. **Members can't reply or comment in v1.** Posts are one-way announcements. Comments would bring in moderation, reply notifications and abuse reporting. Revisit if orgs ask for it.
+2. **All orgs share one platform SMS number.** It's a verified toll-free number, and every text starts with the org name. A number per org would give better branding but means per-org registration, cost and onboarding friction.
+3. **SMS is included in the subscription up to ~500 texts per org per month** (`sms_monthly_limit`). We'll measure real usage before considering passing costs through (e.g. Stripe metered billing).
+4. **Anyone who can post can send email and SMS.** Admins and staff have the same messaging permissions. The monthly cap, the confirmation dialog, the opt-in rules and the audit log are the safeguards.
 
 ## Follow-ups
 
-Scheduled posts · post comments · attachments/images · push notifications · MMS · per-org SMS numbers · reusing the outbox for billing reminder SMS ("Your invoice is overdue") · two-way SMS inbox.
+Scheduled posts · post comments · an org setting to restrict SMS sending to admins · attachments/images · push notifications · MMS · per-org SMS numbers · reusing the outbox for billing reminder SMS ("Your invoice is overdue") · two-way SMS inbox.
