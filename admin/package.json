@@ -32,14 +32,6 @@
     "remark-gfm": "^4.0.1",
     "zod": "^4.6.5"
   },
-  "overrides": {
-    "vite-node": {
-      "vite": "^7.3.2"
-    },
-    "vitest": {
-      "vite": "^7.3.2"
-    }
-  },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
     "@playwright/test": "^1.62.0",

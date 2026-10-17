@@ -1,10 +1,11 @@
-import { screen } from '@testing-library/react';
+import { screen, within } from '@testing-library/react';
 import { vi, describe, it, expect, beforeEach, type Mock } from 'vitest';
 import { renderWithProviders, mockQuery, mockMutation } from '../../../test/renderWithProviders';
 import { ContactDetailPage } from '../ContactDetailPage';
 
 vi.mock('../../../hooks/useContacts', () => ({
   useContact: vi.fn(),
+  useUpdateContact: vi.fn(),
   useDeactivateContact: vi.fn(),
   useReactivateContact: vi.fn(),
   useDeleteContact: vi.fn(),
@@ -13,6 +14,7 @@ vi.mock('../../../hooks/useContacts', () => ({
 vi.mock('../../../api/contacts', () => ({
   initializeCardCheckout: vi.fn(),
   saveCardToken: vi.fn(),
+  resendPortalInvite: vi.fn(),
 }));
 
 vi.mock('../../../lib/queryClient', () => ({
@@ -30,6 +32,7 @@ vi.mock('react-router-dom', async () => {
 
 import {
   useContact,
+  useUpdateContact,
   useDeactivateContact,
   useReactivateContact,
   useDeleteContact,
@@ -54,6 +57,7 @@ const CONTACT = {
 
 beforeEach(() => {
   (useContact as Mock).mockReturnValue(mockQuery(CONTACT));
+  (useUpdateContact as Mock).mockReturnValue(mockMutation());
   (useDeactivateContact as Mock).mockReturnValue(mockMutation());
   (useReactivateContact as Mock).mockReturnValue(mockMutation());
   (useDeleteContact as Mock).mockReturnValue(mockMutation());
@@ -115,7 +119,8 @@ describe('ContactDetailPage', () => {
       }],
     }));
     renderWithProviders(<ContactDetailPage />);
-    expect(screen.getByText('Beginner Karate')).toBeInTheDocument();
+    const table = within(screen.getByRole('table'));
+    expect(table.getByText('Beginner Karate')).toBeInTheDocument();
   });
 
   it('shows no invoices message when invoices are empty', () => {
@@ -135,7 +140,8 @@ describe('ContactDetailPage', () => {
       }],
     }));
     renderWithProviders(<ContactDetailPage />);
-    expect(screen.getByText('INV-001')).toBeInTheDocument();
+    const table = within(screen.getByRole('table'));
+    expect(table.getByText('INV-001')).toBeInTheDocument();
   });
 
   it('shows deactivate button for active contacts', () => {

@@ -1,4 +1,4 @@
-import { screen } from '@testing-library/react';
+import { screen, within } from '@testing-library/react';
 import { vi, describe, it, expect, beforeEach, type Mock } from 'vitest';
 import { renderWithProviders, mockQuery } from '../../../test/renderWithProviders';
 import { DashboardPage } from '../DashboardPage';
@@ -14,6 +14,10 @@ vi.mock('../../../hooks/usePayments', () => ({
 
 vi.mock('../../../hooks/useContacts', () => ({
   useContacts: vi.fn(),
+}));
+
+vi.mock('../../../context/MateContext', () => ({
+  useMate: () => ({ submitMessage: vi.fn(), loading: false }),
 }));
 
 import { useInvoiceStats, useInvoices } from '../../../hooks/useInvoices';
@@ -80,9 +84,10 @@ describe('DashboardPage', () => {
 
   it('renders the overdue invoices table with data', () => {
     renderWithProviders(<DashboardPage />);
-    expect(screen.getByText('INV-00001')).toBeInTheDocument();
-    expect(screen.getByText('Jane Doe')).toBeInTheDocument();
-    expect(screen.getByText('$120.00')).toBeInTheDocument();
+    const table = within(screen.getByRole('table'));
+    expect(table.getByText('INV-00001')).toBeInTheDocument();
+    expect(table.getByText('Jane Doe')).toBeInTheDocument();
+    expect(table.getByText('$120.00')).toBeInTheDocument();
   });
 
   it('shows empty state when there are no overdue invoices', () => {
