@@ -1,4 +1,4 @@
-import { screen, fireEvent } from '@testing-library/react';
+import { screen, fireEvent, within } from '@testing-library/react';
 import { vi, describe, it, expect, beforeEach, type Mock } from 'vitest';
 import { renderWithProviders, mockQuery, mockMutation } from '../../../test/renderWithProviders';
 import { EnrollmentsPage } from '../EnrollmentsPage';
@@ -74,8 +74,9 @@ describe('EnrollmentsPage', () => {
 
   it('renders contact names in the table', () => {
     renderWithProviders(<EnrollmentsPage />);
-    expect(screen.getByText('Jane Doe')).toBeInTheDocument();
-    expect(screen.getByText('Liam Johnson')).toBeInTheDocument();
+    const table = within(screen.getByRole('table'));
+    expect(table.getByText('Jane Doe')).toBeInTheDocument();
+    expect(table.getByText('Liam Johnson')).toBeInTheDocument();
   });
 
   it('renders program names in the table', () => {
@@ -86,8 +87,9 @@ describe('EnrollmentsPage', () => {
 
   it('renders status badges', () => {
     renderWithProviders(<EnrollmentsPage />);
-    expect(screen.getByText('active')).toBeInTheDocument();
-    expect(screen.getByText('paused')).toBeInTheDocument();
+    const table = within(screen.getByRole('table'));
+    expect(table.getByText('active')).toBeInTheDocument();
+    expect(table.getByText('paused')).toBeInTheDocument();
   });
 
   it('shows loading spinner while fetching', () => {
@@ -123,11 +125,13 @@ describe('EnrollmentsPage', () => {
 
   it('shows a Pause button for active enrollments', () => {
     renderWithProviders(<EnrollmentsPage />);
-    expect(screen.getByRole('button', { name: /pause/i })).toBeInTheDocument();
+    const table = within(screen.getByRole('table'));
+    expect(table.getByRole('button', { name: /pause/i })).toBeInTheDocument();
   });
 
   it('shows a Resume button for paused enrollments', () => {
     renderWithProviders(<EnrollmentsPage />);
-    expect(screen.getByRole('button', { name: /resume/i })).toBeInTheDocument();
+    const table = within(screen.getByRole('table'));
+    expect(table.getByRole('button', { name: /resume/i })).toBeInTheDocument();
   });
 });

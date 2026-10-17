@@ -1,4 +1,4 @@
-import { screen, fireEvent } from '@testing-library/react';
+import { screen, fireEvent, within } from '@testing-library/react';
 import { vi, describe, it, expect, beforeEach, type Mock } from 'vitest';
 import { renderWithProviders, mockQuery, mockMutation } from '../../../test/renderWithProviders';
 import { ContactsPage } from '../ContactsPage';
@@ -73,19 +73,22 @@ describe('ContactsPage', () => {
 
   it('renders contact names in the table', () => {
     renderWithProviders(<ContactsPage />);
-    expect(screen.getByText('Jane Doe')).toBeInTheDocument();
-    expect(screen.getByText('Liam Johnson')).toBeInTheDocument();
+    const table = within(screen.getByRole('table'));
+    expect(table.getByText('Jane Doe')).toBeInTheDocument();
+    expect(table.getByText('Liam Johnson')).toBeInTheDocument();
   });
 
   it('renders contact email', () => {
     renderWithProviders(<ContactsPage />);
-    expect(screen.getByText('jane@example.com')).toBeInTheDocument();
+    const table = within(screen.getByRole('table'));
+    expect(table.getByText('jane@example.com')).toBeInTheDocument();
   });
 
   it('shows active/inactive status badges', () => {
     renderWithProviders(<ContactsPage />);
-    expect(screen.getByText('active')).toBeInTheDocument();
-    expect(screen.getByText('inactive')).toBeInTheDocument();
+    const table = within(screen.getByRole('table'));
+    expect(table.getByText('active')).toBeInTheDocument();
+    expect(table.getByText('inactive')).toBeInTheDocument();
   });
 
   it('shows loading spinner while fetching', () => {

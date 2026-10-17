@@ -7,6 +7,11 @@ vi.mock('axios', () => ({
   default: { get: vi.fn(), post: vi.fn() },
 }));
 
+vi.mock('../../../api/tenant', () => ({
+  getTenantBranding: vi.fn(),
+  getStripeOnboardingLink: vi.fn(),
+}));
+
 vi.mock('../../../store/authStore', () => ({
   authStore: { setSlug: vi.fn() },
 }));
@@ -86,7 +91,7 @@ describe('OnboardingPage', () => {
 
   it('shows done state after successful account creation', async () => {
     (axios.get as Mock).mockResolvedValue({ data: { data: { invite: INVITE } } });
-    (axios.post as Mock).mockResolvedValue({});
+    (axios.post as Mock).mockResolvedValue({ data: { data: {} } });
     renderWithProviders(<OnboardingPage />, { route: '/onboarding?token=abc123' });
     await waitFor(() => screen.getByText(/set up your account/i));
     const passwordInputs = document.querySelectorAll('input[type="password"]');

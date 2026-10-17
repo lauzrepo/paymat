@@ -1,8 +1,9 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useQuery, useMutation } from '@tanstack/react-query';
 import { UserMinus, Send, X, UserPlus } from 'lucide-react';
 import { useTenantBranding } from '../../hooks/useTenant';
 import { updateOrgSettings } from '../../api/tenant';
+import type { TenantBranding } from '../../api/tenant';
 import { getTeam, inviteStaff, revokeAccess, resendInvite, cancelInvite } from '../../api/team';
 import type { TeamMember, PendingInvite } from '../../api/team';
 import { useCurrentUser } from '../../hooks/useAuth';
@@ -25,22 +26,21 @@ type Tab = 'organization' | 'team';
 
 function OrgTab() {
   const { data: branding, isLoading } = useTenantBranding();
-  const [form, setForm] = useState({ name: '', type: '', timezone: '', primaryColor: '', logoUrl: '' });
+  if (isLoading) return null;
+  return <OrgForm branding={branding} />;
+}
+
+function OrgForm({ branding }: { branding?: TenantBranding }) {
+  const [form, setForm] = useState(() => ({
+    name: branding?.name ?? '',
+    type: branding?.type ?? '',
+    timezone: branding?.timezone ?? '',
+    primaryColor: branding?.primaryColor ?? '',
+    logoUrl: branding?.logoUrl ?? '',
+  }));
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
   const [error, setError] = useState('');
-
-  useEffect(() => {
-    if (branding) {
-      setForm({
-        name: branding.name ?? '',
-        type: branding.type ?? '',
-        timezone: branding.timezone ?? '',
-        primaryColor: branding.primaryColor ?? '',
-        logoUrl: branding.logoUrl ?? '',
-      });
-    }
-  }, [branding]);
 
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -57,8 +57,6 @@ function OrgTab() {
       setSaving(false);
     }
   };
-
-  if (isLoading) return null;
 
   return (
     <Card>
