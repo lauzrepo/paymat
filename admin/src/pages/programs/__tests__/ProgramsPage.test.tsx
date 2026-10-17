@@ -1,4 +1,4 @@
-import { screen, fireEvent } from '@testing-library/react';
+import { screen, fireEvent, within } from '@testing-library/react';
 import { vi, describe, it, expect, beforeEach, type Mock } from 'vitest';
 import { renderWithProviders, mockQuery, mockMutation } from '../../../test/renderWithProviders';
 import { ProgramsPage } from '../ProgramsPage';
@@ -57,8 +57,9 @@ describe('ProgramsPage', () => {
 
   it('renders program names in the table', () => {
     renderWithProviders(<ProgramsPage />);
-    expect(screen.getByText('Beginner Karate')).toBeInTheDocument();
-    expect(screen.getByText('Advanced Karate')).toBeInTheDocument();
+    const table = within(screen.getByRole('table'));
+    expect(table.getByText('Beginner Karate')).toBeInTheDocument();
+    expect(table.getByText('Advanced Karate')).toBeInTheDocument();
   });
 
   it('shows program prices', () => {
@@ -108,9 +109,10 @@ describe('ProgramsPage', () => {
 
   it('renders Edit and Delete buttons for each program', () => {
     renderWithProviders(<ProgramsPage />);
-    const editButtons = screen.getAllByRole('button', { name: /edit/i });
+    const table = within(screen.getByRole('table'));
+    const editButtons = table.getAllByRole('button', { name: /edit/i });
     expect(editButtons.length).toBe(2);
-    const deleteButtons = screen.getAllByRole('button', { name: /delete/i });
+    const deleteButtons = table.getAllByRole('button', { name: /delete/i });
     expect(deleteButtons.length).toBe(2);
   });
 });

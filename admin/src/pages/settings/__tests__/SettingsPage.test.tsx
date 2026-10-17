@@ -1,14 +1,10 @@
 import { screen, fireEvent, waitFor } from '@testing-library/react';
 import { vi, describe, it, expect, beforeEach, type Mock } from 'vitest';
-import { renderWithProviders, mockQuery, mockMutation } from '../../../test/renderWithProviders';
+import { renderWithProviders, mockQuery } from '../../../test/renderWithProviders';
 import { SettingsPage } from '../SettingsPage';
 
 vi.mock('../../../hooks/useTenant', () => ({
   useTenantBranding: vi.fn(),
-}));
-
-vi.mock('../../../hooks/useBilling', () => ({
-  useRunBilling: vi.fn(),
 }));
 
 vi.mock('../../../api/tenant', () => ({
@@ -20,7 +16,6 @@ vi.mock('../../../lib/queryClient', () => ({
 }));
 
 import { useTenantBranding } from '../../../hooks/useTenant';
-import { useRunBilling } from '../../../hooks/useBilling';
 import { updateOrgSettings } from '../../../api/tenant';
 
 const BRANDING = {
@@ -31,14 +26,9 @@ const BRANDING = {
   logoUrl: '',
 };
 
-const RUN_RESULT = { invoicesCreated: 3, autoCharged: 2, errors: 0, activeEnrollments: 15 };
-
 beforeEach(() => {
   vi.clearAllMocks();
   (useTenantBranding as Mock).mockReturnValue(mockQuery(BRANDING));
-  (useRunBilling as Mock).mockReturnValue(
-    mockMutation({ mutateAsync: vi.fn().mockResolvedValue(RUN_RESULT) })
-  );
   (updateOrgSettings as Mock).mockResolvedValue(BRANDING);
 });
 
@@ -48,11 +38,11 @@ describe('SettingsPage', () => {
     expect(screen.getByRole('heading', { name: 'Settings' })).toBeInTheDocument();
   });
 
-  it('renders nothing while branding data is loading', () => {
+  it('hides the organization form while branding data is loading', () => {
     (useTenantBranding as Mock).mockReturnValue({ data: undefined, isLoading: true });
-    const { container } = renderWithProviders(<SettingsPage />);
-    // SettingsPage returns null during load — only the root div exists
-    expect(container.firstChild).toBeNull();
+    renderWithProviders(<SettingsPage />);
+    expect(screen.getByRole('heading', { name: 'Settings' })).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /save/i })).not.toBeInTheDocument();
   });
 
   it('pre-fills org name input from branding data', () => {
@@ -78,25 +68,6 @@ describe('SettingsPage', () => {
     renderWithProviders(<SettingsPage />);
     fireEvent.click(screen.getByRole('button', { name: /save/i }));
     await screen.findByText(/settings saved/i);
-  });
-
-  it('renders the recurring billing section', () => {
-    renderWithProviders(<SettingsPage />);
-    expect(screen.getByText(/recurring billing/i)).toBeInTheDocument();
-  });
-
-  it('has a Run billing now button', () => {
-    renderWithProviders(<SettingsPage />);
-    expect(screen.getByRole('button', { name: /run billing now/i })).toBeInTheDocument();
-  });
-
-  it('shows billing result after run', async () => {
-    const mutateAsync = vi.fn().mockResolvedValue(RUN_RESULT);
-    (useRunBilling as Mock).mockReturnValue(mockMutation({ mutateAsync }));
-    renderWithProviders(<SettingsPage />);
-    fireEvent.click(screen.getByRole('button', { name: /run billing now/i }));
-    await waitFor(() => expect(mutateAsync).toHaveBeenCalled());
-    await screen.findByText(/3 invoice/i);
   });
 
   it('shows a timezone selector', () => {

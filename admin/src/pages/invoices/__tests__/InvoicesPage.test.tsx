@@ -1,4 +1,4 @@
-import { screen, fireEvent } from '@testing-library/react';
+import { screen, fireEvent, within } from '@testing-library/react';
 import { vi, describe, it, expect, beforeEach, type Mock } from 'vitest';
 import { renderWithProviders, mockQuery, mockMutation } from '../../../test/renderWithProviders';
 import { InvoicesPage } from '../InvoicesPage';
@@ -82,24 +82,28 @@ describe('InvoicesPage', () => {
 
   it('renders invoice numbers in the table', () => {
     renderWithProviders(<InvoicesPage />);
-    expect(screen.getByText('INV-00001')).toBeInTheDocument();
-    expect(screen.getByText('INV-00002')).toBeInTheDocument();
+    const table = within(screen.getByRole('table'));
+    expect(table.getByText('INV-00001')).toBeInTheDocument();
+    expect(table.getByText('INV-00002')).toBeInTheDocument();
   });
 
   it('shows contact name for contact-billed invoices', () => {
     renderWithProviders(<InvoicesPage />);
-    expect(screen.getByText('Jane Doe')).toBeInTheDocument();
+    const table = within(screen.getByRole('table'));
+    expect(table.getByText('Jane Doe')).toBeInTheDocument();
   });
 
   it('shows family name for family-billed invoices', () => {
     renderWithProviders(<InvoicesPage />);
-    expect(screen.getByText('Johnson Family')).toBeInTheDocument();
+    const table = within(screen.getByRole('table'));
+    expect(table.getByText('Johnson Family')).toBeInTheDocument();
   });
 
   it('shows status badges', () => {
     renderWithProviders(<InvoicesPage />);
-    expect(screen.getByText('sent')).toBeInTheDocument();
-    expect(screen.getByText('paid')).toBeInTheDocument();
+    const table = within(screen.getByRole('table'));
+    expect(table.getByText('sent')).toBeInTheDocument();
+    expect(table.getByText('paid')).toBeInTheDocument();
   });
 
   it('shows loading spinner while fetching', () => {
