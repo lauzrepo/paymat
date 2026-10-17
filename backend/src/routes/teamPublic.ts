@@ -16,10 +16,10 @@ router.get('/invite/:token', asyncHandler(async (req, res) => {
 
   const org = await prisma.organization.findUnique({ where: { id: invite.organizationId }, select: { name: true } });
 
-  res.json({ status: 'success', data: { email: invite.email, orgName: org!.name } });
+  res.json({ status: 'success', data: { email: invite.email, role: invite.role, orgName: org!.name } });
 }));
 
-// POST /api/team/invite/:token/accept — create staff User, mark invite used (no auth, no tenant)
+// POST /api/team/invite/:token/accept — create User with the invite's role, mark invite used (no auth, no tenant)
 router.post('/invite/:token/accept', asyncHandler(async (req, res) => {
   const { firstName, lastName, password } = req.body;
   if (!firstName || !lastName || !password) {
@@ -47,7 +47,7 @@ router.post('/invite/:token/accept', asyncHandler(async (req, res) => {
         passwordHash,
         firstName,
         lastName,
-        role: 'staff',
+        role: invite.role,
       },
     }),
     prisma.staffInvite.update({ where: { id: invite.id }, data: { usedAt: new Date() } }),
