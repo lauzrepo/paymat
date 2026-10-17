@@ -40,7 +40,7 @@ function makeToken(userId = 'user-admin', role = 'admin') {
 }
 
 const pendingInvite = (overrides = {}) => ({
-  id: 'invite-1', email: 'newstaff@test.com', token: 'tok-abc',
+  id: 'invite-1', email: 'newstaff@test.com', token: 'tok-abc', role: 'staff',
   organizationId: 'org-1', invitedBy: 'user-admin',
   usedAt: null, createdAt: new Date(),
   organization: { name: 'Test Org' },
@@ -101,6 +101,34 @@ describe('POST /api/team/invite', () => {
 
     expect(res.status).toBe(201);
     expect(res.body.data.invite.email).toBe('newstaff@test.com');
+  });
+
+  it('stores the admin role when inviting an admin', async () => {
+    (prisma.user.findFirst as jest.Mock).mockResolvedValue(null);
+    (prisma.user.findUnique as jest.Mock).mockResolvedValue(ADMIN_USER);
+    (prisma.staffInvite.create as jest.Mock).mockResolvedValue(pendingInvite({ role: 'admin' }));
+
+    const res = await request(app)
+      .post('/api/team/invite')
+      .set('Authorization', `Bearer ${makeToken()}`)
+      .set('x-organization-slug', 'test-org')
+      .send({ email: 'newstaff@test.com', role: 'admin' });
+
+    expect(res.status).toBe(201);
+    expect(res.body.data.invite.role).toBe('admin');
+    expect(prisma.staffInvite.create).toHaveBeenCalledWith({
+      data: expect.objectContaining({ role: 'admin' }),
+    });
+  });
+
+  it('returns 400 for an invalid role', async () => {
+    const res = await request(app)
+      .post('/api/team/invite')
+      .set('Authorization', `Bearer ${makeToken()}`)
+      .set('x-organization-slug', 'test-org')
+      .send({ email: 'newstaff@test.com', role: 'client' });
+
+    expect(res.status).toBe(400);
   });
 
   it('returns 409 when a user with that email already exists', async () => {
@@ -192,6 +220,90 @@ describe('DELETE /api/team/invite/:id', () => {
 });
 
 // ── DELETE /api/team/:userId ──────────────────────────────────────────────────
+
+describe('PATCH /api/team/:userId', () => {
+  it('promotes a staff member to admin and writes an audit log', async () => {
+    (prisma.user.findFirst as jest.Mock).mockResolvedValue(STAFF_USER);
+    (prisma.user.update as jest.Mock).mockResolvedValue({ ...STAFF_USER, role: 'admin' });
+
+    const res = await request(app)
+      .patch('/api/team/user-staff')
+      .set('Authorization', `Bearer ${makeToken()}`)
+      .set('x-organization-slug', 'test-org')
+      .send({ role: 'admin' });
+
+    expect(res.status).toBe(200);
+    expect(res.body.data.member.role).toBe('admin');
+    expect(prisma.user.update).toHaveBeenCalledWith(expect.objectContaining({
+      where: { id: 'user-staff' },
+      data: { role: 'admin' },
+    }));
+    expect(prisma.auditLog.create).toHaveBeenCalledWith({
+      data: expect.objectContaining({
+        action: 'TEAM_ROLE_CHANGED',
+        metadata: { targetUserId: 'user-staff', from: 'staff', to: 'admin' },
+      }),
+    });
+  });
+
+  it('demotes another admin to staff', async () => {
+    const otherAdmin = { ...ADMIN_USER, id: 'user-admin-2', email: 'admin2@test.com' };
+    (prisma.user.findFirst as jest.Mock).mockResolvedValue(otherAdmin);
+    (prisma.user.update as jest.Mock).mockResolvedValue({ ...otherAdmin, role: 'staff' });
+
+    const res = await request(app)
+      .patch('/api/team/user-admin-2')
+      .set('Authorization', `Bearer ${makeToken()}`)
+      .set('x-organization-slug', 'test-org')
+      .send({ role: 'staff' });
+
+    expect(res.status).toBe(200);
+    expect(res.body.data.member.role).toBe('staff');
+  });
+
+  it('returns 400 when admin tries to change their own role', async () => {
+    const res = await request(app)
+      .patch('/api/team/user-admin')
+      .set('Authorization', `Bearer ${makeToken()}`)
+      .set('x-organization-slug', 'test-org')
+      .send({ role: 'staff' });
+
+    expect(res.status).toBe(400);
+    expect(prisma.user.update).not.toHaveBeenCalled();
+  });
+
+  it('returns 400 for an invalid role', async () => {
+    const res = await request(app)
+      .patch('/api/team/user-staff')
+      .set('Authorization', `Bearer ${makeToken()}`)
+      .set('x-organization-slug', 'test-org')
+      .send({ role: 'client' });
+
+    expect(res.status).toBe(400);
+  });
+
+  it('returns 404 when user not found in org', async () => {
+    (prisma.user.findFirst as jest.Mock).mockResolvedValue(null);
+
+    const res = await request(app)
+      .patch('/api/team/nobody')
+      .set('Authorization', `Bearer ${makeToken()}`)
+      .set('x-organization-slug', 'test-org')
+      .send({ role: 'admin' });
+
+    expect(res.status).toBe(404);
+  });
+
+  it('returns 403 for staff role', async () => {
+    const res = await request(app)
+      .patch('/api/team/user-staff')
+      .set('Authorization', `Bearer ${makeToken('user-staff', 'staff')}`)
+      .set('x-organization-slug', 'test-org')
+      .send({ role: 'admin' });
+
+    expect(res.status).toBe(403);
+  });
+});
 
 describe('DELETE /api/team/:userId', () => {
   it('returns 200 and soft-deletes the team member', async () => {
@@ -288,6 +400,23 @@ describe('POST /api/team/invite/:token/accept', () => {
 
     expect(res.status).toBe(201);
     expect(res.body.status).toBe('success');
+  });
+
+  it('creates an admin user when the invite role is admin', async () => {
+    (prisma.staffInvite.findUnique as jest.Mock).mockResolvedValue(pendingInvite({ role: 'admin' }));
+    (prisma.user.findFirst as jest.Mock).mockResolvedValue(null);
+    (prisma.$transaction as jest.Mock).mockImplementation((ops: any[]) => Promise.all(ops));
+    (prisma.user.create as jest.Mock).mockResolvedValue({ ...ADMIN_USER, email: 'newstaff@test.com' });
+    (prisma.staffInvite.update as jest.Mock).mockResolvedValue({ ...pendingInvite(), usedAt: new Date() });
+
+    const res = await request(app)
+      .post('/api/team/invite/tok-abc/accept')
+      .send(validBody);
+
+    expect(res.status).toBe(201);
+    expect(prisma.user.create).toHaveBeenCalledWith({
+      data: expect.objectContaining({ role: 'admin' }),
+    });
   });
 
   it('returns 400 when required fields are missing', async () => {

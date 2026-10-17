@@ -1,14 +1,15 @@
-import { screen } from '@testing-library/react';
+import { screen, within } from '@testing-library/react';
 import { vi, describe, it, expect, beforeEach, type Mock } from 'vitest';
-import { renderWithProviders, mockQuery } from '../../../test/renderWithProviders';
+import { renderWithProviders, mockQuery, mockMutation } from '../../../test/renderWithProviders';
 import { PaymentsPage } from '../PaymentsPage';
 
 vi.mock('../../../hooks/usePayments', () => ({
   usePayments: vi.fn(),
   usePaymentStats: vi.fn(),
+  useRefundPayment: vi.fn(),
 }));
 
-import { usePayments, usePaymentStats } from '../../../hooks/usePayments';
+import { usePayments, usePaymentStats, useRefundPayment } from '../../../hooks/usePayments';
 
 const STATS = { total: 30, succeeded: 27, totalAmount: 9800 };
 
@@ -35,6 +36,7 @@ const PAYMENTS = [
 
 beforeEach(() => {
   (usePayments as Mock).mockReturnValue(mockQuery({ items: PAYMENTS, total: 2 }));
+  (useRefundPayment as Mock).mockReturnValue(mockMutation());
   (usePaymentStats as Mock).mockReturnValue(mockQuery(STATS));
 });
 
@@ -64,20 +66,23 @@ describe('PaymentsPage', () => {
 
   it('renders payment amounts formatted as currency', () => {
     renderWithProviders(<PaymentsPage />);
-    expect(screen.getByText('$150.00')).toBeInTheDocument();
-    expect(screen.getByText('$120.00')).toBeInTheDocument();
+    const table = within(screen.getByRole('table'));
+    expect(table.getByText('$150.00')).toBeInTheDocument();
+    expect(table.getByText('$120.00')).toBeInTheDocument();
   });
 
   it('renders payment method types', () => {
     renderWithProviders(<PaymentsPage />);
-    expect(screen.getByText('card')).toBeInTheDocument();
-    expect(screen.getByText('cash')).toBeInTheDocument();
+    const table = within(screen.getByRole('table'));
+    expect(table.getByText('card')).toBeInTheDocument();
+    expect(table.getByText('cash')).toBeInTheDocument();
   });
 
   it('renders status badges', () => {
     renderWithProviders(<PaymentsPage />);
-    expect(screen.getByText('succeeded')).toBeInTheDocument();
-    expect(screen.getByText('refunded')).toBeInTheDocument();
+    const table = within(screen.getByRole('table'));
+    expect(table.getByText('succeeded')).toBeInTheDocument();
+    expect(table.getByText('refunded')).toBeInTheDocument();
   });
 
   it('shows loading spinner while fetching', () => {

@@ -1,4 +1,4 @@
-import { screen, fireEvent, waitFor } from '@testing-library/react';
+import { screen, fireEvent, waitFor, within } from '@testing-library/react';
 import { vi, describe, it, expect, beforeEach, type Mock } from 'vitest';
 import { renderWithProviders, mockQuery, mockMutation } from '../../../test/renderWithProviders';
 import { FeedbackPage } from '../FeedbackPage';
@@ -60,8 +60,9 @@ describe('FeedbackPage', () => {
 
   it('renders submission subjects in the table', () => {
     renderWithProviders(<FeedbackPage />);
-    expect(screen.getByText('Login broken')).toBeInTheDocument();
-    expect(screen.getByText('Love the new invoices')).toBeInTheDocument();
+    const table = within(screen.getByRole('table'));
+    expect(table.getByText('Login broken')).toBeInTheDocument();
+    expect(table.getByText('Love the new invoices')).toBeInTheDocument();
   });
 
   it('shows the submitter name for anonymous submissions', () => {

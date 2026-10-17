@@ -1,4 +1,4 @@
-import { screen, fireEvent, waitFor } from '@testing-library/react';
+import { screen, fireEvent, waitFor, within } from '@testing-library/react';
 import { vi, describe, it, expect, beforeEach, type Mock } from 'vitest';
 import { renderWithProviders, mockQuery, mockMutation } from '../../../test/renderWithProviders';
 import { InvoiceDetailPage } from '../InvoiceDetailPage';
@@ -95,7 +95,8 @@ describe('InvoiceDetailPage', () => {
 
   it('renders line items table', () => {
     renderWithProviders(<InvoiceDetailPage />);
-    expect(screen.getByText('Beginner Karate - Jan')).toBeInTheDocument();
+    const table = within(screen.getAllByRole('table')[0]);
+    expect(table.getByText('Beginner Karate - Jan')).toBeInTheDocument();
   });
 
   it('renders bill-to contact link', () => {
@@ -119,8 +120,9 @@ describe('InvoiceDetailPage', () => {
       }],
     }));
     renderWithProviders(<InvoiceDetailPage />);
-    expect(screen.getByText('cash')).toBeInTheDocument();
-    expect(screen.getByText('succeeded')).toBeInTheDocument();
+    const table = within(screen.getAllByRole('table')[1]);
+    expect(table.getByText('cash')).toBeInTheDocument();
+    expect(table.getByText('succeeded')).toBeInTheDocument();
   });
 
   it('shows Record payment and Void invoice buttons for actionable invoices', () => {
@@ -160,7 +162,8 @@ describe('InvoiceDetailPage', () => {
       }],
     }));
     renderWithProviders(<InvoiceDetailPage />);
-    expect(screen.getByRole('button', { name: /refund/i })).toBeInTheDocument();
+    const table = within(screen.getAllByRole('table')[1]);
+    expect(table.getByRole('button', { name: /refund/i })).toBeInTheDocument();
   });
 
   it('shows Download PDF button', async () => {

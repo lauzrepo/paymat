@@ -8,6 +8,10 @@ import logger from '../utils/logger';
 
 const router = Router();
 
+const TEAM_ROLES = ['admin', 'staff'] as const;
+type TeamRole = typeof TEAM_ROLES[number];
+const isTeamRole = (role: unknown): role is TeamRole => TEAM_ROLES.includes(role as TeamRole);
+
 router.use(authenticateToken);
 router.use(requireRole('admin'));
 
@@ -21,7 +25,7 @@ router.get('/', asyncHandler(async (req, res) => {
     }),
     prisma.staffInvite.findMany({
       where: { organizationId: req.organization!.id, usedAt: null },
-      select: { id: true, email: true, createdAt: true },
+      select: { id: true, email: true, role: true, createdAt: true },
       orderBy: { createdAt: 'desc' },
     }),
   ]);
@@ -29,10 +33,11 @@ router.get('/', asyncHandler(async (req, res) => {
   res.json({ status: 'success', data: { members, pendingInvites } });
 }));
 
-// POST /api/team/invite — send a staff invite email
+// POST /api/team/invite — send a team invite email (role defaults to staff)
 router.post('/invite', asyncHandler(async (req, res) => {
-  const { email } = req.body;
+  const { email, role = 'staff' } = req.body;
   if (!email || typeof email !== 'string') throw new AppError(400, 'Email is required');
+  if (!isTeamRole(role)) throw new AppError(400, 'Role must be admin or staff');
 
   const existing = await prisma.user.findFirst({
     where: { organizationId: req.organization!.id, email, deletedAt: null },
@@ -45,7 +50,7 @@ router.post('/invite', asyncHandler(async (req, res) => {
   ]);
 
   const invite = await prisma.staffInvite.create({
-    data: { organizationId: req.organization!.id, email, invitedBy: req.user!.userId },
+    data: { organizationId: req.organization!.id, email, role, invitedBy: req.user!.userId },
   });
 
   const adminName = `${adminUser?.firstName ?? ''} ${adminUser?.lastName ?? ''}`.trim() || adminUser?.email || req.user!.email;
@@ -54,7 +59,7 @@ router.post('/invite', asyncHandler(async (req, res) => {
   sendStaffInvite(email, { adminName, orgName: org!.name, acceptUrl })
     .catch((err) => logger.warn('[StaffInvite] Failed to send invite email', { err, inviteId: invite.id }));
 
-  res.status(201).json({ status: 'success', data: { invite: { id: invite.id, email: invite.email, createdAt: invite.createdAt } } });
+  res.status(201).json({ status: 'success', data: { invite: { id: invite.id, email: invite.email, role: invite.role, createdAt: invite.createdAt } } });
 }));
 
 // POST /api/team/invite/:id/resend — resend the email for a pending invite
@@ -89,6 +94,44 @@ router.delete('/invite/:id', asyncHandler(async (req, res) => {
   await prisma.staffInvite.delete({ where: { id: invite.id } });
 
   res.json({ status: 'success', message: 'Invite cancelled' });
+}));
+
+// PATCH /api/team/:userId — change a team member's role between admin and staff
+router.patch('/:userId', asyncHandler(async (req, res) => {
+  const userId = req.params.userId as string;
+  const { role } = req.body;
+
+  if (!isTeamRole(role)) throw new AppError(400, 'Role must be admin or staff');
+  // The caller is always an admin, so blocking self-changes guarantees the org keeps at least one admin
+  if (userId === req.user!.userId) {
+    throw new AppError(400, 'You cannot change your own role');
+  }
+
+  const member = await prisma.user.findFirst({
+    where: { id: userId, organizationId: req.organization!.id, role: { not: 'client' }, deletedAt: null },
+  });
+  if (!member) throw new AppError(404, 'Team member not found');
+
+  const updated = await prisma.user.update({
+    where: { id: userId },
+    data: { role },
+    select: { id: true, email: true, firstName: true, lastName: true, role: true, createdAt: true },
+  });
+
+  if (member.role !== role) {
+    await prisma.auditLog.create({
+      data: {
+        organizationId: req.organization!.id,
+        userId: req.user!.userId,
+        action: 'TEAM_ROLE_CHANGED',
+        ipAddress: req.ip,
+        userAgent: req.headers['user-agent'],
+        metadata: { targetUserId: userId, from: member.role, to: role },
+      },
+    });
+  }
+
+  res.json({ status: 'success', data: { member: updated } });
 }));
 
 // DELETE /api/team/:userId — revoke a team member's access (soft delete)

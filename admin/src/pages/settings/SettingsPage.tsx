@@ -1,10 +1,11 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useQuery, useMutation } from '@tanstack/react-query';
 import { UserMinus, Send, X, UserPlus } from 'lucide-react';
 import { useTenantBranding } from '../../hooks/useTenant';
 import { updateOrgSettings } from '../../api/tenant';
-import { getTeam, inviteStaff, revokeAccess, resendInvite, cancelInvite } from '../../api/team';
-import type { TeamMember, PendingInvite } from '../../api/team';
+import type { TenantBranding } from '../../api/tenant';
+import { getTeam, inviteStaff, changeRole, revokeAccess, resendInvite, cancelInvite } from '../../api/team';
+import type { TeamMember, PendingInvite, TeamRole } from '../../api/team';
 import { useCurrentUser } from '../../hooks/useAuth';
 import { queryClient } from '../../lib/queryClient';
 import { Card, CardHeader, CardBody } from '../../components/ui/Card';
@@ -25,22 +26,21 @@ type Tab = 'organization' | 'team';
 
 function OrgTab() {
   const { data: branding, isLoading } = useTenantBranding();
-  const [form, setForm] = useState({ name: '', type: '', timezone: '', primaryColor: '', logoUrl: '' });
+  if (isLoading) return null;
+  return <OrgForm branding={branding} />;
+}
+
+function OrgForm({ branding }: { branding?: TenantBranding }) {
+  const [form, setForm] = useState(() => ({
+    name: branding?.name ?? '',
+    type: branding?.type ?? '',
+    timezone: branding?.timezone ?? '',
+    primaryColor: branding?.primaryColor ?? '',
+    logoUrl: branding?.logoUrl ?? '',
+  }));
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
   const [error, setError] = useState('');
-
-  useEffect(() => {
-    if (branding) {
-      setForm({
-        name: branding.name ?? '',
-        type: branding.type ?? '',
-        timezone: branding.timezone ?? '',
-        primaryColor: branding.primaryColor ?? '',
-        logoUrl: branding.logoUrl ?? '',
-      });
-    }
-  }, [branding]);
 
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -57,8 +57,6 @@ function OrgTab() {
       setSaving(false);
     }
   };
-
-  if (isLoading) return null;
 
   return (
     <Card>
@@ -138,21 +136,33 @@ function OrgTab() {
 
 function TeamTab() {
   const { data, isLoading, error: fetchError } = useQuery({ queryKey: ['team'], queryFn: getTeam });
+  const { data: currentUser } = useCurrentUser();
   const [inviteEmail, setInviteEmail] = useState('');
+  const [inviteRole, setInviteRole] = useState<TeamRole>('staff');
+  const [roleError, setRoleError] = useState('');
   const [inviteError, setInviteError] = useState('');
   const [inviteSuccess, setInviteSuccess] = useState('');
 
   const inviteMutation = useMutation({
-    mutationFn: () => inviteStaff(inviteEmail.trim()),
+    mutationFn: () => inviteStaff(inviteEmail.trim(), inviteRole),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['team'] });
       setInviteEmail('');
+      setInviteRole('staff');
       setInviteError('');
       setInviteSuccess('Invite sent.');
       setTimeout(() => setInviteSuccess(''), 4000);
     },
     onError: (err: { response?: { data?: { message?: string } } }) => {
       setInviteError(err.response?.data?.message ?? 'Failed to send invite.');
+    },
+  });
+
+  const roleMutation = useMutation({
+    mutationFn: ({ userId, role }: { userId: string; role: TeamRole }) => changeRole(userId, role),
+    onSuccess: () => { setRoleError(''); queryClient.invalidateQueries({ queryKey: ['team'] }); },
+    onError: (err: { response?: { data?: { message?: string } } }) => {
+      setRoleError(err.response?.data?.message ?? 'Failed to change role.');
     },
   });
 
@@ -179,6 +189,14 @@ function TeamTab() {
     inviteMutation.mutate();
   };
 
+  const handleRoleChange = (member: TeamMember, role: TeamRole) => {
+    const prompt = role === 'admin'
+      ? `Make ${member.email} an admin? Admins can manage billing, programs, settings and the team.`
+      : `Change ${member.email} to staff? They will lose access to billing, settings and team management.`;
+    if (!window.confirm(prompt)) return;
+    roleMutation.mutate({ userId: member.id, role });
+  };
+
   const handleRevoke = (member: TeamMember) => {
     if (!window.confirm(`Remove access for ${member.email}? They will no longer be able to sign in.`)) return;
     revokeMutation.mutate(member.id);
@@ -195,6 +213,7 @@ function TeamTab() {
           <h2 className="text-base font-semibold text-gray-900 dark:text-gray-100">Team members</h2>
         </CardHeader>
         <CardBody className="p-0">
+          {roleError && <Alert variant="error" className="m-4">{roleError}</Alert>}
           {!data?.members.length ? (
             <p className="px-6 py-6 text-sm text-gray-500 dark:text-gray-400">No team members yet.</p>
           ) : (
@@ -216,15 +235,29 @@ function TeamTab() {
                     </td>
                     <td className="px-6 py-3 text-gray-600 dark:text-gray-300">{m.email}</td>
                     <td className="px-6 py-3">
-                      <Badge variant={m.role === 'admin' ? 'blue' : 'gray'}>{m.role}</Badge>
+                      {m.id === currentUser?.id ? (
+                        <Badge variant={m.role === 'admin' ? 'blue' : 'gray'}>{m.role} (you)</Badge>
+                      ) : (
+                        <select
+                          aria-label={`Role for ${m.email}`}
+                          value={m.role}
+                          disabled={roleMutation.isPending && roleMutation.variables?.userId === m.id}
+                          onChange={(e) => handleRoleChange(m, e.target.value as TeamRole)}
+                          className="appearance-none bg-white dark:bg-gray-700 dark:border-gray-600 dark:text-gray-100 text-sm border border-gray-300 rounded-lg px-3 py-2 pr-8 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                        >
+                          <option value="admin">admin</option>
+                          <option value="staff">staff</option>
+                        </select>
+                      )}
                     </td>
                     <td className="px-6 py-3 text-gray-500 dark:text-gray-400">{formatDate(m.createdAt)}</td>
                     <td className="px-6 py-3 text-right">
-                      {m.role !== 'admin' && (
+                      {m.id !== currentUser?.id && (
                         <Button
                           variant="ghost"
                           size="sm"
                           className="text-red-500 hover:text-red-700"
+                          aria-label={`Remove ${m.email}`}
                           loading={revokeMutation.isPending && revokeMutation.variables === m.id}
                           onClick={() => handleRevoke(m)}
                         >
@@ -258,6 +291,15 @@ function TeamTab() {
                 onChange={(e) => setInviteEmail(e.target.value)}
               />
             </div>
+            <select
+              aria-label="Invite role"
+              value={inviteRole}
+              onChange={(e) => setInviteRole(e.target.value as TeamRole)}
+              className="appearance-none bg-white dark:bg-gray-700 dark:border-gray-600 dark:text-gray-100 text-sm border border-gray-300 rounded-lg px-3 py-2 pr-8 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+            >
+              <option value="staff">Staff</option>
+              <option value="admin">Admin</option>
+            </select>
             <Button type="submit" loading={inviteMutation.isPending}>
               <UserPlus className="h-4 w-4 mr-1.5" />
               Send invite
@@ -277,6 +319,7 @@ function TeamTab() {
               <thead className="bg-gray-50 dark:bg-gray-700/50 text-xs text-gray-500 dark:text-gray-400 uppercase">
                 <tr>
                   <th className="px-6 py-3 text-left">Email</th>
+                  <th className="px-6 py-3 text-left">Role</th>
                   <th className="px-6 py-3 text-left">Sent</th>
                   <th className="px-6 py-3" />
                 </tr>
@@ -285,6 +328,9 @@ function TeamTab() {
                 {data.pendingInvites.map((inv: PendingInvite) => (
                   <tr key={inv.id}>
                     <td className="px-6 py-3 dark:text-gray-100">{inv.email}</td>
+                    <td className="px-6 py-3">
+                      <Badge variant={inv.role === 'admin' ? 'blue' : 'gray'}>{inv.role}</Badge>
+                    </td>
                     <td className="px-6 py-3 text-gray-500 dark:text-gray-400">{formatDate(inv.createdAt)}</td>
                     <td className="px-6 py-3">
                       <div className="flex gap-2 justify-end">

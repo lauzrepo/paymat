@@ -1,4 +1,4 @@
-import { screen, fireEvent } from '@testing-library/react';
+import { screen, fireEvent, within } from '@testing-library/react';
 import { vi, describe, it, expect, beforeEach, type Mock } from 'vitest';
 import { renderWithProviders, mockQuery, mockMutation } from '../../../test/renderWithProviders';
 import { FamiliesPage } from '../FamiliesPage';
@@ -52,13 +52,15 @@ describe('FamiliesPage', () => {
 
   it('renders family names in the table', () => {
     renderWithProviders(<FamiliesPage />);
-    expect(screen.getByText('Johnson Family')).toBeInTheDocument();
-    expect(screen.getByText('Smith Family')).toBeInTheDocument();
+    const table = within(screen.getByRole('table'));
+    expect(table.getByText('Johnson Family')).toBeInTheDocument();
+    expect(table.getByText('Smith Family')).toBeInTheDocument();
   });
 
   it('renders billing emails in the table', () => {
     renderWithProviders(<FamiliesPage />);
-    expect(screen.getByText('johnson@example.com')).toBeInTheDocument();
+    const table = within(screen.getByRole('table'));
+    expect(table.getByText('johnson@example.com')).toBeInTheDocument();
   });
 
   it('shows member counts in the table', () => {

@@ -1,10 +1,11 @@
-import { screen } from '@testing-library/react';
+import { screen, within } from '@testing-library/react';
 import { vi, describe, it, expect, beforeEach, type Mock } from 'vitest';
 import { renderWithProviders, mockQuery, mockMutation } from '../../../test/renderWithProviders';
 import { FamilyDetailPage } from '../FamilyDetailPage';
 
 vi.mock('../../../hooks/useFamilies', () => ({
   useFamily: vi.fn(),
+  useUpdateFamily: vi.fn(),
   useDeleteFamily: vi.fn(),
 }));
 
@@ -26,7 +27,7 @@ vi.mock('react-router-dom', async () => {
   };
 });
 
-import { useFamily, useDeleteFamily } from '../../../hooks/useFamilies';
+import { useFamily, useUpdateFamily, useDeleteFamily } from '../../../hooks/useFamilies';
 
 const FAMILY = {
   id: 'f-1',
@@ -40,6 +41,7 @@ const FAMILY = {
 
 beforeEach(() => {
   (useFamily as Mock).mockReturnValue(mockQuery(FAMILY));
+  (useUpdateFamily as Mock).mockReturnValue(mockMutation());
   (useDeleteFamily as Mock).mockReturnValue(mockMutation());
 });
 
@@ -90,7 +92,8 @@ describe('FamilyDetailPage', () => {
       ],
     }));
     renderWithProviders(<FamilyDetailPage />);
-    expect(screen.getByText('Emma Johnson')).toBeInTheDocument();
+    const table = within(screen.getByRole('table'));
+    expect(table.getByText('Emma Johnson')).toBeInTheDocument();
   });
 
   it('renders Save card on file button', () => {

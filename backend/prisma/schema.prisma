@@ -303,6 +303,7 @@ model StaffInvite {
   token          String    @unique @default(uuid())
   organizationId String    @map("organization_id")
   email          String
+  role           String    @default("staff")
   invitedBy      String    @map("invited_by")
   usedAt         DateTime? @map("used_at")
   createdAt      DateTime  @default(now()) @map("created_at")

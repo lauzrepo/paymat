@@ -271,11 +271,16 @@ function ReportsCard() {
 
   const years = Array.from({ length: 5 }, (_, i) => now.getFullYear() - i);
 
-  useEffect(() => {
+  // Changing the report period invalidates any preview or email status shown for the old one
+  const selectPeriod = (next: { mode?: 'monthly' | 'annual'; year?: number; month?: number }) => {
+    if ((next.mode ?? mode) === mode && (next.year ?? year) === year && (next.month ?? month) === month) return;
+    if (next.mode) setMode(next.mode);
+    if (next.year) setYear(next.year);
+    if (next.month) setMonth(next.month);
     setPreview(null);
     setEmailSent(false);
     setEmailError('');
-  }, [mode, year, month]);
+  };
 
   const loadPreview = async () => {
     setPreviewLoading(true);
@@ -352,13 +357,13 @@ function ReportsCard() {
         <div className="flex flex-wrap items-center gap-3">
           <div className="flex rounded-lg border border-gray-200 dark:border-gray-600 overflow-hidden text-sm">
             <button
-              onClick={() => setMode('monthly')}
+              onClick={() => selectPeriod({ mode: 'monthly' })}
               className={`px-4 py-2 font-medium transition-colors ${mode === 'monthly' ? 'bg-indigo-600 text-white' : 'bg-white dark:bg-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-600'}`}
             >
               Monthly
             </button>
             <button
-              onClick={() => setMode('annual')}
+              onClick={() => selectPeriod({ mode: 'annual' })}
               className={`px-4 py-2 font-medium transition-colors ${mode === 'annual' ? 'bg-indigo-600 text-white' : 'bg-white dark:bg-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-600'}`}
             >
               Annual (1099)
@@ -366,7 +371,7 @@ function ReportsCard() {
           </div>
           <select
             value={year}
-            onChange={(e) => setYear(Number(e.target.value))}
+            onChange={(e) => selectPeriod({ year: Number(e.target.value) })}
             className="appearance-none bg-white dark:bg-gray-700 dark:text-gray-100 text-sm border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500"
           >
             {years.map((y) => <option key={y} value={y}>{y}</option>)}
@@ -374,7 +379,7 @@ function ReportsCard() {
           {mode === 'monthly' && (
             <select
               value={month}
-              onChange={(e) => setMonth(Number(e.target.value))}
+              onChange={(e) => selectPeriod({ month: Number(e.target.value) })}
               className="appearance-none bg-white dark:bg-gray-700 dark:text-gray-100 text-sm border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500"
             >
               {MONTH_NAMES.map((name, i) => <option key={i + 1} value={i + 1}>{name}</option>)}
